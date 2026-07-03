@@ -1,0 +1,173 @@
+/**
+ * Expo App Configuration with Icons and Splash Screens
+ * app.json configuration for iOS and Android builds
+ */
+
+module.exports = {
+  "expo": {
+    "name": "EduTalk",
+    "slug": "edutalk",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTabletMode": true,
+      "supportsSceneKit": true,
+      "bundleIdentifier": "com.edutalk.app",
+      "buildNumber": "1.0.0",
+      "icon": "./assets/icon.png",
+      "splash": {
+        "image": "./assets/splash-ios.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      },
+      "splash2": {
+        "image": "./assets/splash-ios-2.png",
+        "tabletImage": "./assets/splash-ios-tablet.png"
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "privacyManifests": [
+        {
+          "NSPrivacyTracking": false,
+          "NSPrivacyTrackingDomains": []
+        }
+      ]
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#667eea"
+      },
+      "splash": {
+        "image": "./assets/splash-android.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.edutalk.app",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE",
+        "VIBRATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#667eea"
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to access your Face ID"
+        }
+      ],
+      [
+        "expo-file-system",
+        {}
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
+          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
+    ],
+    "schemes": [
+      "edutalk",
+      "edutalk-api"
+    ],
+    "owner": "edutalk",
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id-here"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/your-project-id-here",
+      "enabled": true,
+      "checkOnLaunch": "always",
+      "fallbackToCacheTimeout": 30000
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    }
+  }
+};
+
+/**
+ * Icon generation guide:
+ * 
+ * Required icons:
+ * - icon.png: 1024x1024 (app icon)
+ * - splash.png: 1242x2436 (splash screen)
+ * - splash-ios.png: 1170x2532 (iPhone)
+ * - splash-ios-tablet.png: 2048x2732 (iPad)
+ * - splash-android.png: 1080x2220 (Android)
+ * - adaptive-icon.png: 1080x1080 (Android adaptive icon)
+ * - notification-icon.png: 96x96 (notification icon, white on transparent)
+ * - favicon.png: 192x192 (web favicon)
+ * 
+ * Icons should be:
+ * - PNG format with transparency where needed
+ * - High quality (72 DPI minimum)
+ * - Safe zone: Leave 10% margin on all sides for adaptive icons
+ * - Branding colors: #667eea (primary), #f093fb (secondary)
+ * 
+ * Splash screen tips:
+ * - Center your main content
+ * - Use safe zone (avoid top/bottom 20%)
+ * - Include app logo and name
+ * - Use brand colors consistently
+ * - Test on different device sizes
+ */
+
+/**
+ * Asset generation command (if using expo-cli):
+ * 
+ * Generate icons from a single source image:
+ * npx expo-cli@latest image-to-assets icon.png
+ * npx expo-cli@latest image-to-assets splash.png --splash
+ * 
+ * Or manually:
+ * 1. Create base image (1024x1024 minimum)
+ * 2. Use online tools to generate different sizes
+ * 3. Place files in assets/ directory
+ */
+
+/**
+ * EAS Build configuration for submission:
+ * 
+ * iOS:
+ * - Requires Apple Developer account ($99/year)
+ * - Need provisioning profiles
+ * - Code signing certificates
+ * 
+ * Android:
+ * - Requires Google Play Developer account ($25 one-time)
+ * - Need app signing key (will generate)
+ * - Accept licensing agreements
+ */

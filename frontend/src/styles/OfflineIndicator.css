@@ -1,0 +1,65 @@
+.offline-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+  z-index: 999;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.offline-indicator.offline {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+}
+
+.offline-indicator.online {
+  background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+}
+
+.indicator-content {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.indicator-icon {
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.indicator-text {
+  flex: 1;
+}
+
+@media (max-width: 480px) {
+  .offline-indicator {
+    padding: 10px 12px;
+  }
+
+  .indicator-content {
+    font-size: 13px;
+    gap: 6px;
+  }
+
+  .indicator-icon {
+    font-size: 14px;
+  }
+}

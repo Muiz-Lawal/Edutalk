@@ -1,0 +1,344 @@
+/* Bundle Management Page */
+
+.bundle-management {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.bundle-management__header {
+  margin-bottom: 32px;
+}
+
+.bundle-management__header h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 700;
+  color: #333;
+}
+
+.bundle-management__subtitle {
+  margin: 0;
+  font-size: 16px;
+  color: #666;
+}
+
+/* Action Bar */
+.bundle-management__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+  gap: 12px;
+}
+
+.bundle-management__create-btn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.bundle-management__create-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+}
+
+.bundle-management__create-btn:active {
+  transform: translateY(0);
+}
+
+/* Controls */
+.bundle-management__controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.bundle-management__search,
+.bundle-management__filter,
+.bundle-management__sort {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.bundle-management__search {
+  flex: 1;
+  min-width: 200px;
+}
+
+.bundle-management__search:focus,
+.bundle-management__filter:focus,
+.bundle-management__sort:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.bundle-management__filter,
+.bundle-management__sort {
+  min-width: 150px;
+}
+
+/* Error Banner */
+.bundle-management__error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #ffebee;
+  border: 1px solid #ef5350;
+  border-radius: 8px;
+  color: #c62828;
+  margin-bottom: 24px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bundle-management__close-error {
+  background: none;
+  border: none;
+  color: #c62828;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 16px;
+}
+
+/* Modal */
+.bundle-management__modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.bundle-management__modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading State */
+.bundle-management__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+}
+
+.bundle-management__spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f0f0f0;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bundle-management__loading p {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Empty State */
+.bundle-management__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.bundle-management__empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.bundle-management__empty h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  color: #333;
+}
+
+.bundle-management__empty p {
+  margin: 0 0 24px;
+  color: #666;
+  max-width: 400px;
+}
+
+.bundle-management__empty-btn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.bundle-management__empty-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+/* Grid */
+.bundle-management__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 1200px) {
+  .bundle-management__grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .bundle-management__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Stats Footer */
+.bundle-management__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 24px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 32px;
+}
+
+.bundle-management__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bundle-management__stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bundle-management__stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+/* Error State */
+.bundle-management__error {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.bundle-management__error h2 {
+  margin: 0 0 12px;
+  color: #333;
+}
+
+.bundle-management__error p {
+  margin: 0;
+  color: #666;
+  max-width: 400px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .bundle-management {
+    padding: 16px;
+  }
+
+  .bundle-management__header h1 {
+    font-size: 24px;
+  }
+
+  .bundle-management__controls {
+    flex-direction: column;
+  }
+
+  .bundle-management__search,
+  .bundle-management__filter,
+  .bundle-management__sort {
+    width: 100%;
+  }
+
+  .bundle-management__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

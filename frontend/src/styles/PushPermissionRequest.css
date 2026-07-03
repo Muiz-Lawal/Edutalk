@@ -1,0 +1,241 @@
+/* Push Permission Request Styles */
+
+.push-permission-request {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 999;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+.push-permission-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+  padding: 20px;
+  width: 360px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  position: relative;
+}
+
+.push-permission-icon {
+  font-size: 48px;
+  animation: gentle-bounce 2s ease-in-out infinite;
+}
+
+@keyframes gentle-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.push-permission-text h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.push-permission-text p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* Actions */
+.push-permission-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.btn {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-enable {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-enable:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-enable:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-dismiss {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.btn-dismiss:hover:not(:disabled) {
+  background: #efefef;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Close Button */
+.close-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-x:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .push-permission-request {
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+  }
+
+  .push-permission-content {
+    width: 100%;
+    max-width: none;
+  }
+
+  .push-permission-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+}
+
+/* Tablet */
+@media (min-width: 481px) and (max-width: 768px) {
+  .push-permission-request {
+    bottom: 16px;
+    right: 16px;
+  }
+
+  .push-permission-content {
+    width: 340px;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .push-permission-content {
+    background: #222;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  }
+
+  .push-permission-text h3 {
+    color: #fff;
+  }
+
+  .push-permission-text p {
+    color: #aaa;
+  }
+
+  .btn-dismiss {
+    background: #333;
+    color: #fff;
+    border-color: #555;
+  }
+
+  .btn-dismiss:hover:not(:disabled) {
+    background: #444;
+  }
+
+  .close-x {
+    color: #666;
+  }
+
+  .close-x:hover {
+    background: #333;
+    color: #fff;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .push-permission-request {
+    animation: none;
+  }
+
+  .push-permission-icon {
+    animation: none;
+  }
+
+  .btn {
+    transition: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: more) {
+  .push-permission-content {
+    border: 2px solid currentColor;
+  }
+
+  .btn {
+    border-width: 2px;
+  }
+}

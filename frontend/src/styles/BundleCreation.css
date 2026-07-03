@@ -1,0 +1,395 @@
+.bundle-creation {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.creation-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.creation-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.creation-header p {
+  font-size: 1.125rem;
+  color: #6b7280;
+}
+
+.success-message {
+  background: #d1fae5;
+  color: #065f46;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border: 1px solid #a7f3d0;
+}
+
+.error-message {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border: 1px solid #fecaca;
+}
+
+.bundle-form {
+  background: white;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-section {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.form-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.form-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 16px;
+}
+
+.form-section > p {
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500 !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto !important;
+  margin: 0 !important;
+}
+
+.no-classes {
+  text-align: center;
+  padding: 32px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 2px dashed #d1d5db;
+}
+
+.create-class-link {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.create-class-link:hover {
+  text-decoration: underline;
+}
+
+.classes-selection {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.class-option {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.class-option:last-child {
+  border-bottom: none;
+}
+
+.class-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.class-checkbox:hover {
+  background: #f9fafb;
+}
+
+.class-checkbox input[type="checkbox"] {
+  margin-top: 2px;
+  transform: scale(1.2);
+}
+
+.class-info {
+  flex: 1;
+}
+
+.class-name {
+  font-weight: 500;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.class-price {
+  color: #059669;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.class-category {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.selected-count {
+  margin-top: 16px;
+  padding: 12px;
+  background: #eff6ff;
+  color: #1e40af;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.pricing-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.pricing-preview {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.pricing-preview h3 {
+  margin-bottom: 16px;
+  color: #1f2937;
+  font-size: 1.125rem;
+}
+
+.pricing-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pricing-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.pricing-row:last-child {
+  border-bottom: none;
+}
+
+.pricing-row.savings {
+  color: #dc2626;
+  font-weight: 600;
+  border-top: 2px solid #fecaca;
+  margin-top: 8px;
+  padding-top: 12px;
+}
+
+.form-actions {
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.btn {
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btn-primary:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.section-description {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 24px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.help-text {
+  color: #6b7280;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  display: block;
+}
+
+.dynamic-pricing-config {
+  margin-top: 16px;
+  padding: 20px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.dynamic-pricing-config h3 {
+  margin-bottom: 16px;
+  color: #1f2937;
+  font-size: 1.125rem;
+}
+
+.thresholds-list, .seasons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.threshold-item, .season-item {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.threshold-inputs, .season-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.threshold-inputs .form-group,
+.season-inputs .form-group {
+  margin-bottom: 0;
+}
+
+.threshold-inputs .form-group label,
+.season-inputs .form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.threshold-preview, .season-preview {
+  color: #059669;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.pricing-note {
+  margin-top: 24px;
+  padding: 16px;
+  background: #fef3c7;
+  border-radius: 8px;
+  border: 1px solid #fcd34d;
+}
+
+.pricing-note p {
+  margin: 0;
+  color: #92400e;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .bundle-creation {
+    padding: 16px;
+  }
+
+  .creation-header h1 {
+    font-size: 2rem;
+  }
+
+  .bundle-form {
+    padding: 24px;
+  }
+
+  .pricing-options {
+    grid-template-columns: 1fr;
+  }
+
+  .class-checkbox {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .threshold-inputs, .season-inputs {
+    grid-template-columns: 1fr;
+  }
+}

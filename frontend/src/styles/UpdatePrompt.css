@@ -1,0 +1,167 @@
+.update-prompt {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 16px;
+  z-index: 1001;
+  animation: slideDown 0.3s ease-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 120px;
+  overflow: hidden;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-120px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.update-content {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: white;
+  position: relative;
+}
+
+.update-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.update-text {
+  flex: 1;
+}
+
+.update-text h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.update-text p {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.update-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-update,
+.btn-later {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-update {
+  background: white;
+  color: #667eea;
+}
+
+.btn-update:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-update:active {
+  transform: translateY(0);
+}
+
+.btn-later {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.btn-later:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 768px) {
+  .update-prompt {
+    top: auto;
+    bottom: 0;
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(120px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .update-content {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .update-text {
+    width: 100%;
+    flex: none;
+  }
+
+  .update-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .btn-update,
+  .btn-later {
+    padding: 10px 14px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .update-prompt {
+    padding: 12px;
+  }
+
+  .update-icon {
+    font-size: 20px;
+  }
+
+  .update-text h3 {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .update-text p {
+    font-size: 11px;
+  }
+
+  .update-actions {
+    width: 100%;
+  }
+
+  .btn-update,
+  .btn-later {
+    flex: 1;
+    padding: 10px 8px;
+  }
+}

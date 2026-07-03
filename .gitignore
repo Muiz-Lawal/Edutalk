@@ -1,0 +1,131 @@
+# ============================================================================
+# Environment Variables - NEVER COMMIT THESE
+# ============================================================================
+.env
+.env.local
+.env.*.local
+.env.test
+.env.production.local
+.env.development.local
+
+# ============================================================================
+# Node.js / Dependencies
+# ============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+lerna-debug.log
+
+# ============================================================================
+# Build & Distribution
+# ============================================================================
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+coverage/
+.nyc_output/
+
+# ============================================================================
+# IDE & Editor
+# ============================================================================
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+!.vscode/extensions.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ============================================================================
+# OS Specific
+# ============================================================================
+Thumbs.db
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# ============================================================================
+# Logs
+# ============================================================================
+*.log
+*.log.*
+logs/
+backend.error.log
+backend.log
+
+# ============================================================================
+# Testing
+# ============================================================================
+.nyc_output/
+**/*.test.js
+
+# ============================================================================
+# Package Manager
+# ============================================================================
+*.tgz
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ============================================================================
+# Temporary Files
+# ============================================================================
+tmp/
+temp/
+*.tmp
+.turbo/
+
+# ============================================================================
+# Database
+# ============================================================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================================================
+# MongoDB
+# ============================================================================
+.mongorc.js
+
+# ============================================================================
+# Development Documentation (keep these local only)
+# ============================================================================
+PHASE_*.md
+ADMIN_*.md
+SESSION_*.md
+QUICK_*.md
+DEBUG_*.md
+test_*.ps1
+test_*.js
+*_COMPLETE.md
+*_SUMMARY.md
+*_STATUS.md
+*_REPORT.md
+*_GUIDE.md
+*_PLAN.md
+phase-*.js
+phase*.mjs
+change-admin-password.js
+create-admin.js
+setup-admin.js
+setup-multi-admin.js
+setup-phase6b-testing.js
+create-test-data.js
+start-servers.bat

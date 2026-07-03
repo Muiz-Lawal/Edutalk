@@ -1,0 +1,216 @@
+.achievement-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  position: relative;
+}
+
+.achievement-badge--small {
+  width: 70px;
+}
+
+.achievement-badge--medium {
+  width: 100px;
+}
+
+.achievement-badge--large {
+  width: 140px;
+}
+
+.achievement-badge--locked {
+  opacity: 0.6;
+  filter: grayscale(100%);
+}
+
+.achievement-badge__container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.achievement-badge__icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3em;
+  background: white;
+  border-radius: 12px;
+  border: 3px solid var(--badge-color, #e5e7eb);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.achievement-badge--common .achievement-badge__icon {
+  border-color: #d1d5db;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+}
+
+.achievement-badge--rare .achievement-badge__icon {
+  border-color: #60a5fa;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+.achievement-badge--epic .achievement-badge__icon {
+  border-color: #a78bfa;
+  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+}
+
+.achievement-badge--legendary .achievement-badge__icon {
+  border-color: #fbbf24;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+.achievement-badge:hover:not(.achievement-badge--locked) .achievement-badge__icon {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.achievement-badge__glow {
+  position: absolute;
+  inset: -4px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, transparent, rgba(59, 130, 246, 0.1));
+  animation: achievement-glow 2s infinite;
+  pointer-events: none;
+}
+
+@keyframes achievement-glow {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.achievement-badge__lock {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  font-size: 1.5em;
+  background: white;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.achievement-badge__label {
+  width: 100%;
+  text-align: center;
+}
+
+.achievement-badge__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  word-wrap: break-word;
+  line-height: 1.2;
+}
+
+.achievement-badge__tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 200px;
+  z-index: 1000;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+.achievement-badge:hover .achievement-badge__tooltip {
+  pointer-events: auto;
+}
+
+.achievement-badge__tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.achievement-badge__tooltip-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.achievement-badge__tooltip-points {
+  background: #dcfce7;
+  color: #166534;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.achievement-badge__tooltip-description {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.achievement-badge__tooltip-rarity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.achievement-badge__tooltip-rarity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.achievement-badge__tooltip-rarity-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.achievement-badge__tooltip-unlocked {
+  margin: 0;
+  font-size: 11px;
+  color: #059669;
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .achievement-badge--large {
+    width: 100px;
+  }
+
+  .achievement-badge__tooltip {
+    min-width: 160px;
+    padding: 10px;
+  }
+
+  .achievement-badge__icon {
+    font-size: 2.5em;
+  }
+
+  .achievement-badge__title {
+    font-size: 11px;
+  }
+}

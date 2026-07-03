@@ -1,0 +1,449 @@
+.leaderboard-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.leaderboard-page__header {
+  margin-bottom: 32px;
+}
+
+.leaderboard-page__title {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.leaderboard-page__subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.leaderboard-page__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  font-size: 16px;
+  color: #6b7280;
+}
+
+.leaderboard-page__error {
+  background: #fee2e2;
+  border: 2px solid #fecaca;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  color: #991b1b;
+}
+
+.leaderboard-page__controls {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.leaderboard-page__control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.leaderboard-page__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.leaderboard-page__select {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.leaderboard-page__select:hover {
+  border-color: #9ca3af;
+}
+
+.leaderboard-page__select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.leaderboard-page__user-rank {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 2px solid #3b82f6;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.leaderboard-page__user-rank-content {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr;
+  align-items: center;
+  gap: 24px;
+}
+
+.leaderboard-page__user-rank-medal {
+  font-size: 48px;
+  text-align: center;
+}
+
+.leaderboard-page__user-rank-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.leaderboard-page__user-rank-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.leaderboard-page__user-rank-text {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.leaderboard-page__user-rank-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.leaderboard-page__progress-bar {
+  height: 8px;
+  background: #d1d5db;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.leaderboard-page__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  transition: width 0.3s ease;
+}
+
+.leaderboard-page__points-to-next {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.leaderboard-page__table-container {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+}
+
+.leaderboard-page__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboard-page__table-head {
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.leaderboard-page__th {
+  padding: 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.leaderboard-page__th--rank {
+  width: 80px;
+}
+
+.leaderboard-page__th--name {
+  flex: 1;
+}
+
+.leaderboard-page__th--score {
+  width: 120px;
+  text-align: center;
+}
+
+.leaderboard-page__th--stats {
+  width: 140px;
+  text-align: center;
+}
+
+.leaderboard-page__th--badges {
+  width: 150px;
+  text-align: center;
+}
+
+.leaderboard-page__table-body {
+  display: table-row-group;
+}
+
+.leaderboard-page__table-row {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.3s ease;
+}
+
+.leaderboard-page__table-row:hover {
+  background: #f9fafb;
+}
+
+.leaderboard-page__table-row--top {
+  background: #fffbeb;
+}
+
+.leaderboard-page__table-row--current-user {
+  background: #f0f9ff;
+  font-weight: 600;
+}
+
+.leaderboard-page__td {
+  padding: 16px;
+  font-size: 13px;
+  color: #1f2937;
+}
+
+.leaderboard-page__td--rank {
+  width: 80px;
+}
+
+.leaderboard-page__rank-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.leaderboard-page__student-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.leaderboard-page__student-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.leaderboard-page__student-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.leaderboard-page__student-name {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.leaderboard-page__you-label {
+  background: #dcfce7;
+  color: #166534;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.leaderboard-page__student-email {
+  margin: 2px 0 0 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.leaderboard-page__score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.leaderboard-page__score-value {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.leaderboard-page__trend {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.leaderboard-page__trend--up {
+  color: #22c55e;
+}
+
+.leaderboard-page__trend--down {
+  color: #ef4444;
+}
+
+.leaderboard-page__stats {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.leaderboard-page__stat {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.leaderboard-page__badges {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
+.leaderboard-page__badge-more {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.leaderboard-page__legend {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.leaderboard-page__legend-title {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.leaderboard-page__legend-items {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.leaderboard-page__legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.leaderboard-page__legend-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.leaderboard-page__legend-item span:last-child {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .leaderboard-page__user-rank-content {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .leaderboard-page__th--stats {
+    display: none;
+  }
+
+  .leaderboard-page__td--stats {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .leaderboard-page__th--badges {
+    display: none;
+  }
+
+  .leaderboard-page__td--badges {
+    display: none;
+  }
+
+  .leaderboard-page__legend-items {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .leaderboard-page {
+    padding: 16px;
+  }
+
+  .leaderboard-page__title {
+    font-size: 22px;
+  }
+
+  .leaderboard-page__user-rank {
+    padding: 16px;
+  }
+
+  .leaderboard-page__user-rank-medal {
+    font-size: 36px;
+  }
+
+  .leaderboard-page__table-container {
+    overflow-x: auto;
+  }
+
+  .leaderboard-page__th,
+  .leaderboard-page__td {
+    padding: 12px 8px;
+    font-size: 11px;
+  }
+
+  .leaderboard-page__th--name {
+    min-width: 120px;
+  }
+
+  .leaderboard-page__student-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .leaderboard-page__student-name {
+    font-size: 12px;
+  }
+}

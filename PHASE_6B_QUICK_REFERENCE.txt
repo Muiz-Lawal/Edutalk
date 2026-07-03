@@ -1,0 +1,129 @@
+# 🎯 PHASE 6B TESTING - QUICK REFERENCE CARD
+
+**Print this out or keep it open!**
+
+---
+
+## ONE-LINER COMMAND
+
+```powershell
+cd C:\Users\abdul\Desktop\class; .\PHASE_6B_API_TEST.ps1 -Token "PASTE_YOUR_TOKEN_HERE"
+```
+
+---
+
+## GET YOUR TOKEN (Copy-Paste Ready)
+
+1. Open: http://localhost:5173
+2. Press: F12
+3. Click: Console tab
+4. Paste: `localStorage.getItem('token')`
+5. Press: Enter
+6. Copy: The long string that appears
+
+---
+
+## RUN THE TEST
+
+```powershell
+.\PHASE_6B_API_TEST.ps1 -Token "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNTY4YWJjZGVmMTJhYmNkZTU2OGFiY2RlZiIsImlhdCI6MTcxNzMyNDI5MH0.Jk8_J2L5K9j1R4F7E3P0M2N5Q8S7T3V6W1X4Y9Z2B"
+```
+
+---
+
+## WHAT TO EXPECT
+
+```
+✓ Green = Endpoint working (200 OK)
+✗ Red = Endpoint failing (401/404/500)
+```
+
+---
+
+## TEST BREAKDOWN
+
+| Section | Tests | Type |
+|---------|-------|------|
+| Progress | 9 | GET/POST |
+| Certificates | 10 | GET/POST |
+| Achievements | 9 | GET/POST |
+| **TOTAL** | **28** | **✓/✗** |
+
+---
+
+## SUCCESS LEVELS
+
+| Pass Rate | Status |
+|-----------|--------|
+| 28/28 | 🎉 PERFECT - Move to frontend |
+| 24-27 | ✅ GOOD - Minor fixes |
+| 20-23 | ⚠️ OK - Debug needed |
+| <20 | ❌ ISSUES - Check backend |
+
+---
+
+## TROUBLESHOOTING
+
+| Error | Fix |
+|-------|-----|
+| 401 Unauthorized | Get new token |
+| Connection Refused | `cd backend && npm run dev` |
+| Script won't run | Run PowerShell as Admin |
+| Token expired | Refresh & get new token |
+
+---
+
+## NEXT STEPS
+
+1. Run the test
+2. Check results
+3. If 24+ pass: Frontend testing
+4. If <24 pass: Debug & retest
+
+---
+
+## KEY FILES
+
+- `PHASE_6B_API_TEST.ps1` - The test script
+- `PHASE_6B_RUN_TESTS_NOW.md` - Quick guide
+- `PHASE_6B_API_TESTING_WALKTHROUGH.md` - Detailed guide
+
+---
+
+## QUICK FACTS
+
+- 28 total API endpoints
+- ~2 minute test runtime
+- 5 minutes total (including token)
+- No manual curl commands needed
+- Automatic pass/fail reporting
+
+---
+
+**Ready? Get your token and run the command! 🚀**
+
+---
+
+## BACKEND STATUS CHECK
+
+```powershell
+# If unsure if backend is running:
+curl http://localhost:5000/api/health
+
+# Or check if port is listening:
+netstat -ano | findstr :5000
+```
+
+---
+
+## TOKEN TIPS
+
+- Valid for: ~24 hours
+- Starts with: `eyJ...`
+- In localStorage: Always available after login
+- Expires: When browser session ends
+- Get new one: Just login again
+
+---
+
+**YOU'RE 5 MINUTES AWAY FROM COMPLETE API VALIDATION! 🎉**

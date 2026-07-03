@@ -1,0 +1,164 @@
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  gap: 1rem;
+}
+
+.header .logo {
+  text-decoration: none;
+  color: white;
+  flex-shrink: 0;
+}
+
+.header .logo h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.header .nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Group auth buttons so login/signup sit together */
+.header .nav .auth-buttons {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.header .nav-link,
+.header .nav-button,
+.header .points-inline,
+.header .language-switcher {
+  white-space: nowrap;
+}
+
+.header .nav .auth-buttons .nav-link {
+  padding-right: 0.25rem;
+}
+.header .nav .auth-buttons .nav-button {
+  margin-left: 6px;
+}
+
+/* Move language switcher slightly to the right */
+.header .nav .language-switcher {
+  margin-left: 8px;
+}
+
+.header .nav-link {
+  color: white;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: opacity 0.3s;
+}
+
+.header .nav-link:hover {
+  opacity: 0.8;
+}
+
+.header .nav-button {
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: none;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+  background: white;
+  color: #667eea;
+  font-weight: 500;
+}
+
+.header .nav-button:hover {
+  transform: translateY(-1px);
+}
+
+.header .points-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.header .nav-button.logout {
+  background: transparent;
+  color: white;
+  border: 2px solid white;
+}
+
+.header .nav-button.logout:hover {
+  background: white;
+  color: #667eea;
+}
+
+/* Mobile Menu Button */
+.mobile-menu-button {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  z-index: 1000;
+}
+
+.mobile-menu-button span {
+  width: 28px;
+  height: 3px;
+  background: white;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .header .container {
+    flex-wrap: nowrap;
+  }
+
+  .header .nav {
+    display: none;
+  }
+
+  .mobile-menu-button {
+    display: flex;
+    margin-left: auto;
+  }
+
+  .header .logo h1 {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .header .container {
+    padding: 0 1rem;
+  }
+
+  .header .logo h1 {
+    font-size: 1rem;
+  }
+}
+

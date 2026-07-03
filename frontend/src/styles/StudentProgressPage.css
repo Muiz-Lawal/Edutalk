@@ -1,0 +1,237 @@
+.student-progress-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.student-progress-page__header {
+  margin-bottom: 32px;
+}
+
+.student-progress-page__title {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.student-progress-page__subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.student-progress-page__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 16px;
+}
+
+.student-progress-page__spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.student-progress-page__loading p {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.student-progress-page__error {
+  background: #fef2f2;
+  border: 2px solid #fecaca;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.student-progress-page__error-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.student-progress-page__error-content {
+  flex: 1;
+}
+
+.student-progress-page__error-message {
+  margin: 0 0 8px 0;
+  color: #991b1b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.student-progress-page__error-button {
+  padding: 6px 12px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.student-progress-page__error-button:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.student-progress-page__error-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.student-progress-page__container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.student-progress-page__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.student-progress-page__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.student-progress-page__section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.student-progress-page__cards-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.student-progress-page__empty {
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 32px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.student-progress-page__empty p {
+  margin: 8px 0;
+}
+
+.student-progress-page__details {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.student-progress-page__stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.student-progress-page__stat-box {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.student-progress-page__stat-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.student-progress-page__stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.student-progress-page__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.student-progress-page__button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.student-progress-page__button--primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.student-progress-page__button--primary:hover {
+  background: #2563eb;
+}
+
+.student-progress-page__button--secondary {
+  background: white;
+  color: #3b82f6;
+  border: 2px solid #3b82f6;
+}
+
+.student-progress-page__button--secondary:hover {
+  background: #eff6ff;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .student-progress-page__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .student-progress-page {
+    padding: 16px;
+  }
+
+  .student-progress-page__title {
+    font-size: 22px;
+  }
+
+  .student-progress-page__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .student-progress-page__actions {
+    flex-direction: column;
+  }
+}

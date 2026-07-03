@@ -1,0 +1,393 @@
+/* WaitingRoom.css - Countdown timer and pre-stream interface */
+
+.waiting-room {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.waiting-room-container {
+  max-width: 1000px;
+  width: 100%;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 20px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(102, 126, 234, 0.1);
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Banner Section */
+.banner-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40px 20px;
+  text-align: center;
+  color: white;
+}
+
+.going-live-banner {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.going-live-banner h2 {
+  font-size: 28px;
+  margin: 0 0 20px 0;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.countdown-display {
+  font-size: 48px;
+  font-weight: 700;
+  font-family: 'Monaco', 'Courier New', monospace;
+  letter-spacing: 2px;
+  line-height: 1.2;
+}
+
+.redirect-message {
+  font-size: 14px;
+  margin-top: 15px;
+  opacity: 0.9;
+  animation: fadeInOut 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Content Section */
+.waiting-room-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  padding: 40px;
+  background: #f8f9fa;
+}
+
+/* Host Profile Card */
+.host-profile-card {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.card-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: #667eea;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+
+.host-avatar {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 15px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.host-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  font-size: 40px;
+  font-weight: 700;
+  color: white;
+}
+
+.host-name {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: #1a1a1a;
+}
+
+.host-bio {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.host-stats {
+  display: flex;
+  justify-content: space-around;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  gap: 15px;
+}
+
+.stat {
+  flex: 1;
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Class Info Section */
+.class-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.class-info-card {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.class-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 15px 0;
+  color: #1a1a1a;
+}
+
+.class-description {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.stream-details {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-item .label {
+  font-weight: 500;
+  color: #666;
+}
+
+.detail-item .value {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.waiting-tips {
+  background: #e3f2fd;
+  border-left: 4px solid #667eea;
+  padding: 15px;
+  border-radius: 4px;
+}
+
+.waiting-tips h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.waiting-tips ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.waiting-tips li {
+  padding: 4px 0;
+  color: #1a1a1a;
+}
+
+/* Chat Disabled Section */
+.chat-disabled-section {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.chat-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: #667eea;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+
+.chat-disabled-overlay {
+  min-height: 150px;
+  background: #f8f9fa;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Error Message */
+.error-message {
+  background: #ffebee;
+  border-left: 4px solid #f44336;
+  padding: 15px 20px;
+  margin: 20px;
+  border-radius: 4px;
+  color: #c62828;
+  font-size: 14px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .waiting-room-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .going-live-banner h2 {
+    font-size: 22px;
+  }
+
+  .countdown-display {
+    font-size: 36px;
+  }
+
+  .banner-section {
+    padding: 30px 20px;
+  }
+
+  .host-profile-card,
+  .class-info-card,
+  .chat-disabled-section {
+    padding: 20px;
+  }
+
+  .class-title {
+    font-size: 20px;
+  }
+
+  .host-avatar {
+    width: 80px;
+    height: 80px;
+  }
+
+  .avatar-placeholder {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .waiting-room {
+    padding: 10px;
+  }
+
+  .waiting-room-container {
+    border-radius: 12px;
+  }
+
+  .banner-section {
+    padding: 20px 15px;
+  }
+
+  .going-live-banner h2 {
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+
+  .countdown-display {
+    font-size: 28px;
+    letter-spacing: 1px;
+  }
+
+  .waiting-room-content {
+    padding: 15px;
+    gap: 15px;
+  }
+
+  .host-profile-card,
+  .class-info-card,
+  .chat-disabled-section {
+    padding: 15px;
+  }
+
+  .host-stats {
+    gap: 10px;
+  }
+
+  .class-title {
+    font-size: 18px;
+  }
+
+  .card-header {
+    font-size: 12px;
+  }
+}

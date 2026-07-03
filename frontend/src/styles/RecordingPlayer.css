@@ -1,0 +1,171 @@
+.recording-player {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2rem;
+  padding: 2rem;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.player-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.video-wrapper {
+  position: relative;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+}
+
+.video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  color: rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+  user-select: none;
+  text-align: center;
+}
+
+.video-info h2 {
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.video-info p {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-item .label {
+  font-size: 0.85rem;
+  color: #999;
+  text-transform: uppercase;
+}
+
+.info-item .value {
+  font-weight: 600;
+  color: #333;
+}
+
+.player-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sidebar-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-section h3 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.transcript,
+.summary {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #666;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.placeholder {
+  color: #ccc;
+  font-style: italic;
+}
+
+.takeaways {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.takeaways li {
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-left: 3px solid #667eea;
+  padding-left: 0.75rem;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.chapters-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chapter-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: left;
+}
+
+.chapter-btn:hover {
+  background: #f0f0f0;
+  border-color: #667eea;
+}
+
+.chapter-btn .time {
+  font-family: monospace;
+  color: #667eea;
+  font-weight: 600;
+  min-width: 50px;
+}
+
+.chapter-btn .title {
+  flex: 1;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 1024px) {
+  .recording-player {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

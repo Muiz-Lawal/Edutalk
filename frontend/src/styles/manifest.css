@@ -1,0 +1,92 @@
+/* Web Manifest & Install Prompt Styling */
+
+/* Install Prompt Modal */
+.install-prompt {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease-out;
+  z-index: 1000;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.install-prompt__content {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.install-prompt__content h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.install-prompt__content p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  opacity: 0.95;
+}
+
+.install-prompt__actions {
+  display: flex;
+  gap: 12px;
+}
+
+.install-btn--primary,
+.install-btn--secondary {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.install-btn--primary {
+  background: white;
+  color: #667eea;
+}
+
+.install-btn--primary:hover {
+  background: #f0f0f0;
+  transform: translateY(-1px);
+}
+
+.install-btn--secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.install-btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+  .install-prompt {
+    padding: 16px;
+  }
+
+  .install-prompt__actions {
+    flex-direction: column;
+  }
+
+  .install-btn--primary,
+  .install-btn--secondary {
+    width: 100%;
+  }
+}

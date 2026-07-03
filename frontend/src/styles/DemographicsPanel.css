@@ -1,0 +1,141 @@
+.demographics-panel {
+  width: 100%;
+}
+
+.demographics-section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 25px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.demographics-section .section-header {
+  margin-bottom: 20px;
+}
+
+.demographics-section h3 {
+  font-size: 16px;
+  color: #2c3e50;
+  margin: 0 0 5px 0;
+  font-weight: 600;
+}
+
+.demographics-section > p {
+  font-size: 13px;
+  color: #7f8c8d;
+  margin: 5px 0 0 0;
+}
+
+.demographics-summary {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.demographics-summary h3 {
+  font-size: 16px;
+  color: #2c3e50;
+  margin: 0 0 20px 0;
+}
+
+.summary-tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.summary-table-wrapper {
+  background: white;
+  border-radius: 6px;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+}
+
+.summary-table-wrapper h4 {
+  font-size: 13px;
+  text-transform: uppercase;
+  color: #7f8c8d;
+  margin: 0 0 12px 0;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.demographics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.demographics-table tr {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+  align-items: center;
+}
+
+.demographics-table tr:last-child {
+  border-bottom: none;
+}
+
+.demographics-table td {
+  padding: 0;
+}
+
+.demographics-table td:first-child {
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.demographics-table td:last-child {
+  color: #7f8c8d;
+  text-align: right;
+}
+
+/* Chart Container */
+.demographics-panel .chart-container {
+  background: transparent;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .summary-tables {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .demographics-section {
+    padding: 15px;
+  }
+
+  .summary-tables {
+    grid-template-columns: 1fr;
+  }
+
+  .demographics-section h3 {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .demographics-section {
+    padding: 12px;
+  }
+
+  .demographics-summary {
+    padding: 15px;
+  }
+
+  .summary-table-wrapper {
+    padding: 12px;
+  }
+
+  .demographics-table {
+    font-size: 12px;
+  }
+}

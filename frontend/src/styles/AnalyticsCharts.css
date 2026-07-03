@@ -1,0 +1,261 @@
+.chart-container {
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.chart-container h3 {
+  font-size: 16px;
+  color: #2c3e50;
+  margin: 0 0 15px 0;
+  font-weight: 600;
+}
+
+.chart-empty {
+  text-align: center;
+  color: #95a5a6;
+  font-size: 14px;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+/* Custom Tooltip */
+.custom-tooltip {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 15px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  z-index: 1000;
+}
+
+.tooltip-time,
+.tooltip-label,
+.tooltip-quality {
+  margin: 0 0 5px 0;
+  font-weight: 600;
+  color: #fff;
+}
+
+.tooltip-time:last-child,
+.tooltip-viewers:last-child,
+.tooltip-bitrate:last-child,
+.tooltip-percentage:last-child,
+.tooltip-value:last-child {
+  margin-bottom: 0;
+}
+
+.tooltip-viewers,
+.tooltip-bitrate,
+.tooltip-percentage,
+.tooltip-value {
+  margin: 5px 0 0 0;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* Quality Summary Table */
+.quality-summary {
+  margin-top: 20px;
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.quality-summary h3 {
+  font-size: 14px;
+  color: #2c3e50;
+  margin: 0 0 10px 0;
+}
+
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.summary-table tr {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.summary-table tr:last-child {
+  border-bottom: none;
+}
+
+.quality-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.quality-percentage {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Engagement Metrics */
+.engagement-metrics {
+  width: 100%;
+}
+
+.engagement-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.engagement-kpi {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 3px solid #9b59b6;
+}
+
+.engagement-kpi h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #7f8c8d;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.5px;
+}
+
+.kpi-number {
+  font-size: 22px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.engagement-insights {
+  background: #e8f5e9;
+  border-left: 3px solid #2ecc71;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.engagement-insights h3 {
+  font-size: 14px;
+  color: #27ae60;
+  margin: 0 0 10px 0;
+}
+
+.engagement-insights ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.engagement-insights li {
+  font-size: 13px;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+/* Retention Curve */
+.retention-curve {
+  width: 100%;
+}
+
+.retention-summary {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.retention-summary h3 {
+  font-size: 16px;
+  color: #2c3e50;
+  margin: 0 0 15px 0;
+}
+
+.retention-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+}
+
+.retention-stat {
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+  border: 1px solid #e0e0e0;
+}
+
+.retention-stat h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #7f8c8d;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2ecc71;
+  margin: 0;
+}
+
+.retention-insights {
+  background: #fff3cd;
+  border-left: 3px solid #f39c12;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.retention-insights h3 {
+  font-size: 14px;
+  color: #d68910;
+  margin: 0 0 10px 0;
+}
+
+.retention-insights ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.retention-insights li {
+  font-size: 13px;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chart-container {
+    padding: 15px;
+  }
+
+  .engagement-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .retention-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .engagement-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .retention-stats {
+    grid-template-columns: 1fr;
+  }
+}

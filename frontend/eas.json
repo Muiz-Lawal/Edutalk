@@ -1,0 +1,69 @@
+/**
+ * Expo Application Services (EAS) Build Configuration
+ * For submitting to Apple App Store and Google Play Store
+ */
+
+module.exports = {
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview2": {
+      "android": {
+        "buildType": "aab"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "aab"
+      },
+      "ios": {
+        "buildType": "archive"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccount": "path/to/service-account.json",
+        "track": "internal"
+      },
+      "ios": {
+        "appleId": "your-apple-id@icloud.com",
+        "ascAppId": "your-app-id",
+        "appleTeamId": "your-team-id"
+      }
+    }
+  }
+};
+
+/**
+ * Configuration Guide:
+ * 
+ * 1. Initialize EAS in your project:
+ *    eas init
+ * 
+ * 2. Configure for iOS:
+ *    - Apple Developer account required
+ *    - Create App ID in App Store Connect
+ *    - Generate API key for App Store Connect
+ *    - eas build --platform ios --auto-submit
+ * 
+ * 3. Configure for Android:
+ *    - Google Play account required
+ *    - Download service account key JSON
+ *    - Place in project root as service-account.json
+ *    - eas build --platform android --auto-submit
+ * 
+ * 4. Build commands:
+ *    eas build --platform android --profile production
+ *    eas build --platform ios --profile production
+ *    eas submit --platform android
+ *    eas submit --platform ios
+ * 
+ * 5. Status monitoring:
+ *    eas build:list
+ *    eas build:view <BUILD_ID>
+ */

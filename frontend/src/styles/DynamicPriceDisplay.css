@@ -1,0 +1,133 @@
+.dynamic-price-display {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.price-container {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.current-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.current-price.discounted {
+  color: #dc2626;
+}
+
+.base-price-strike {
+  font-size: 1rem;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+.price-factors {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.price-factor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--factor-color);
+  background: rgba(255, 255, 255, 0.8);
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.factor-icon {
+  font-size: 0.875rem;
+}
+
+.factor-description {
+  flex: 1;
+  font-weight: 500;
+}
+
+.factor-value {
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 6px;
+  border-radius: 8px;
+  color: var(--factor-color);
+}
+
+.savings-badge {
+  background: #dc2626;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.dynamic-price-loading {
+  display: flex;
+  align-items: center;
+}
+
+.price-skeleton {
+  width: 120px;
+  height: 24px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.dynamic-price-error {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.base-price {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.error-text {
+  color: #dc2626;
+  font-size: 0.75rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .current-price {
+    font-size: 1.25rem;
+  }
+
+  .base-price-strike {
+    font-size: 0.875rem;
+  }
+
+  .price-factor {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+  }
+
+  .factor-icon {
+    font-size: 0.75rem;
+  }
+}

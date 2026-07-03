@@ -1,0 +1,212 @@
+.progress-timeline {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.progress-timeline__title {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.progress-timeline__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.progress-timeline__empty p {
+  margin: 0;
+}
+
+.progress-timeline__container {
+  position: relative;
+}
+
+.progress-timeline__line {
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+}
+
+.progress-timeline__event {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.progress-timeline__event:last-child {
+  margin-bottom: 0;
+}
+
+.progress-timeline__marker {
+  flex-shrink: 0;
+  width: 56px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  top: 0;
+}
+
+.progress-timeline__dot {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  transition: all 0.3s ease;
+}
+
+.progress-timeline__event:hover .progress-timeline__dot {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.progress-timeline__dot-icon {
+  font-size: 20px;
+  display: block;
+}
+
+.progress-timeline__content {
+  flex: 1;
+  padding-top: 4px;
+}
+
+.progress-timeline__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.progress-timeline__event-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.progress-timeline__date {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.progress-timeline__description {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.progress-timeline__metadata {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.progress-timeline__meta-item {
+  font-size: 12px;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.progress-timeline__meta-item strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* Timeline Event Type Colors */
+.progress-timeline__event:nth-child(1) .progress-timeline__dot {
+  border-color: #3b82f6;
+  background: #dbeafe;
+}
+
+.progress-timeline__event:nth-child(2) .progress-timeline__dot {
+  border-color: #f59e0b;
+  background: #fef3c7;
+}
+
+.progress-timeline__event:nth-child(3) .progress-timeline__dot {
+  border-color: #22c55e;
+  background: #dcfce7;
+}
+
+.progress-timeline__event:nth-child(4) .progress-timeline__dot {
+  border-color: #8b5cf6;
+  background: #ede9fe;
+}
+
+.progress-timeline__event:nth-child(5) .progress-timeline__dot {
+  border-color: #06b6d4;
+  background: #cffafe;
+}
+
+.progress-timeline__event:nth-child(n+6) .progress-timeline__dot {
+  border-color: #ec4899;
+  background: #fce7f3;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .progress-timeline {
+    padding: 16px;
+  }
+
+  .progress-timeline__event {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .progress-timeline__marker {
+    width: 48px;
+  }
+
+  .progress-timeline__dot {
+    width: 36px;
+    height: 36px;
+    border-width: 2px;
+  }
+
+  .progress-timeline__dot-icon {
+    font-size: 16px;
+  }
+
+  .progress-timeline__line {
+    left: 16px;
+  }
+
+  .progress-timeline__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .progress-timeline__event-title {
+    font-size: 13px;
+  }
+
+  .progress-timeline__date {
+    font-size: 11px;
+  }
+}

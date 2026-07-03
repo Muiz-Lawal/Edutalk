@@ -1,0 +1,314 @@
+.at-risk-students-list {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.at-risk-students-list__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.at-risk-students-list__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.at-risk-students-list__badge {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.at-risk-students-list__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #10b981;
+  font-size: 14px;
+  text-align: center;
+}
+
+.at-risk-students-list__empty p {
+  margin: 0;
+}
+
+.at-risk-students-list__controls {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.at-risk-students-list__filter,
+.at-risk-students-list__sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.at-risk-students-list__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.at-risk-students-list__select {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+  color: #1f2937;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.at-risk-students-list__select:hover {
+  border-color: #9ca3af;
+}
+
+.at-risk-students-list__select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.at-risk-students-list__container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.at-risk-students-list__item {
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.at-risk-students-list__item--critical {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.at-risk-students-list__item--critical:hover {
+  border-color: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+.at-risk-students-list__item--warning {
+  border-color: #fed7aa;
+  background: #fffbeb;
+}
+
+.at-risk-students-list__item--warning:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+}
+
+.at-risk-students-list__item--monitoring {
+  border-color: #bfdbfe;
+  background: #f0f9ff;
+}
+
+.at-risk-students-list__item--monitoring:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.at-risk-students-list__risk-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.at-risk-students-list__risk-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.at-risk-students-list__risk-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.at-risk-students-list__info {
+  margin-bottom: 12px;
+}
+
+.at-risk-students-list__student-name {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.at-risk-students-list__student-email {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.at-risk-students-list__metrics {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.at-risk-students-list__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
+}
+
+.at-risk-students-list__metric-label {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.at-risk-students-list__metric-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.at-risk-students-list__recommendations {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 6px;
+}
+
+.at-risk-students-list__rec-title {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.at-risk-students-list__rec-list {
+  margin: 0;
+  padding: 0 0 0 16px;
+  list-style: none;
+}
+
+.at-risk-students-list__rec-item {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.at-risk-students-list__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.at-risk-students-list__button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.at-risk-students-list__button--contact {
+  background: #3b82f6;
+  color: white;
+}
+
+.at-risk-students-list__button--contact:hover {
+  background: #2563eb;
+}
+
+.at-risk-students-list__button--details {
+  background: white;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+}
+
+.at-risk-students-list__button--details:hover {
+  background: #eff6ff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .at-risk-students-list {
+    padding: 16px;
+  }
+
+  .at-risk-students-list__controls {
+    flex-direction: column;
+  }
+
+  .at-risk-students-list__filter,
+  .at-risk-students-list__sort {
+    width: 100%;
+  }
+
+  .at-risk-students-list__select {
+    width: 100%;
+  }
+
+  .at-risk-students-list__metrics {
+    gap: 8px;
+  }
+
+  .at-risk-students-list__metric {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 640px) {
+  .at-risk-students-list__item {
+    padding: 12px;
+  }
+
+  .at-risk-students-list__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .at-risk-students-list__actions {
+    flex-direction: column;
+  }
+
+  .at-risk-students-list__button {
+    width: 100%;
+  }
+
+  .at-risk-students-list__metrics {
+    justify-content: space-between;
+  }
+
+  .at-risk-students-list__metric {
+    flex: 1;
+    min-width: 60px;
+  }
+}

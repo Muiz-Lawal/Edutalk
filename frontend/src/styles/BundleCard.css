@@ -1,0 +1,234 @@
+.bundle-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.bundle-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.bundle-header {
+  padding: 16px 20px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bundle-category {
+  background: #f0f9ff;
+  color: #0369a1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.bundle-discount-badge {
+  background: #dc2626;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.bundle-content {
+  padding: 16px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.bundle-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.bundle-description {
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  flex: 1;
+}
+
+.bundle-classes {
+  margin-bottom: 16px;
+}
+
+.bundle-classes h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.class-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.class-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.class-item:last-child {
+  border-bottom: none;
+}
+
+.class-name {
+  color: #374151;
+  flex: 1;
+}
+
+.class-price {
+  color: #059669;
+  font-weight: 500;
+}
+
+.original-price {
+  color: #9ca3af;
+  text-decoration: line-through;
+  margin-left: 8px;
+  font-size: 0.75rem;
+}
+
+.class-item.more {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.bundle-pricing {
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.pricing-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.original-total {
+  color: #9ca3af;
+  text-decoration: line-through;
+  font-size: 0.875rem;
+  align-self: flex-end;
+}
+
+.dynamic-price-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bundle-label {
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.savings-amount {
+  color: #dc2626;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.bundle-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  font-size: 0.875rem;
+}
+
+.bundle-host {
+  color: #6b7280;
+}
+
+.bundle-stats {
+  display: flex;
+  gap: 12px;
+}
+
+.enrollment-count {
+  color: #6b7280;
+}
+
+.host-rating {
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.bundle-actions {
+  padding: 0 20px 20px;
+  display: flex;
+  gap: 12px;
+}
+
+.btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-secondary {
+  background: white;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+@media (max-width: 768px) {
+  .bundle-card {
+    margin-bottom: 16px;
+  }
+
+  .bundle-actions {
+    flex-direction: column;
+  }
+
+  .bundle-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

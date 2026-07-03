@@ -1,0 +1,14 @@
+{
+  "name": "edutalk-admin-setup",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Admin setup script for EduTalk",
+  "main": "setup-multi-admin.js",
+  "scripts": {
+    "setup": "node setup-multi-admin.js"
+  },
+  "dependencies": {
+    "mongoose": "^7.0.0",
+    "bcryptjs": "^2.4.3"
+  }
+}
