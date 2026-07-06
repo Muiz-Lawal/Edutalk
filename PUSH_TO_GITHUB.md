@@ -165,6 +165,22 @@ git push -u origin main
 
 **First push might take a few minutes** (uploading all files).
 
+### Step 9b: Push new changes later
+
+```powershell
+# Stage all changed and new files
+git add .
+
+# Or stage all changes plus deletions
+git add -A
+
+git commit -m "Update project with new changes"
+git push origin main
+```
+
+- `git add .` stages new and modified files in the current directory.
+- `git add -A` also stages deletions, so removed files are included in the next commit.
+
 ### Step 10: Verify on GitHub
 
 1. Open https://github.com/YOUR-USERNAME/edutalk
