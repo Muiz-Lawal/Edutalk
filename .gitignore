@@ -124,6 +124,7 @@ phase-*.js
 phase*.mjs
 # Allow Phase 1 & Phase 6B documentation to be tracked
 !PHASE1_*.md
+!SESSION_PHASE1_COMPLETE.md
 !MVP_ROADMAP_OFFICIAL.md
 !COMPLETE_IMPLEMENTATION_AUDIT.md
 !IMPLEMENTATION_START_HERE.md
