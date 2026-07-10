@@ -122,7 +122,8 @@ test_*.js
 *_PLAN.md
 phase-*.js
 phase*.mjs
-# Allow Phase 1 & Phase 6B documentation to be tracked
+# Allow core specification and Phase 1/6B documentation to be tracked
+!EDUTALK_COMPLETE_SPECIFICATION.md
 !PHASE1_*.md
 !SESSION_PHASE1_COMPLETE.md
 !MVP_ROADMAP_OFFICIAL.md
@@ -134,6 +135,7 @@ phase*.mjs
 !PHASE_6B_VALIDATION_TEST.md
 !QUICK_START_PHASE_6B.md
 !phase6b-tests.mjs
+!PHASE1_IMPLEMENTATION_ROADMAP.md
 change-admin-password.js
 create-admin.js
 setup-admin.js
