@@ -375,7 +375,7 @@ export default function EmailTemplateEditor() {
                       variables.map((v, idx) => (
                         <div key={idx} className="variable-item">
                           <div className="variable-info">
-                            <strong>{{'{' + v.name + '}'}} </strong>
+                            <strong>{`{{${v.name}}}`}</strong>
                             {v.description && <span>{v.description}</span>}
                             {v.defaultValue && <span className="default">Default: {v.defaultValue}</span>}
                           </div>
