@@ -69,6 +69,9 @@ const AdminAnalytics = React.lazy(() => import('./pages/AdminAnalytics').then(mo
 const AdminLogs = React.lazy(() => import('./pages/AdminLogs').then(module => ({ default: module.AdminLogs })));
 const AdminSettings = React.lazy(() => import('./pages/AdminSettings'));
 
+// Phase 6C - Email Notifications
+const EmailTemplateEditor = React.lazy(() => import('./pages/EmailTemplateEditor'));
+
 // Lazy load heavy components
 const VideoRoom = React.lazy(() => import('./components/VideoRoom'));
 const TwoFASetup = React.lazy(() => import('./components/TwoFASetup'));
@@ -379,6 +382,17 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* Phase 6C - Email Notifications */}
+            <Route
+              path="/admin/email-templates"
+              element={
+                <ProtectedRoute>
+                  <EmailTemplateEditor />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               path="/admin/management"
               element={
