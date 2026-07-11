@@ -136,6 +136,7 @@ phase*.mjs
 !QUICK_START_PHASE_6B.md
 !phase6b-tests.mjs
 !PHASE1_IMPLEMENTATION_ROADMAP.md
+!test_phase1_auth.ps1
 change-admin-password.js
 create-admin.js
 setup-admin.js
