@@ -34,6 +34,7 @@ const BundleCreation = React.lazy(() => import('./pages/BundleCreation'));
 const DynamicPricingPage = React.lazy(() => import('./pages/DynamicPricingPage'));
 const DiscountManager = React.lazy(() => import('./pages/DiscountManager'));
 const EnrollmentPage = React.lazy(() => import('./pages/EnrollmentPage'));
+const CreateClassPage = React.lazy(() => import('./pages/CreateClassPage'));
 const ModerationPage = React.lazy(() => import('./pages/ModerationPage'));
 const UserAppealsPage = React.lazy(() => import('./pages/UserAppealsPage'));
 const LiveStreamHost = React.lazy(() => import('./pages/LiveStreamHost'));
@@ -144,6 +145,14 @@ function App() {
               element={
                 <ProtectedRoute requireHost>
                   <HostDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create-class"
+              element={
+                <ProtectedRoute requireHost>
+                  <CreateClassPage />
                 </ProtectedRoute>
               }
             />

@@ -30,6 +30,7 @@ import progressRoutes from './routes/progressRoutes.js';
 import certificateRoutes from './routes/certificateRoutes.js';
 import achievementRoutes from './routes/achievementRoutes.js';
 import pointsRoutes from './routes/pointsRoutes.js';
+import emailRoutes from './routes/emailRoutes.js';
 import emailScheduler from './services/emailScheduler.js';
 import aiModerationService from './services/aiModerationService.js';
 
@@ -457,6 +458,7 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/points', pointsRoutes);
+app.use('/api/email', emailRoutes);
 
 // Events API (client-side event tracking)
 app.use('/api/events', eventRoutes);
