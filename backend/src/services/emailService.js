@@ -11,32 +11,47 @@ import nodemailer from 'nodemailer';
 let transporter = null;
 
 const initializeTransporter = () => {
-  // For development/testing, use ethereal test account
-  if (process.env.NODE_ENV === 'development') {
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+  const smtpSecure = process.env.SMTP_SECURE === 'true';
+  const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const smtpPass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD || process.env.EMAIL_PASSWORD;
+
+  if (smtpHost && smtpUser && smtpPass) {
     return nodemailer.createTransport({
-      service: 'gmail',
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
       auth: {
-        user: process.env.EMAIL_USER || '',
-        pass: process.env.EMAIL_PASSWORD || '',
+        user: smtpUser,
+        pass: smtpPass,
       },
     });
   }
 
-  // For production, use SendGrid or other provider
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD,
-    },
-  });
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+  }
+
+  throw new Error('No valid email transporter configuration found. Set SMTP_HOST, SMTP_USER, and SMTP_PASS or EMAIL_USER and EMAIL_PASSWORD.');
 };
 
 class EmailService {
   constructor() {
-    this.transporter = initializeTransporter();
+    this.transporter = null;
+  }
+
+  getTransporter() {
+    if (!this.transporter) {
+      this.transporter = initializeTransporter();
+    }
+    return this.transporter;
   }
 
   /**
@@ -45,7 +60,7 @@ class EmailService {
   async sendEmail(to, subject, htmlBody, options = {}) {
     try {
       const mailOptions = {
-        from: process.env.EMAIL_FROM || 'noreply@edutalk.app',
+        from: process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@edutalk.app',
         to,
         subject,
         html: htmlBody,
@@ -54,11 +69,8 @@ class EmailService {
         bcc: options.bcc,
       };
 
-      if (!this.transporter) {
-        throw new Error('Email transporter not configured');
-      }
-
-      const result = await this.transporter.sendMail(mailOptions);
+      const transporter = this.getTransporter();
+      const result = await transporter.sendMail(mailOptions);
 
       return {
         success: true,
@@ -223,12 +235,13 @@ class EmailService {
     try {
       const jobs = recipients.map(recipient => {
         const to = typeof recipient === 'string' ? recipient : recipient.email;
-        const variables = typeof recipient === 'object' ? recipient.variables : {};
+        const variables = typeof recipient === 'object' ? recipient.variables || {} : {};
 
         return {
           to,
           subject: this.interpolateTemplate(subject, variables),
           htmlBody: this.interpolateTemplate(htmlBody, variables),
+          templateVariables: variables,
           ...options,
         };
       });
@@ -239,6 +252,8 @@ class EmailService {
           ...job,
           scheduledFor: options.scheduledFor || new Date(),
           priority: options.priority || 'normal',
+          templateId: options.templateId || job.templateId,
+          userId: options.userId || job.userId,
         }))
       );
 

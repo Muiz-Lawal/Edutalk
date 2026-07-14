@@ -74,8 +74,8 @@ export const authorizeAdmin = async (req, res, next) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const user = await User.findById(req.user.userId).select('role');
-    if (!user || user.role !== 'admin') {
+    const user = await User.findById(req.user.userId).select('isAdmin adminRole');
+    if (!user || !user.isAdmin) {
       return res.status(403).json({ message: 'Admin access required' });
     }
 
