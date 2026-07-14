@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Navigate, Link } from 'react-router-dom';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import RecommendationMetrics from '../components/RecommendationMetrics';
+import LoadingSpinner from '../components/LoadingSpinner';
 import api from '../utils/api';
 import '../styles/Dashboard.css';
 
@@ -30,7 +31,7 @@ export default function HostDashboardPage() {
   };
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <LoadingSpinner fullPage={true} message="Loading dashboard..." />;
   }
 
   if (!isAuthenticated || !user?.isHost) {

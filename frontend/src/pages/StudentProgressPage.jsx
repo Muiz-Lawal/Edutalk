@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import useEventLogger from '../hooks/useEventLogger';
 import ProgressCard from '../components/ProgressCard';
 import ProgressTimeline from '../components/ProgressTimeline';
+import LoadingSpinner from '../components/LoadingSpinner';
 import api from '../utils/api';
 import '../styles/StudentProgressPage.css';
 
@@ -54,10 +55,7 @@ const StudentProgressPage = () => {
   if (loading) {
     return (
       <div className="student-progress-page">
-        <div className="student-progress-page__loading">
-          <div className="student-progress-page__spinner"></div>
-          <p>Loading your progress...</p>
-        </div>
+        <LoadingSpinner fullPage={true} message="Loading your progress..." />
       </div>
     );
   }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
+import LoadingSpinner from '../components/LoadingSpinner';
 import '../styles/Points.css';
 
 export default function PointsHistoryPage() {
@@ -33,7 +34,7 @@ export default function PointsHistoryPage() {
     }
   };
 
-  if (loading) return <div className="loading">Loading points...</div>;
+  if (loading) return <LoadingSpinner fullPage={true} message="Loading points..." />;
 
   return (
     <div className="points-page container">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import AchievementBadge from '../components/AchievementBadge';
+import LoadingSpinner from '../components/LoadingSpinner';
 import '../styles/AchievementsPage.css';
 import { useAuth } from '../hooks/useAuth';
 
@@ -54,7 +55,7 @@ const AchievementsPage = () => {
   if (loading) {
     return (
       <div className="achievements-page">
-        <div className="achievements-page__loading">Loading your achievements...</div>
+        <LoadingSpinner fullPage={true} message="Loading your achievements..." />
       </div>
     );
   }

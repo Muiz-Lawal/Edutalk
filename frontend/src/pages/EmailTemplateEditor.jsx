@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Navigate } from 'react-router-dom';
+import LoadingSpinner from '../components/LoadingSpinner';
 import api from '../utils/api';
 import '../styles/EmailTemplateEditor.css';
 
@@ -37,7 +38,7 @@ export default function EmailTemplateEditor() {
   const [showPreview, setShowPreview] = useState(false);
 
   if (loading) {
-    return <div className="loading-container">Loading...</div>;
+    return <LoadingSpinner fullPage={true} message="Loading email templates..." />;
   }
 
   if (!isAuthenticated || !user?.isAdmin) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 import CertificatePreview from '../components/CertificatePreview';
+import LoadingSpinner from '../components/LoadingSpinner';
 import '../styles/CertificateGalleryPage.css';
 
 const CertificateGalleryPage = () => {
@@ -120,7 +121,7 @@ const CertificateGalleryPage = () => {
   if (loading) {
     return (
       <div className="certificate-gallery-page">
-        <div className="certificate-gallery-page__loading">Loading certificates...</div>
+        <LoadingSpinner fullPage={true} message="Loading certificates..." />
       </div>
     );
   }

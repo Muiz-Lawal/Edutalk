@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Navigate, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import LoadingSpinner from '../components/LoadingSpinner';
 import '../styles/CreateClassPage.css';
 
 const CATEGORIES = ['Technology', 'Music', 'Business', 'Design', 'Languages', 'Fitness', 'Science', 'Arts', 'Cooking', 'Photography'];
@@ -42,7 +43,7 @@ export default function CreateClassPage() {
   const [showScheduleForm, setShowScheduleForm] = useState(false);
 
   if (loading) {
-    return <div className="loading-container">Loading...</div>;
+    return <LoadingSpinner fullPage={true} message="Loading..." />;
   }
 
   if (!isAuthenticated || !user?.isHost) {
@@ -600,7 +601,12 @@ export default function CreateClassPage() {
               className="btn btn-primary btn-lg"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Creating Class...' : 'Create Class'}
+              {isSubmitting ? (
+                <>
+                  <LoadingSpinner variant="inline" size="small" message="" />
+                  Creating Class...
+                </>
+              ) : 'Create Class'}
             </button>
             <button
               type="button"

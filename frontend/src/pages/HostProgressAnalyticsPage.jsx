@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 import ProgressChart from '../components/ProgressChart';
 import AtRiskStudentsList from '../components/AtRiskStudentsList';
+import LoadingSpinner from '../components/LoadingSpinner';
 import '../styles/HostProgressAnalyticsPage.css';
 
 const HostProgressAnalyticsPage = () => {
@@ -76,7 +77,7 @@ const HostProgressAnalyticsPage = () => {
   if (loading) {
     return (
       <div className="host-progress-analytics-page">
-        <div className="host-progress-analytics-page__loading">Loading analytics...</div>
+        <LoadingSpinner fullPage={true} message="Loading analytics..." />
       </div>
     );
   }

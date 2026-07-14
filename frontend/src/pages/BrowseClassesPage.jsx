@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
+import LoadingSpinner from '../components/LoadingSpinner';
 import '../styles/BrowseClasses.css';
 import { useNavigate } from 'react-router-dom';
 import useEventLogger from '../hooks/useEventLogger';
@@ -133,7 +134,7 @@ export default function BrowseClassesPage() {
             {recommendationLoading && <span>Loading recommendations...</span>}
           </div>
           {recommendationLoading ? (
-            <div className="loading">Loading recommendations...</div>
+            <LoadingSpinner variant="centered" size="medium" message="Loading recommendations..." />
           ) : recommendations.length > 0 ? (
             <div className="recommendations-grid">
               {recommendations.map((classItem) => (
@@ -167,7 +168,7 @@ export default function BrowseClassesPage() {
         </section>
 
         {loading ? (
-          <div className="loading">Loading classes...</div>
+          <LoadingSpinner variant="centered" size="medium" message="Loading classes..." />
         ) : classes.length > 0 ? (
           <div className="classes-grid">
             {classes.map((classItem) => (
