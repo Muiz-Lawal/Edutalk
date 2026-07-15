@@ -110,6 +110,7 @@ const EmailTemplateEditor = ({ templates, onSuccess }) => {
 
                 <div className="variable-input">
                   <input
+                    aria-label="New variable name"
                     type="text"
                     value={newVariable}
                     onChange={(e) => setNewVariable(e.target.value)}

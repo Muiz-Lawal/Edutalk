@@ -195,10 +195,10 @@ const ModerationQueue = () => {
             <option value="high">High</option>
           </select>
 
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="mq-filter" />
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="mq-filter" />
+          <input aria-label="Date from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="mq-filter" />
+          <input aria-label="Date to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="mq-filter" />
 
-          <input type="text" placeholder="User ID" value={userFilter} onChange={e => setUserFilter(e.target.value)} className="mq-filter" />
+          <input aria-label="Filter by user ID" type="text" placeholder="User ID" value={userFilter} onChange={e => setUserFilter(e.target.value)} className="mq-filter" />
 
           <select value={appealStatus} onChange={e => setAppealStatus(e.target.value)} className="mq-filter">
             <option value="">Any Appeal Status</option>
@@ -244,6 +244,7 @@ const ModerationQueue = () => {
               <tr>
                 <th>
                   <input
+                    aria-label="Select all moderation items"
                     type="checkbox"
                     onChange={e => {
                       if (e.target.checked) {
@@ -267,6 +268,7 @@ const ModerationQueue = () => {
                 <tr key={item._id} className={`mq-row mq-row--${item.flagged ? 'flagged' : 'clean'}`}>
                   <td>
                     <input
+                      aria-label={`Select item ${item._id}`}
                       type="checkbox"
                       checked={selectedItems.has(item._id)}
                       onChange={() => handleSelectItem(item._id)}

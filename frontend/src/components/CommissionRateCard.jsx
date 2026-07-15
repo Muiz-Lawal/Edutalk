@@ -62,6 +62,7 @@ const CommissionRateCard = ({ settings, onSuccess }) => {
                 {isEditing ? (
                   <div className="edit-rate">
                     <input
+                      aria-label={`Edit rate for ${tier} tier`}
                       type="number"
                       value={newRate}
                       onChange={(e) => setNewRate(e.target.value)}
