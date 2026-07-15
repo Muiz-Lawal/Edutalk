@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 
 export default function RefundManagementModal({ transaction, onClose }) {
   const [refundType, setRefundType] = useState('full');
@@ -361,8 +361,8 @@ export default function RefundManagementModal({ transaction, onClose }) {
 
       <div className="refund-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>↩️ Manage Refund</h2>
-          <button className="close-button" onClick={onClose}>✕</button>
+          <h2>â†©ï¸ Manage Refund</h2>
+          <button className="close-button" onClick={onClose}>âœ•</button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-content">
@@ -481,7 +481,7 @@ export default function RefundManagementModal({ transaction, onClose }) {
           {refundAmount > 0 && (
             <>
               <div className="warning-box">
-                ⚠️ This refund will impact platform revenue and host earnings. Both parties will be notified of the refund.
+                âš ï¸ This refund will impact platform revenue and host earnings. Both parties will be notified of the refund.
               </div>
 
               <div className="refund-calculation">
@@ -527,3 +527,4 @@ export default function RefundManagementModal({ transaction, onClose }) {
     </div>
   );
 }
+

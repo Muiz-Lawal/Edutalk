@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import '../styles/DynamicPricingManager.css';
 
@@ -336,9 +336,9 @@ export default function DynamicPricingManager({ bundleId }) {
                 {abTestForm.variants.map((variant, index) => (
                   <div key={index} className="variant-item">
                     <div className="variant-header">
-                      <input
+                      <input aria-label="Variant name"
                         type="text"
-                        placeholder="Variant name"
+                         placeholder="Variant name"
                         value={variant.name}
                         onChange={(e) => updateABTestVariant(index, 'name', e.target.value)}
                         required
@@ -349,7 +349,7 @@ export default function DynamicPricingManager({ bundleId }) {
                         className="remove-variant"
                         disabled={abTestForm.variants.length <= 2}
                       >
-                        ×
+                        Ã—
                       </button>
                     </div>
 
