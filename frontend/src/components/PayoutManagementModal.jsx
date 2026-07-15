@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 
 export default function PayoutManagementModal({ onClose }) {
   const [payoutType, setPayoutType] = useState('immediate');
@@ -318,8 +318,8 @@ export default function PayoutManagementModal({ onClose }) {
 
       <div className="payout-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>💳 Process Payout</h2>
-          <button className="close-button" onClick={onClose}>✕</button>
+          <h2>ðŸ’³ Process Payout</h2>
+          <button className="close-button" onClick={onClose}>âœ•</button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-content">
@@ -416,8 +416,8 @@ export default function PayoutManagementModal({ onClose }) {
               <h3>Schedule</h3>
               <div className="form-group">
                 <label>Payment Date</label>
-                <input 
-                  type="date" 
+                <input aria-label="Date input" 
+                   type="date" 
                   value={scheduledDate}
                   onChange={(e) => setScheduledDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
@@ -465,3 +465,4 @@ export default function PayoutManagementModal({ onClose }) {
     </div>
   );
 }
+
