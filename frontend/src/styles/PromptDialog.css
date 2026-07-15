@@ -1,0 +1,42 @@
+.prompt-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+
+.prompt-dialog {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+}
+
+.prompt-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.prompt-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn { padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+.btn-primary { background: #1d4ed8; color: #fff; border: none; }
+.btn-secondary { background: #e5e7eb; color: #111827; border: none; }

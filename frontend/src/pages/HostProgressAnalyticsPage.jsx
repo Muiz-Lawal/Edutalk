@@ -5,6 +5,7 @@ import api from '../utils/api';
 import ProgressChart from '../components/ProgressChart';
 import AtRiskStudentsList from '../components/AtRiskStudentsList';
 import LoadingSpinner from '../components/LoadingSpinner';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/HostProgressAnalyticsPage.css';
 
 const HostProgressAnalyticsPage = () => {
@@ -14,6 +15,7 @@ const HostProgressAnalyticsPage = () => {
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [filterPeriod, setFilterPeriod] = useState('week'); // week, month, all
 
   const handleExportCsv = async () => {
@@ -29,14 +31,23 @@ const HostProgressAnalyticsPage = () => {
       anchor.download = `class-progress-${classId}.csv`;
       anchor.click();
       window.URL.revokeObjectURL(url);
+      setSuccessMessage('CSV report downloaded successfully.');
+      setError(null);
     } catch (err) {
       console.error('Export failed:', err);
-      alert('Failed to download CSV report');
+      setError('Failed to download CSV report. Please try again.');
+      setSuccessMessage(null);
     }
   };
 
   const handleEmailReport = () => {
-    alert('Email reporting is not configured yet.');
+    setError('Email reporting is not configured yet.');
+    setSuccessMessage(null);
+  };
+
+  const handleExportPdf = () => {
+    setError('PDF export is not available yet.');
+    setSuccessMessage(null);
   };
 
   useEffect(() => {
@@ -84,6 +95,22 @@ const HostProgressAnalyticsPage = () => {
 
   return (
     <div className="host-progress-analytics-page">
+      {error && (
+        <MessageBanner
+          type="error"
+          title="Analytics unavailable"
+          message={error}
+          onClose={() => setError(null)}
+        />
+      )}
+      {successMessage && (
+        <MessageBanner
+          type="success"
+          title="Export complete"
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      )}
       <div className="host-progress-analytics-page__header">
         <h1 className="host-progress-analytics-page__title">Class Analytics & Progress</h1>
         <p className="host-progress-analytics-page__subtitle">
@@ -91,11 +118,6 @@ const HostProgressAnalyticsPage = () => {
         </p>
       </div>
 
-      {error && (
-        <div className="host-progress-analytics-page__error">
-          <p>Error: {error}</p>
-        </div>
-      )}
 
       {/* Period Filter */}
       <div className="host-progress-analytics-page__controls">
@@ -248,7 +270,7 @@ const HostProgressAnalyticsPage = () => {
       <div className="host-progress-analytics-page__actions">
         <button
           className="host-progress-analytics-page__button host-progress-analytics-page__button--primary"
-          onClick={() => alert('PDF export is not available yet.')}
+          onClick={handleExportPdf}
         >
           📊 Export Report (PDF)
         </button>

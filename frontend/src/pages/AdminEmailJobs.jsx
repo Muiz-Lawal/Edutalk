@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
+import MessageBanner from '../components/MessageBanner';
+import ConfirmDialog from '../components/ConfirmDialog';
 import '../styles/AdminEmailJobs.css';
 
 export default function AdminEmailJobs() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [page, setPage] = useState(1);
   const [limit] = useState(25);
 
   const [selectedJob, setSelectedJob] = useState(null);
   const [jobLoading, setJobLoading] = useState(false);
+
+  const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -27,11 +32,13 @@ export default function AdminEmailJobs() {
 
   const openJob = async (jobId) => {
     setJobLoading(true);
+    setError(null);
+    setSuccessMessage(null);
     try {
       const res = await api.get(`/admin/utilities/email-jobs/${jobId}`);
       setSelectedJob(res.data.job);
     } catch (err) {
-      alert('Failed to load job details: ' + (err.response?.data?.message || err.message));
+      setError('Failed to load job details: ' + (err.response?.data?.message || err.message));
     } finally {
       setJobLoading(false);
     }
@@ -39,16 +46,25 @@ export default function AdminEmailJobs() {
 
   const closeJob = () => setSelectedJob(null);
 
-  const sendNow = async (jobId) => {
-    if (!confirm('Send this email now?')) return;
-    try {
-      await api.post(`/admin/utilities/email-jobs/${jobId}/send`);
-      alert('Send attempted — check job status');
-      fetchJobs();
-      openJob(jobId);
-    } catch (err) {
-      alert('Failed to send job: ' + (err.response?.data?.error || err.message));
-    }
+  const sendNow = (jobId) => {
+    setConfirm({
+      open: true,
+      title: 'Send Email Now',
+      message: 'Send this email now?',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        setError(null);
+        setSuccessMessage(null);
+        try {
+          await api.post(`/admin/utilities/email-jobs/${jobId}/send`);
+          setSuccessMessage('Send attempted — check job status');
+          fetchJobs();
+          openJob(jobId);
+        } catch (err) {
+          setError('Failed to send job: ' + (err.response?.data?.error || err.message));
+        }
+      },
+    });
   };
 
   useEffect(() => {
@@ -56,34 +72,54 @@ export default function AdminEmailJobs() {
   }, [page]);
 
   const retryJob = async (jobId) => {
+    setError(null);
+    setSuccessMessage(null);
     try {
       await api.post(`/admin/utilities/email-jobs/${jobId}/retry`);
       fetchJobs();
-      alert('Job requeued');
+      setSuccessMessage('Job requeued');
     } catch (err) {
-      alert('Failed to retry job: ' + (err.response?.data?.message || err.message));
+      setError('Failed to retry job: ' + (err.response?.data?.message || err.message));
     }
   };
 
-  const runBadges = async () => {
-    if (!confirm('Trigger badge engine now?')) return;
-    try {
-      await api.post('/admin/utilities/run-badges');
-      alert('Badge engine triggered');
-    } catch (err) {
-      alert('Failed to trigger badge engine: ' + (err.response?.data?.message || err.message));
-    }
+  const runBadges = () => {
+    setConfirm({
+      open: true,
+      title: 'Trigger Badge Engine',
+      message: 'Trigger badge engine now?',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        setError(null);
+        setSuccessMessage(null);
+        try {
+          await api.post('/admin/utilities/run-badges');
+          setSuccessMessage('Badge engine triggered');
+        } catch (err) {
+          setError('Failed to trigger badge engine: ' + (err.response?.data?.message || err.message));
+        }
+      },
+    });
   };
 
-  const retryAllFailed = async () => {
-    if (!confirm('Requeue all failed email jobs?')) return;
-    try {
-      const res = await api.post('/admin/utilities/email-jobs/retry-all');
-      alert(`Requeued ${res.data.modifiedCount || 0} jobs`);
-      fetchJobs();
-    } catch (err) {
-      alert('Failed to requeue jobs: ' + (err.response?.data?.message || err.message));
-    }
+  const retryAllFailed = () => {
+    setConfirm({
+      open: true,
+      title: 'Requeue Failed Jobs',
+      message: 'Requeue all failed email jobs?',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        setError(null);
+        setSuccessMessage(null);
+        try {
+          const res = await api.post('/admin/utilities/email-jobs/retry-all');
+          setSuccessMessage(`Requeued ${res.data.modifiedCount || 0} jobs`);
+          fetchJobs();
+        } catch (err) {
+          setError('Failed to requeue jobs: ' + (err.response?.data?.message || err.message));
+        }
+      },
+    });
   };
 
   return (
@@ -97,7 +133,30 @@ export default function AdminEmailJobs() {
       </div>
 
       {loading && <div>Loading jobs...</div>}
-      {error && <div className="error">{error}</div>}
+      {error && (
+        <MessageBanner
+          type="error"
+          title="Email jobs error"
+          message={error}
+          onClose={() => setError(null)}
+        />
+      )}
+      {successMessage && (
+        <MessageBanner
+          type="success"
+          title="Email jobs"
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ open: false })}
+      />
 
       {!loading && !error && (
         <div>

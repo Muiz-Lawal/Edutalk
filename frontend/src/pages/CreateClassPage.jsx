@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Navigate, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import LoadingSpinner from '../components/LoadingSpinner';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/CreateClassPage.css';
 
 const CATEGORIES = ['Technology', 'Music', 'Business', 'Design', 'Languages', 'Fitness', 'Science', 'Arts', 'Cooking', 'Photography'];
@@ -195,16 +196,21 @@ export default function CreateClassPage() {
         </div>
 
         {error && (
-          <div className="alert alert-error">
-            <span>❌ {error}</span>
-            <button onClick={() => setError(null)} className="close-btn">×</button>
-          </div>
+          <MessageBanner
+            type="error"
+            title="Unable to create class"
+            message={error}
+            onClose={() => setError(null)}
+          />
         )}
-
+ 
         {successMessage && (
-          <div className="alert alert-success">
-            <span>✅ {successMessage}</span>
-          </div>
+          <MessageBanner
+            type="success"
+            title="Class created"
+            message={successMessage}
+            onClose={() => setSuccessMessage(null)}
+          />
         )}
 
         <form onSubmit={handleSubmit} className="create-class-form">

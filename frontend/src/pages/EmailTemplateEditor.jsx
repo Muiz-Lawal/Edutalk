@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
+import MessageBanner from '../components/MessageBanner';
+import ConfirmDialog from '../components/ConfirmDialog';
 import api from '../utils/api';
 import '../styles/EmailTemplateEditor.css';
 
@@ -184,23 +186,29 @@ export default function EmailTemplateEditor() {
     }
   };
 
-  const handleDelete = async () => {
+  const [confirm, setConfirm] = React.useState({ open: false, title: '', message: '', onConfirm: null });
+
+  const handleDelete = () => {
     if (!selectedTemplate) return;
 
-    if (!window.confirm('Are you sure you want to delete this template?')) {
-      return;
-    }
-
-    try {
-      await api.delete(`/email/templates/${selectedTemplate._id}`);
-      setSuccess('Template deleted successfully');
-      setTimeout(() => {
-        fetchTemplates();
-        setSelectedTemplate(null);
-      }, 1000);
-    } catch (err) {
-      setError('Error deleting template');
-    }
+    setConfirm({
+      open: true,
+      title: 'Delete Template',
+      message: 'Are you sure you want to delete this template?',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        try {
+          await api.delete(`/email/templates/${selectedTemplate._id}`);
+          setSuccess('Template deleted successfully');
+          setTimeout(() => {
+            fetchTemplates();
+            setSelectedTemplate(null);
+          }, 1000);
+        } catch (err) {
+          setError('Error deleting template');
+        }
+      },
+    });
   };
 
   return (
@@ -210,18 +218,30 @@ export default function EmailTemplateEditor() {
         <p className="subtitle">Create and manage email templates with variable interpolation</p>
 
         {error && (
-          <div className="alert alert-error">
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="close-btn">×</button>
-          </div>
+          <MessageBanner
+            type="error"
+            title="Template save failed"
+            message={error}
+            onClose={() => setError(null)}
+          />
         )}
 
         {success && (
-          <div className="alert alert-success">
-            <span>{success}</span>
-            <button onClick={() => setSuccess(null)} className="close-btn">×</button>
-          </div>
+          <MessageBanner
+            type="success"
+            title="Template saved"
+            message={success}
+            onClose={() => setSuccess(null)}
+          />
         )}
+
+        <ConfirmDialog
+          open={confirm.open}
+          title={confirm.title}
+          message={confirm.message}
+          onConfirm={confirm.onConfirm}
+          onCancel={() => setConfirm({ open: false })}
+        />
 
         <div className="editor-layout">
           {/* Template List Sidebar */}

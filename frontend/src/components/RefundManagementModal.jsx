@@ -70,7 +70,7 @@ export default function RefundManagementModal({ transaction, onClose }) {
         notes,
       });
 
-      alert('Refund initiated successfully!');
+      // Refund initiated successfully
       onClose();
     } catch (error) {
       setFormError(error.message);

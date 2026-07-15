@@ -1,4 +1,4 @@
-/**
+﻿/**
  * React Native - ProfileScreen
  * Mobile user profile and account settings
  */
@@ -12,9 +12,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
-  Alert,
+  
   Switch,
 } from 'react-native';
+import crossAlert from '../utils/crossPlatformAlert';
 import api from '../utils/api';
 
 const ProfileScreen = ({ navigation, user, setUser, setToken }) => {
@@ -44,7 +45,7 @@ const ProfileScreen = ({ navigation, user, setUser, setToken }) => {
   };
 
   const handleLogout = () => {
-    Alert.alert('Confirm', 'Are you sure you want to logout?', [
+    crossAlert('Confirm', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
@@ -56,7 +57,7 @@ const ProfileScreen = ({ navigation, user, setUser, setToken }) => {
             setUser(null);
             navigation.replace('Login');
           } catch (error) {
-            Alert.alert('Error', 'Failed to logout');
+            crossAlert('Error', 'Failed to logout');
           }
         },
       },
@@ -64,7 +65,7 @@ const ProfileScreen = ({ navigation, user, setUser, setToken }) => {
   };
 
   const handleUpgradeToHost = () => {
-    Alert.alert(
+    crossAlert(
       'Become a Host',
       'Upgrade your account to start teaching and earn money',
       [
@@ -102,7 +103,7 @@ const ProfileScreen = ({ navigation, user, setUser, setToken }) => {
 
         {profileData.isHost && (
           <View style={styles.hostBadge}>
-            <Text style={styles.hostBadgeText}>👨‍🏫 Host</Text>
+            <Text style={styles.hostBadgeText}>ðŸ‘¨â€ðŸ« Host</Text>
           </View>
         )}
       </View>
@@ -162,24 +163,24 @@ const ProfileScreen = ({ navigation, user, setUser, setToken }) => {
           style={styles.actionButton}
           onPress={() => navigation.navigate('EditProfile')}
         >
-          <Text style={styles.actionIcon}>✏️</Text>
+          <Text style={styles.actionIcon}>âœï¸</Text>
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Edit Profile</Text>
             <Text style={styles.actionDesc}>Update your information</Text>
           </View>
-          <Text style={styles.actionArrow}>›</Text>
+          <Text style={styles.actionArrow}>â€º</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => navigation.navigate('ChangePassword')}
         >
-          <Text style={styles.actionIcon}>🔐</Text>
+          <Text style={styles.actionIcon}>ðŸ”</Text>
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Change Password</Text>
             <Text style={styles.actionDesc}>Update your security</Text>
           </View>
-          <Text style={styles.actionArrow}>›</Text>
+          <Text style={styles.actionArrow}>â€º</Text>
         </TouchableOpacity>
 
         {!profileData.isHost && (
@@ -187,12 +188,12 @@ const ProfileScreen = ({ navigation, user, setUser, setToken }) => {
             style={styles.actionButton}
             onPress={handleUpgradeToHost}
           >
-            <Text style={styles.actionIcon}>⭐</Text>
+            <Text style={styles.actionIcon}>â­</Text>
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Become a Host</Text>
               <Text style={styles.actionDesc}>Start teaching and earn</Text>
             </View>
-            <Text style={styles.actionArrow}>›</Text>
+            <Text style={styles.actionArrow}>â€º</Text>
           </TouchableOpacity>
         )}
 
@@ -200,37 +201,37 @@ const ProfileScreen = ({ navigation, user, setUser, setToken }) => {
           style={styles.actionButton}
           onPress={() => navigation.navigate('PaymentMethods')}
         >
-          <Text style={styles.actionIcon}>💳</Text>
+          <Text style={styles.actionIcon}>ðŸ’³</Text>
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Payment Methods</Text>
             <Text style={styles.actionDesc}>Manage your cards</Text>
           </View>
-          <Text style={styles.actionArrow}>›</Text>
+          <Text style={styles.actionArrow}>â€º</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => navigation.navigate('Support')}
         >
-          <Text style={styles.actionIcon}>💬</Text>
+          <Text style={styles.actionIcon}>ðŸ’¬</Text>
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Help & Support</Text>
             <Text style={styles.actionDesc}>Contact our team</Text>
           </View>
-          <Text style={styles.actionArrow}>›</Text>
+          <Text style={styles.actionArrow}>â€º</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.actionButton, styles.logoutButton]}
           onPress={handleLogout}
         >
-          <Text style={styles.logoutButtonText}>🚪 Logout</Text>
+          <Text style={styles.logoutButtonText}>ðŸšª Logout</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.footer}>
         <Text style={styles.versionText}>EduTalk v4.5.0</Text>
-        <Text style={styles.copyText}>© 2026 EduTalk. All rights reserved.</Text>
+        <Text style={styles.copyText}>Â© 2026 EduTalk. All rights reserved.</Text>
       </View>
     </ScrollView>
   );
@@ -420,3 +421,4 @@ const styles = StyleSheet.create({
 });
 
 export default ProfileScreen;
+

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * React Native - LoginScreen
  * Mobile login screen with email/password authentication
  */
@@ -13,9 +13,10 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  
   ScrollView,
 } from 'react-native';
+import crossAlert from '../utils/crossPlatformAlert';
 import api from '../utils/api';
 
 const LoginScreen = ({ navigation, setUser, setToken }) => {
@@ -26,7 +27,7 @@ const LoginScreen = ({ navigation, setUser, setToken }) => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
+      crossAlert('Error', 'Please enter both email and password');
       return;
     }
 
@@ -46,7 +47,7 @@ const LoginScreen = ({ navigation, setUser, setToken }) => {
       // Navigate to home
       navigation.replace('Home');
     } catch (error) {
-      Alert.alert('Login Failed', error.response?.data?.message || 'Invalid credentials');
+      crossAlert('Login Failed', error.response?.data?.message || 'Invalid credentials');
     } finally {
       setLoading(false);
     }
@@ -95,7 +96,7 @@ const LoginScreen = ({ navigation, setUser, setToken }) => {
             <View style={styles.passwordContainer}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="••••••••"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                 placeholderTextColor="#ccc"
                 secureTextEntry={!showPassword}
                 value={password}
@@ -107,7 +108,7 @@ const LoginScreen = ({ navigation, setUser, setToken }) => {
                 disabled={loading}
               >
                 <Text style={styles.togglePassword}>
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                  {showPassword ? 'ðŸ‘ï¸' : 'ðŸ‘ï¸â€ðŸ—¨ï¸'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -145,7 +146,7 @@ const LoginScreen = ({ navigation, setUser, setToken }) => {
 
         {/* Demo Info */}
         <View style={styles.demoInfo}>
-          <Text style={styles.demoText}>📝 Demo Credentials:</Text>
+          <Text style={styles.demoText}>ðŸ“ Demo Credentials:</Text>
           <Text style={styles.demoEmail}>student@example.com / password123</Text>
         </View>
       </ScrollView>
@@ -275,3 +276,4 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
+

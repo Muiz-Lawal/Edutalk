@@ -4,20 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AdminProvider } from './context/AdminContext';
 import Header from './components/Header';
 import ProtectedRoute from './components/ProtectedRoute';
-
-// Loading component for lazy-loaded routes
-const LoadingSpinner = () => (
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '60vh',
-    fontSize: '18px',
-    color: '#666'
-  }}>
-    <div>Loading...</div>
-  </div>
-);
+import LoadingSpinner from './components/LoadingSpinner';
 
 // Lazy load all page components for code splitting
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));

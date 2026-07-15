@@ -46,7 +46,7 @@ export default function PayoutManagementModal({ onClose }) {
         scheduledDate,
       });
       
-      alert('Payout created successfully!');
+      // Payout created successfully
       onClose();
     } catch (error) {
       setFormError(error.message);

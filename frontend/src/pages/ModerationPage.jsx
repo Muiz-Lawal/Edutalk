@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import MessageBanner from '../components/MessageBanner';
+import PromptDialog from '../components/PromptDialog';
 import '../styles/ModerationPage.css';
 
 const ModerationPage = () => {
@@ -24,6 +26,10 @@ const ModerationPage = () => {
   });
   const [selectedItems, setSelectedItems] = useState([]);
   const [bulkAction, setBulkAction] = useState('approved');
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [promptContext, setPromptContext] = useState(null);
 
   // Fetch moderation queue
   useEffect(() => {
@@ -37,6 +43,8 @@ const ModerationPage = () => {
   const fetchModerationQueue = async () => {
     try {
       setLoading(true);
+      setError('');
+      setSuccessMessage('');
       const params = new URLSearchParams({
         page: pagination.page,
         limit: pagination.limit,
@@ -53,6 +61,7 @@ const ModerationPage = () => {
       setSelectedItems([]);
     } catch (error) {
       console.error('Error fetching moderation queue:', error);
+      setError('Unable to load moderation items. Please refresh and try again.');
     } finally {
       setLoading(false);
     }
@@ -61,10 +70,13 @@ const ModerationPage = () => {
   const fetchStats = async () => {
     try {
       setLoading(true);
+      setError('');
+      setSuccessMessage('');
       const response = await api.get('/moderation/stats?period=7d');
       setStats(response.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
+      setError('Unable to load moderation statistics. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -79,58 +91,72 @@ const ModerationPage = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const handleApproveReject = async (logId, decision) => {
+  const handleApproveReject = (logId, decision) => {
+    setPromptContext({ type: 'single', logId, decision });
+    setPromptOpen(true);
+  };
+
+  const doApproveReject = async (reason) => {
+    if (reason === null || reason === undefined) return;
+    setPromptOpen(false);
+    const { logId, decision } = promptContext || {};
+
     try {
-      const reason = prompt(`Enter reason for ${decision}:`);
-      if (reason === null) return;
-
-      await api.post(`/moderation/${logId}/decide`, {
-        decision,
-        reason,
-      });
-
+      await api.post(`/moderation/${logId}/decide`, { decision, reason });
+      setSuccessMessage(`Content ${decision} successfully.`);
+      setError('');
       fetchModerationQueue();
-    } catch (error) {
-      console.error('Error processing decision:', error);
-      alert('Error processing decision');
+    } catch (err) {
+      console.error('Error processing decision:', err);
+      setError('Unable to process decision. Please try again.');
+      setSuccessMessage('');
     }
   };
 
-  const handleBulkAction = async () => {
+  const handleBulkAction = () => {
     if (selectedItems.length === 0) {
-      alert('Please select items');
+      setError('Please select items to process.');
+      setSuccessMessage('');
       return;
     }
 
+    setPromptContext({ type: 'bulk' });
+    setPromptOpen(true);
+  };
+
+  const doBulkAction = async (reason) => {
+    if (!reason) return;
+    setPromptOpen(false);
     try {
-      const reason = prompt(`Enter reason for bulk ${bulkAction}:`);
-      if (reason === null) return;
-
-      const decisions = selectedItems.map(id => ({
-        id,
-        decision: bulkAction,
-        reason,
-      }));
-
+      const decisions = selectedItems.map(id => ({ id, decision: bulkAction, reason }));
       await api.post('/moderation/bulk-decide', { decisions });
+      setSuccessMessage(`Bulk ${bulkAction} operation completed.`);
+      setError('');
       fetchModerationQueue();
-    } catch (error) {
-      console.error('Error bulk processing:', error);
-      alert('Error bulk processing');
+    } catch (err) {
+      console.error('Error bulk processing:', err);
+      setError('Unable to complete the bulk moderation operation. Please try again.');
+      setSuccessMessage('');
     }
   };
 
-  const handleExport = async () => {
-    try {
-      const format = prompt('Enter format (csv or json):', 'csv');
-      if (!format) return;
+  const handleExport = () => {
+    setPromptContext({ type: 'export', defaultValue: 'csv' });
+    setPromptOpen(true);
+  };
 
+  const doExport = async (format) => {
+    if (!format) return;
+    setPromptOpen(false);
+    try {
+      setError('');
+      setSuccessMessage('');
       const params = new URLSearchParams({
         format,
         ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)),
       });
 
-        const response = await api.get(`/moderation/export/logs?${params}`, {
+      const response = await api.get(`/moderation/export/logs?${params}`, {
         responseType: format === 'csv' ? 'blob' : 'json',
       });
 
@@ -146,9 +172,11 @@ const ModerationPage = () => {
       link.click();
       link.parentElement.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error exporting logs:', error);
-      alert('Error exporting logs');
+      setSuccessMessage('Moderation logs exported successfully.');
+    } catch (err) {
+      console.error('Error exporting logs:', err);
+      setError('Error exporting logs. Please try again.');
+      setSuccessMessage('');
     }
   };
 
@@ -179,6 +207,39 @@ const ModerationPage = () => {
           Statistics
         </button>
       </div>
+
+      {error && (
+        <MessageBanner
+          type="error"
+          title="Moderation action failed"
+          message={error}
+          onClose={() => setError('')}
+        />
+      )}
+      {successMessage && (
+        <MessageBanner
+          type="success"
+          title="Action completed"
+          message={successMessage}
+          onClose={() => setSuccessMessage('')}
+        />
+      )}
+
+      <PromptDialog
+        open={promptOpen}
+        title={promptContext?.type === 'export' ? 'Export format' : promptContext?.type === 'bulk' ? `Reason for ${bulkAction}` : `Reason for ${promptContext?.decision}`}
+        defaultValue={promptContext?.defaultValue}
+        label={promptContext?.type === 'export' ? 'Format (csv or json)' : 'Reason'}
+        placeholder={promptContext?.type === 'export' ? 'csv or json' : 'Enter reason'}
+        onConfirm={(val) => {
+          if (promptContext?.type === 'export') return doExport(val);
+          if (promptContext?.type === 'bulk') return doBulkAction(val);
+          return doApproveReject(val);
+        }}
+        onCancel={() => setPromptOpen(false)}
+        confirmLabel="Submit"
+        cancelLabel="Cancel"
+      />
 
       {activeTab === 'queue' && (
         <div className="moderation-queue">

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import AchievementBadge from '../components/AchievementBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
+import MessageBanner from '../components/MessageBanner';
 import api from '../utils/api';
 import '../styles/LeaderboardPage.css';
 
@@ -103,9 +104,12 @@ const LeaderboardPage = () => {
       </div>
 
       {error && (
-        <div className="leaderboard-page__error">
-          <p>Error: {error}</p>
-        </div>
+        <MessageBanner
+          type="error"
+          title="Leaderboard unavailable"
+          message={error}
+          onClose={() => setError(null)}
+        />
       )}
 
       {/* Controls */}

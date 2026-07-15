@@ -16,6 +16,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
   const [isConnected, setIsConnected] = useState(false);
   const [stats, setStats] = useState({});
   const [activeSpeaker, setActiveSpeaker] = useState(null);
+  const [error, setError] = useState(null);
 
   const localVideoRef = useRef(null);
   const socketRef = useRef(null);
@@ -72,7 +73,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
 
     } catch (error) {
       console.error('Failed to initialize video room:', error);
-      alert(`Failed to initialize video room: ${error.message}`);
+      setError(`Failed to initialize video room: ${error.message}`);
     }
   };
 
@@ -523,6 +524,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
 
   return (
     <div className="video-room">
+      {error && <div className="alert alert-error" style={{margin:12}}>{error}</div>}
       <div className="video-container">
         <div className="videos-grid">
           {/* Local video */}

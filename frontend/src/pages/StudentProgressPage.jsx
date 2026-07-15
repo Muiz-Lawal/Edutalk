@@ -4,6 +4,7 @@ import useEventLogger from '../hooks/useEventLogger';
 import ProgressCard from '../components/ProgressCard';
 import ProgressTimeline from '../components/ProgressTimeline';
 import LoadingSpinner from '../components/LoadingSpinner';
+import MessageBanner from '../components/MessageBanner';
 import api from '../utils/api';
 import '../styles/StudentProgressPage.css';
 
@@ -68,19 +69,14 @@ const StudentProgressPage = () => {
       </div>
 
       {error && (
-        <div className="student-progress-page__error">
-          <div className="student-progress-page__error-icon">⚠️</div>
-          <div className="student-progress-page__error-content">
-            <p className="student-progress-page__error-message">{error}</p>
-            <button 
-              className="student-progress-page__error-button"
-              onClick={handleRetry}
-              disabled={retrying}
-            >
-              {retrying ? 'Retrying...' : 'Try Again'}
-            </button>
-          </div>
-        </div>
+        <MessageBanner
+          type="error"
+          title="Unable to load progress"
+          message={error}
+          onClose={() => setError(null)}
+          actionLabel={retrying ? 'Retrying…' : 'Try again'}
+          onAction={handleRetry}
+        />
       )}
 
       <div className="student-progress-page__container">

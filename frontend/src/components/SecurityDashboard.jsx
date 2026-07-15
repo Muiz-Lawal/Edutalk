@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
+import ConfirmDialog from '../components/ConfirmDialog';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/SecurityDashboard.css';
 
 export default function SecurityDashboard() {
@@ -12,6 +14,7 @@ export default function SecurityDashboard() {
   const [tab, setTab] = useState('overview'); // overview, sessions, activity, flagged
   const [filterAction, setFilterAction] = useState('');
   const [filterSeverity, setFilterSeverity] = useState('');
+  const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   useEffect(() => {
     fetchSecurityData();
@@ -41,30 +44,42 @@ export default function SecurityDashboard() {
     }
   };
 
-  const handleLogoutSession = async (sessionId) => {
-    if (!window.confirm('Logout this session?')) return;
-
-    try {
-      await api.post(`/security/sessions/${sessionId}/logout`);
-      setActiveSessions(activeSessions.filter(s => s._id !== sessionId));
-    } catch (err) {
-      alert('Failed to logout session');
-    }
+  const handleLogoutSession = (sessionId) => {
+    setConfirm({
+      open: true,
+      title: 'Logout Session',
+      message: 'Logout this session?',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        try {
+          await api.post(`/security/sessions/${sessionId}/logout`);
+          setActiveSessions(activeSessions.filter(s => s._id !== sessionId));
+        } catch (err) {
+          setError('Failed to logout session');
+        }
+      },
+    });
   };
 
-  const handleLogoutAll = async () => {
-    if (!window.confirm('Logout from all sessions? You will need to login again.')) return;
-
-    try {
-      await api.post('/security/sessions/logout-all');
-      setActiveSessions([]);
-      setTimeout(() => {
-        localStorage.removeItem('token');
-        window.location.href = '/admin/login';
-      }, 1000);
-    } catch (err) {
-      alert('Failed to logout all sessions');
-    }
+  const handleLogoutAll = () => {
+    setConfirm({
+      open: true,
+      title: 'Logout All Sessions',
+      message: 'Logout from all sessions? You will need to login again.',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        try {
+          await api.post('/security/sessions/logout-all');
+          setActiveSessions([]);
+          setTimeout(() => {
+            localStorage.removeItem('token');
+            window.location.href = '/admin/login';
+          }, 1000);
+        } catch (err) {
+          setError('Failed to logout all sessions');
+        }
+      },
+    });
   };
 
   const handleExportLogs = async () => {
@@ -82,7 +97,8 @@ export default function SecurityDashboard() {
       element.click();
       document.body.removeChild(element);
     } catch (err) {
-      alert('Failed to export logs');
+      setError('Failed to export logs');
+      console.error(err);
     }
   };
 
@@ -131,7 +147,17 @@ export default function SecurityDashboard() {
         <p>Monitor your admin account security and activity</p>
       </div>
 
-      {error && <div className="security-error">{error}</div>}
+      {error && (
+        <MessageBanner type="error" title="Security error" message={error} onClose={() => setError('')} />
+      )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ open: false })}
+      />
 
       {/* Tab Navigation */}
       <div className="security-tabs">

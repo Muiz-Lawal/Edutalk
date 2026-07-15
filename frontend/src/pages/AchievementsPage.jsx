@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import AchievementBadge from '../components/AchievementBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/AchievementsPage.css';
 import { useAuth } from '../hooks/useAuth';
 
@@ -63,9 +64,12 @@ const AchievementsPage = () => {
   if (error) {
     return (
       <div className="achievements-page">
-        <div className="achievements-page__error">
-          <p>{error}</p>
-        </div>
+        <MessageBanner
+          type="error"
+          title="Achievements could not load"
+          message={error}
+          onClose={() => setError(null)}
+        />
       </div>
     );
   }

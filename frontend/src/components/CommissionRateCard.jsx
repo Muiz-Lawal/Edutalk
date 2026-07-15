@@ -5,6 +5,7 @@ const CommissionRateCard = ({ settings, onSuccess }) => {
   const { updateCommissionRatePhase5G, loading } = useAdmin();
   const [editingTier, setEditingTier] = useState(null);
   const [newRate, setNewRate] = useState('');
+  const [error, setError] = useState(null);
 
   const tiers = ['starter', 'growth', 'pro', 'elite'];
   const tierDescriptions = {
@@ -22,7 +23,8 @@ const CommissionRateCard = ({ settings, onSuccess }) => {
   const handleSave = async (tier) => {
     const rate = parseFloat(newRate);
     if (isNaN(rate) || rate < 0 || rate > 100) {
-      alert('Please enter a valid rate between 0 and 100');
+      setError('Please enter a valid rate between 0 and 100');
+      setTimeout(() => setError(null), 4000);
       return;
     }
 
@@ -37,6 +39,7 @@ const CommissionRateCard = ({ settings, onSuccess }) => {
   return (
     <div className="commission-rate-card">
       <h2>Commission Rates by Tier</h2>
+      {error && <div className="alert alert-error" style={{marginTop: 12}}>{error}</div>}
       <p className="card-description">
         Adjust commission rates for each host tier. Higher rates for lower tiers incentivize growth.
       </p>

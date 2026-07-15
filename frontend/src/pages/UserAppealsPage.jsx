@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PromptDialog from '../components/PromptDialog';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import '../styles/UserAppeals.css';
@@ -8,6 +9,10 @@ const UserAppealsPage = () => {
   const [appeals, setAppeals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedAppeal, setSelectedAppeal] = useState(null);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [promptTarget, setPromptTarget] = useState(null);
 
   useEffect(() => {
     fetchAppeals();
@@ -31,16 +36,23 @@ const UserAppealsPage = () => {
     }
   };
 
-  const submitAppeal = async (logId) => {
-    const reason = prompt('Enter your appeal reason (explain why this should be reinstated):');
+  const submitAppeal = (logId) => {
+    setPromptTarget(logId);
+    setPromptOpen(true);
+  };
+
+  const doSubmitAppeal = async (reason) => {
     if (!reason) return;
+    setPromptOpen(false);
     try {
-      await api.post(`/moderation/${logId}/appeal`, { reason });
-      alert('Appeal submitted');
+      await api.post(`/moderation/${promptTarget}/appeal`, { reason });
+      setSuccess('Appeal submitted');
+      setTimeout(() => setSuccess(null), 4000);
       fetchAppeals();
     } catch (err) {
       console.error('Failed to submit appeal', err);
-      alert('Failed to submit appeal');
+      setError('Failed to submit appeal');
+      setTimeout(() => setError(null), 4000);
     }
   };
 
@@ -54,6 +66,18 @@ const UserAppealsPage = () => {
         <h1>📋 My Appeals</h1>
         <p>Track and manage your content appeals</p>
       </div>
+        {error && <div className="alert alert-error">{error}</div>}
+        {success && <div className="alert alert-success">{success}</div>}
+        <PromptDialog
+          open={promptOpen}
+          title="Submit Appeal"
+          label="Reason"
+          placeholder="Explain why this should be reinstated"
+          onConfirm={doSubmitAppeal}
+          onCancel={() => setPromptOpen(false)}
+          confirmLabel="Submit"
+          cancelLabel="Cancel"
+        />
 
       <div className="appeals-section">
         <h2>Eligible to Appeal</h2>

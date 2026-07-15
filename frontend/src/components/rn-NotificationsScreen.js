@@ -1,4 +1,4 @@
-/**
+﻿/**
  * React Native Notifications Screen
  * Display user notifications and manage them
  */
@@ -13,9 +13,10 @@ import {
   StyleSheet,
   SafeAreaView,
   FlatList,
-  Alert,
+  
   RefreshControl,
 } from 'react-native';
+import crossAlert from '../utils/crossPlatformAlert';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../utils/api';
 import { useAuth } from '../context/RNAuthContext';
@@ -46,7 +47,7 @@ export default function NotificationsScreen({ navigation }) {
       setUnreadCount(unread);
     } catch (error) {
       console.error('Fetch notifications error:', error);
-      Alert.alert('Error', 'Failed to load notifications');
+      crossAlert('Error', 'Failed to load notifications');
     } finally {
       setLoading(false);
     }
@@ -85,7 +86,7 @@ export default function NotificationsScreen({ navigation }) {
       setUnreadCount(0);
     } catch (error) {
       console.error('Mark all as read error:', error);
-      Alert.alert('Error', 'Failed to mark all as read');
+      crossAlert('Error', 'Failed to mark all as read');
     }
   };
 
@@ -103,12 +104,12 @@ export default function NotificationsScreen({ navigation }) {
       }
     } catch (error) {
       console.error('Delete notification error:', error);
-      Alert.alert('Error', 'Failed to delete notification');
+      crossAlert('Error', 'Failed to delete notification');
     }
   };
 
   const deleteAllNotifications = async () => {
-    Alert.alert(
+    crossAlert(
       'Delete All',
       'Are you sure you want to delete all notifications?',
       [
@@ -121,7 +122,7 @@ export default function NotificationsScreen({ navigation }) {
               setNotifications([]);
               setUnreadCount(0);
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete notifications');
+              crossAlert('Error', 'Failed to delete notifications');
             }
           },
           style: 'destructive',
@@ -143,17 +144,17 @@ export default function NotificationsScreen({ navigation }) {
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'message':
-        return '💬';
+        return 'ðŸ’¬';
       case 'alert':
-        return '⚠️';
+        return 'âš ï¸';
       case 'info':
-        return 'ℹ️';
+        return 'â„¹ï¸';
       case 'success':
-        return '✅';
+        return 'âœ…';
       case 'error':
-        return '❌';
+        return 'âŒ';
       default:
-        return '🔔';
+        return 'ðŸ””';
     }
   };
 
@@ -291,7 +292,7 @@ export default function NotificationsScreen({ navigation }) {
       {/* Notifications List */}
       {filteredNotifications.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyStateIcon}>🔔</Text>
+          <Text style={styles.emptyStateIcon}>ðŸ””</Text>
           <Text style={styles.emptyStateTitle}>
             {filter === 'unread'
               ? 'No unread notifications'
@@ -518,3 +519,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

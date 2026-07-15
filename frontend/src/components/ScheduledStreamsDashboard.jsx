@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import ScheduleCard from './ScheduleCard';
+import ConfirmDialog from './ConfirmDialog';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/ScheduledStreamsDashboard.css';
 
 export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
@@ -10,6 +12,7 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   const ITEMS_PER_PAGE = 20;
 
@@ -62,16 +65,22 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
     console.log('Edit schedule:', schedule);
   };
 
-  const handleCancel = async (schedule) => {
-    if (!window.confirm('Are you sure you want to cancel this schedule?')) return;
-
-    try {
-      await api.put(`/schedules/${schedule._id}`, { status: 'cancelled' });
-      fetchSchedules();
-    } catch (err) {
-      console.error('Error cancelling schedule:', err);
-      setError('Failed to cancel schedule');
-    }
+  const handleCancel = (schedule) => {
+    setConfirm({
+      open: true,
+      title: 'Cancel Schedule',
+      message: 'Are you sure you want to cancel this schedule?',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        try {
+          await api.put(`/schedules/${schedule._id}`, { status: 'cancelled' });
+          fetchSchedules();
+        } catch (err) {
+          console.error('Error cancelling schedule:', err);
+          setError('Failed to cancel schedule');
+        }
+      },
+    });
   };
 
   const handleViewDetails = (schedule) => {
@@ -97,6 +106,18 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
 
   return (
     <div className="scheduled-streams-dashboard">
+
+      {error && (
+        <MessageBanner type="error" title="Schedules" message={error} onClose={() => setError(null)} />
+      )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ open: false })}
+      />
       {/* Stats Section */}
       <div className="stats-section">
         <div className="stat-card">

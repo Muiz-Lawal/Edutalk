@@ -8,6 +8,7 @@ const EmailTemplateEditor = ({ templates, onSuccess }) => {
   const [body, setBody] = useState(selectedTemplate?.body || '');
   const [variables, setVariables] = useState(selectedTemplate?.variables || []);
   const [newVariable, setNewVariable] = useState('');
+  const [error, setError] = useState(null);
 
   const handleTemplateSelect = (template) => {
     setSelectedTemplate(template);
@@ -30,7 +31,8 @@ const EmailTemplateEditor = ({ templates, onSuccess }) => {
 
   const handleSave = async () => {
     if (!subject.trim() || !body.trim()) {
-      alert('Subject and body are required');
+      setError('Subject and body are required');
+      setTimeout(() => setError(null), 4000);
       return;
     }
 
@@ -48,6 +50,7 @@ const EmailTemplateEditor = ({ templates, onSuccess }) => {
   return (
     <div className="email-template-editor">
       <h2>Email Templates</h2>
+      {error && <div className="alert alert-error" style={{marginTop:12}}>{error}</div>}
       <p className="card-description">
         Customize email templates sent to hosts and students. Use variables for dynamic content.
       </p>

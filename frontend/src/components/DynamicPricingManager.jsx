@@ -26,6 +26,8 @@ export default function DynamicPricingManager({ bundleId }) {
       { name: 'Discount 20%', discountType: 'percentage', discountValue: 20, trafficPercentage: 25 }
     ]
   });
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
 
   useEffect(() => {
     if (bundleId) {
@@ -53,10 +55,12 @@ export default function DynamicPricingManager({ bundleId }) {
   const handleOptimizePricing = async () => {
     try {
       await api.post(`/bundles/${bundleId}/optimize-pricing`);
-      alert('Pricing optimized successfully!');
+      setSuccess('Pricing optimized successfully!');
+      setTimeout(() => setSuccess(null), 4000);
       loadBundleData();
     } catch (err) {
-      alert('Failed to optimize pricing');
+      setError('Failed to optimize pricing');
+      setTimeout(() => setError(null), 4000);
       console.error('Optimize pricing error:', err);
     }
   };
@@ -65,11 +69,13 @@ export default function DynamicPricingManager({ bundleId }) {
     e.preventDefault();
     try {
       await api.post(`/bundles/${bundleId}/flash-sale`, flashSaleForm);
-      alert('Flash sale created successfully!');
+      setSuccess('Flash sale created successfully!');
+      setTimeout(() => setSuccess(null), 4000);
       setFlashSaleForm({ discountPercent: 20, durationHours: 24 });
       loadBundleData();
     } catch (err) {
-      alert('Failed to create flash sale');
+      setError('Failed to create flash sale');
+      setTimeout(() => setError(null), 4000);
       console.error('Create flash sale error:', err);
     }
   };
@@ -80,10 +86,12 @@ export default function DynamicPricingManager({ bundleId }) {
       await api.post(`/bundles/${bundleId}/seasonal-pricing`, {
         seasonConfig: seasonalForm.seasons
       });
-      alert('Seasonal pricing set successfully!');
+      setSuccess('Seasonal pricing set successfully!');
+      setTimeout(() => setSuccess(null), 4000);
       loadBundleData();
     } catch (err) {
-      alert('Failed to set seasonal pricing');
+      setError('Failed to set seasonal pricing');
+      setTimeout(() => setError(null), 4000);
       console.error('Set seasonal pricing error:', err);
     }
   };
@@ -92,10 +100,12 @@ export default function DynamicPricingManager({ bundleId }) {
     e.preventDefault();
     try {
       await api.post(`/bundles/${bundleId}/ab-test`, abTestForm);
-      alert('A/B test created successfully!');
+      setSuccess('A/B test created successfully!');
+      setTimeout(() => setSuccess(null), 4000);
       loadBundleData();
     } catch (err) {
-      alert('Failed to create A/B test');
+      setError('Failed to create A/B test');
+      setTimeout(() => setError(null), 4000);
       console.error('Create A/B test error:', err);
     }
   };
@@ -142,6 +152,9 @@ export default function DynamicPricingManager({ bundleId }) {
         <h2>Dynamic Pricing Manager</h2>
         <p>Optimize your bundle pricing with AI-powered recommendations</p>
       </div>
+
+        {error && <div className="alert alert-error" style={{marginTop:12}}>{error}</div>}
+        {success && <div className="alert alert-success" style={{marginTop:12}}>{success}</div>}
 
       <div className="pricing-tabs">
         <button

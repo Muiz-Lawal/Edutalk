@@ -3,12 +3,14 @@ import { useAdmin } from '../context/AdminContext';
 import { AdminLayout } from '../components/AdminLayout';
 import UserDetailsModal from '../components/UserDetailsModal';
 import AdminMessageModal from '../components/AdminMessageModal';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/admin.css';
 
 export const AdminUsers = () => {
   const { fetchUsers, suspendUser, unsuspendUser, deleteUser, loading, error } = useAdmin();
   
   const [users, setUsers] = useState([]);
+  const [localError, setLocalError] = useState(null);
   const [pagination, setPagination] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -25,6 +27,7 @@ export const AdminUsers = () => {
   const [messageModalOpen, setMessageModalOpen] = useState(false);
   const [detailsUser, setDetailsUser] = useState(null);
   const [messageUser, setMessageUser] = useState(null);
+  const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   const loadUsers = async (page = 1, filters = {}) => {
     const result = await fetchUsers(page, 20, filters);
@@ -40,10 +43,10 @@ export const AdminUsers = () => {
 
   const handleSuspend = async () => {
     if (!selectedUser || !reason) {
-      alert('Please enter a reason');
+      setLocalError('Please enter a reason');
       return;
     }
-    
+    setLocalError(null);
     const result = await suspendUser(selectedUser._id, reason);
     if (result) {
       setSuccessMessage(`User ${selectedUser.email} suspended`);
@@ -66,24 +69,29 @@ export const AdminUsers = () => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!selectedUser || !reason) {
-      alert('Please enter a reason');
+      setLocalError('Please enter a reason');
       return;
     }
-    
-    if (!window.confirm('Are you sure? This action cannot be undone.')) {
-      return;
-    }
-    
-    const result = await deleteUser(selectedUser._id, reason);
-    if (result) {
-      setSuccessMessage(`User ${selectedUser.email} deleted`);
-      setModalActive(false);
-      setReason('');
-      loadUsers(1, { search, role, status });
-      setTimeout(() => setSuccessMessage(''), 3000);
-    }
+
+    setConfirm({
+      open: true,
+      title: 'Delete User',
+      message: 'Are you sure? This action cannot be undone.',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        setLocalError(null);
+        const result = await deleteUser(selectedUser._id, reason);
+        if (result) {
+          setSuccessMessage(`User ${selectedUser.email} deleted`);
+          setModalActive(false);
+          setReason('');
+          loadUsers(1, { search, role, status });
+          setTimeout(() => setSuccessMessage(''), 3000);
+        }
+      },
+    });
   };
 
   const openModal = (user, type) => {
@@ -136,8 +144,38 @@ export const AdminUsers = () => {
       <div className="admin-page">
         <h1>User Management</h1>
 
-        {error && <div className="error-message">{error}</div>}
-        {successMessage && <div className="success-message">{successMessage}</div>}
+        {localError && (
+          <MessageBanner
+            type="error"
+            title="Action required"
+            message={localError}
+            onClose={() => setLocalError(null)}
+          />
+        )}
+        {error && (
+          <MessageBanner
+            type="error"
+            title="Failed to manage users"
+            message={error}
+            onClose={() => {}}
+          />
+        )}
+        {successMessage && (
+          <MessageBanner
+            type="success"
+            title="Success"
+            message={successMessage}
+            onClose={() => setSuccessMessage('')}
+          />
+        )}
+
+        <ConfirmDialog
+          open={confirm.open}
+          title={confirm.title}
+          message={confirm.message}
+          onConfirm={confirm.onConfirm}
+          onCancel={() => setConfirm({ open: false })}
+        />
 
         {/* Filters */}
         <div className="search-bar">

@@ -5,6 +5,7 @@ import api from '../utils/api';
 import ProgressChart from '../components/ProgressChart';
 import AtRiskStudentsList from '../components/AtRiskStudentsList';
 import LoadingSpinner from '../components/LoadingSpinner';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/ClassProgressPage.css';
 
 const ClassProgressPage = () => {
@@ -94,19 +95,14 @@ const ClassProgressPage = () => {
   if (error) {
     return (
       <div className="class-progress-page">
-        <div className="class-progress-page__error">
-          <div className="class-progress-page__error-icon">⚠️</div>
-          <div className="class-progress-page__error-content">
-            <p className="class-progress-page__error-message">{error}</p>
-            <button 
-              className="class-progress-page__error-button"
-              onClick={handleRetry}
-              disabled={retrying}
-            >
-              {retrying ? 'Retrying...' : 'Try Again'}
-            </button>
-          </div>
-        </div>
+        <MessageBanner
+          type="error"
+          title="Progress load failed"
+          message={error}
+          onClose={() => setError(null)}
+          actionLabel={retrying ? 'Retrying…' : 'Try again'}
+          onAction={handleRetry}
+        />
       </div>
     );
   }

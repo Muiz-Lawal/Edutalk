@@ -1,4 +1,4 @@
-/**
+﻿/**
  * React Native - Live Streaming Screen
  * Mobile real-time video streaming with WebRTC
  */
@@ -13,8 +13,9 @@ import {
   Dimensions,
   SafeAreaView,
   ScrollView,
-  Alert,
+  
 } from 'react-native';
+import crossAlert from '../utils/crossPlatformAlert';
 import { RTCView, mediaDevices, RTCPeerConnection } from 'react-native-webrtc';
 import api from '../utils/api';
 
@@ -56,7 +57,7 @@ const LiveStreamScreen = ({ route, navigation, user }) => {
         setIsStreaming(true);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to load stream data');
+      crossAlert('Error', 'Failed to load stream data');
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -130,7 +131,7 @@ const LiveStreamScreen = ({ route, navigation, user }) => {
 
       setIsStreaming(true);
     } catch (error) {
-      Alert.alert('Error', 'Failed to start streaming: ' + error.message);
+      crossAlert('Error', 'Failed to start streaming: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -194,7 +195,7 @@ const LiveStreamScreen = ({ route, navigation, user }) => {
             />
           ) : (
             <View style={styles.videoPlaceholder}>
-              <Text style={styles.placeholderText}>📹 Camera Preview</Text>
+              <Text style={styles.placeholderText}>ðŸ“¹ Camera Preview</Text>
             </View>
           )}
 
@@ -202,7 +203,7 @@ const LiveStreamScreen = ({ route, navigation, user }) => {
           <View style={styles.streamInfo}>
             <Text style={styles.streamTitle}>{stream?.title}</Text>
             <View style={styles.viewersCount}>
-              <Text style={styles.viewersText}>👥 {viewers.length} watching</Text>
+              <Text style={styles.viewersText}>ðŸ‘¥ {viewers.length} watching</Text>
             </View>
           </View>
         </View>
@@ -252,7 +253,7 @@ const LiveStreamScreen = ({ route, navigation, user }) => {
                 style={[styles.button, styles.startButton]}
                 onPress={startStreaming}
               >
-                <Text style={styles.buttonText}>🎬 Start Stream</Text>
+                <Text style={styles.buttonText}>ðŸŽ¬ Start Stream</Text>
               </TouchableOpacity>
             ) : (
               <>
@@ -260,19 +261,19 @@ const LiveStreamScreen = ({ route, navigation, user }) => {
                   style={[styles.button, styles.iconButton]}
                   onPress={toggleMute}
                 >
-                  <Text style={styles.buttonText}>{isMuted ? '🔇' : '🎤'}</Text>
+                  <Text style={styles.buttonText}>{isMuted ? 'ðŸ”‡' : 'ðŸŽ¤'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.button, styles.iconButton]}
                   onPress={toggleCamera}
                 >
-                  <Text style={styles.buttonText}>{isCameraOff ? '🚫' : '📹'}</Text>
+                  <Text style={styles.buttonText}>{isCameraOff ? 'ðŸš«' : 'ðŸ“¹'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.button, styles.stopButton]}
                   onPress={stopStreaming}
                 >
-                  <Text style={styles.buttonText}>⏹️ Stop Stream</Text>
+                  <Text style={styles.buttonText}>â¹ï¸ Stop Stream</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -436,3 +437,4 @@ const styles = StyleSheet.create({
 });
 
 export default LiveStreamScreen;
+

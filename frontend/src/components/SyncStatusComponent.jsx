@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import offlineQueueService from '../utils/offlineQueueService';
+import ConfirmDialog from './ConfirmDialog';
 import '../styles/sync-status.css';
 
 export default function SyncStatusComponent({ onStatusChange }) {
@@ -15,6 +16,8 @@ export default function SyncStatusComponent({ onStatusChange }) {
   const [lastSyncTime, setLastSyncTime] = useState(null);
   const [expandedView, setExpandedView] = useState(false);
   const [queueDetails, setQueueDetails] = useState([]);
+  const [error, setError] = useState(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Monitor online/offline status
   useEffect(() => {
@@ -96,7 +99,8 @@ export default function SyncStatusComponent({ onStatusChange }) {
   // Manual retry
   const handleRetry = async () => {
     if (!navigator.onLine) {
-      alert('No internet connection. Please check your connection and try again.');
+      setError('No internet connection. Please check your connection and try again.');
+      setTimeout(() => setError(null), 4000);
       return;
     }
 
@@ -104,16 +108,15 @@ export default function SyncStatusComponent({ onStatusChange }) {
   };
 
   // Clear queue
-  const handleClearQueue = () => {
-    if (
-      confirm(
-        `Are you sure you want to clear ${pendingCount} pending actions? This cannot be undone.`
-      )
-    ) {
-      offlineQueueService.clearQueue?.();
-      setPendingCount(0);
-      setQueueDetails([]);
-    }
+  const requestClearQueue = () => {
+    setShowClearConfirm(true);
+  };
+
+  const doClearQueue = () => {
+    setShowClearConfirm(false);
+    offlineQueueService.clearQueue?.();
+    setPendingCount(0);
+    setQueueDetails([]);
   };
 
   // Status display text
@@ -212,6 +215,8 @@ export default function SyncStatusComponent({ onStatusChange }) {
                 </div>
               </div>
 
+              {error && <div className="alert alert-error" style={{marginTop:12}}>{error}</div>}
+
               {/* Last Sync Info */}
               {lastSyncTime && (
                 <div className="sync-info">
@@ -276,7 +281,7 @@ export default function SyncStatusComponent({ onStatusChange }) {
                 {pendingCount > 0 && (
                   <button 
                     className="btn btn-secondary" 
-                    onClick={handleClearQueue}
+                    onClick={requestClearQueue}
                   >
                     Clear Pending
                   </button>
@@ -314,6 +319,17 @@ export default function SyncStatusComponent({ onStatusChange }) {
           </div>
 
           {/* Modal Overlay */}
+
+          <ConfirmDialog
+            open={showClearConfirm}
+            title={`Clear ${pendingCount} pending actions?`}
+            message={`Are you sure you want to clear ${pendingCount} pending actions? This cannot be undone.`}
+            onConfirm={doClearQueue}
+            onCancel={() => setShowClearConfirm(false)}
+            confirmLabel="Clear"
+            cancelLabel="Cancel"
+          />
+
           <div 
             className="sync-status-overlay" 
             onClick={() => setExpandedView(false)}

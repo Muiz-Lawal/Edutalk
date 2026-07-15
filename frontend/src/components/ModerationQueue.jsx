@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
+import MessageBanner from '../components/MessageBanner';
+import PromptDialog from '../components/PromptDialog';
 import '../styles/ModerationQueue.css';
 
 const ModerationQueue = () => {
@@ -15,10 +17,15 @@ const ModerationQueue = () => {
   const [dateTo, setDateTo] = useState('');
   const [userFilter, setUserFilter] = useState('');
   const [appealStatus, setAppealStatus] = useState('');
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [promptContext, setPromptContext] = useState(null);
 
   const fetchQueue = async (page = 1) => {
     try {
       setLoading(true);
+      setError(null);
       const response = await api.get('/moderation/queue/advanced', {
         params: {
           page,
@@ -35,9 +42,9 @@ const ModerationQueue = () => {
       setQueue(response.data.logs);
       setCurrentPage(response.data.pagination.page);
       setTotalPages(response.data.pagination.pages);
-    } catch (error) {
-      console.error('Error fetching moderation queue:', error);
-      alert('Failed to load moderation queue');
+    } catch (err) {
+      console.error('Error fetching moderation queue:', err);
+      setError('Failed to load moderation queue');
     } finally {
       setLoading(false);
     }
@@ -47,21 +54,23 @@ const ModerationQueue = () => {
     fetchQueue(1);
   }, [filterType, severity, dateFrom, dateTo, userFilter, appealStatus]);
 
-  const handleDecision = async (id, decision) => {
-    const reason = prompt(`Enter reason for ${decision}:`);
+  const handleDecision = (id, decision) => {
+    setPromptContext({ type: 'single', id, decision });
+    setPromptOpen(true);
+  };
+
+  const doDecision = async (reason) => {
     if (!reason) return;
-
+    setPromptOpen(false);
+    const { id, decision } = promptContext || {};
     try {
-      await api.post(`/moderation/${id}/decide`, {
-        decision,
-        reason,
-      });
-
+      await api.post(`/moderation/${id}/decide`, { decision, reason });
       fetchQueue(currentPage);
-      alert(`Item ${decision} successfully`);
-    } catch (error) {
-      console.error('Error processing decision:', error);
-      alert('Failed to process decision');
+      setSuccess(`Item ${decision} successfully`);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      console.error('Error processing decision:', err);
+      setError('Failed to process decision');
     }
   };
 
@@ -75,20 +84,24 @@ const ModerationQueue = () => {
     setSelectedItems(newSelected);
   };
 
-  const handleBulkDecision = async () => {
+  const handleBulkDecision = () => {
     if (selectedItems.size === 0) {
-      alert('Please select items to process');
+      setError('Please select items to process');
       return;
     }
 
     if (!bulkDecision) {
-      alert('Please select a decision');
+      setError('Please select a decision');
       return;
     }
 
-    const reason = prompt('Enter reason for bulk decision:');
-    if (!reason) return;
+    setPromptContext({ type: 'bulk' });
+    setPromptOpen(true);
+  };
 
+  const doBulkDecision = async (reason) => {
+    if (!reason) return;
+    setPromptOpen(false);
     try {
       const decisions = Array.from(selectedItems).map(id => ({
         id,
@@ -101,10 +114,11 @@ const ModerationQueue = () => {
       setSelectedItems(new Set());
       setBulkDecision('');
       fetchQueue(currentPage);
-      alert('Bulk decision processed successfully');
-    } catch (error) {
-      console.error('Error processing bulk decision:', error);
-      alert('Failed to process bulk decision');
+      setSuccess('Bulk decision processed successfully');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      console.error('Error processing bulk decision:', err);
+      setError('Failed to process bulk decision');
     }
   };
 
@@ -133,14 +147,33 @@ const ModerationQueue = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+      setSuccess('Export complete');
+      setTimeout(() => setSuccess(null), 2500);
     } catch (err) {
       console.error('Failed to export logs', err);
-      alert('Failed to export logs');
+      setError('Failed to export logs');
     }
   };
 
   return (
     <div className="moderation-queue">
+      {error && (
+        <MessageBanner type="error" title="Moderation" message={error} onClose={() => setError(null)} />
+      )}
+      {success && (
+        <MessageBanner type="success" title="Moderation" message={success} onClose={() => setSuccess(null)} />
+      )}
+
+      <PromptDialog
+        open={promptOpen}
+        title={promptContext?.type === 'bulk' ? 'Bulk decision reason' : `Reason for ${promptContext?.decision}`}
+        label="Reason"
+        placeholder="Enter reason"
+        onConfirm={(val) => promptContext?.type === 'bulk' ? doBulkDecision(val) : doDecision(val)}
+        onCancel={() => setPromptOpen(false)}
+        confirmLabel="Submit"
+        cancelLabel="Cancel"
+      />
       <div className="mq-header">
         <h2>Moderation Queue</h2>
         <div className="mq-controls">
