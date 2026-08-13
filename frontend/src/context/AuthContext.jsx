@@ -50,26 +50,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (email, password, firstName, lastName, isHost) => {
-    try {
-      const response = await api.post('/auth/register', {
-        email,
-        password,
-        firstName,
-        lastName,
-        isHost,
-      });
-      
-      // Rename destructured property here as well
-      const { token: receivedToken, user: userData } = response.data;
-      
-      localStorage.setItem('token', receivedToken);
-      setToken(receivedToken);
-      setUser(userData);
-      
-      return userData;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.post('/auth/register', {
+      email,
+      password,
+      firstName,
+      lastName,
+      isHost,
+    });
+    const { token: receivedToken, user: userData } = response.data;
+    localStorage.setItem('token', receivedToken);
+    setToken(receivedToken);
+    setUser(userData);
+    return userData;
   };
 
   const logout = () => {
