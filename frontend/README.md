@@ -63,7 +63,7 @@ src/
 Create a .env file with:
 
 ```env
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:5001/api
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
 ```
 
@@ -127,11 +127,23 @@ Endpoints used:
 ## Development Scripts
 
 ```bash
-npm run dev
-npm run build
-npm run preview
+npm run dev          # start Vite dev server (localhost:5173)
+npm run build        # production build (runs tsc + vite build)
+npm run preview      # preview built site
+npm run lint         # run ESLint against src (flat-config)
+```
+
+Running lint locally
+
+- ESLint is configured with a flat config at `frontend/eslint.config.js`. To run:
+
+```bash
+cd frontend
+npm install
 npm run lint
 ```
+
+- The repo currently allows a small set of development warnings (unused vars in platform-wide components). To silence intentional unused variables, prefix them with an underscore (e.g. `_err`) or update the rule in `frontend/eslint.config.js`.
 
 ## Notes
 
@@ -147,5 +159,5 @@ npm run lint
 
 ---
 
-**Backend API URL**: http://localhost:5000
+**Backend API URL**: http://localhost:5001
 **Frontend URL**: http://localhost:5173
