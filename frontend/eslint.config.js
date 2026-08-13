@@ -51,6 +51,10 @@ export default [
         RTCIceCandidateInit: 'readonly',
         RTCSessionDescriptionInit: 'readonly',
         require: 'readonly',
+        ServiceWorkerRegistration: 'readonly',
+        caches: 'readonly',
+        ServiceWorkerGlobalScope: 'readonly',
+        process: 'readonly'
       },
     },
     settings: {
@@ -65,7 +69,8 @@ export default [
       'react/display-name': 'off',
       'react/react-in-jsx-scope': 'off',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
+      'no-console': ['warn', { allow: ['warn', 'error', 'info', 'log'] }],
+      'no-unsafe-optional-chaining': 'warn'
     },
   },
 ];
