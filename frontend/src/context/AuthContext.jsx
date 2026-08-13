@@ -41,19 +41,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    try {
-      const response = await api.post('/auth/login', { email, password });
-      // Rename destructured property to avoid shadowing state variables
-      const { token: receivedToken, user: userData } = response.data;
-      
-      localStorage.setItem('token', receivedToken);
-      setToken(receivedToken);
-      setUser(userData);
-      
-      return userData;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.post('/auth/login', { email, password });
+    const { token: receivedToken, user: userData } = response.data;
+    localStorage.setItem('token', receivedToken);
+    setToken(receivedToken);
+    setUser(userData);
+    return userData;
   };
 
   const register = async (email, password, firstName, lastName, isHost) => {

@@ -58,6 +58,7 @@ export default [
         indexedDB: 'readonly',
         global: 'readonly',
         btoa: 'readonly',
+        atob: 'readonly',
         FileReader: 'readonly',
         MessageChannel: 'readonly',
         Linking: 'readonly',
@@ -77,7 +78,8 @@ export default [
       'react/react-in-jsx-scope': 'off',
       'no-unused-vars': 'off',
       'no-console': ['warn', { allow: ['warn', 'error', 'info', 'log'] }],
-      'no-unsafe-optional-chaining': 'warn'
+      'no-unsafe-optional-chaining': 'warn',
+      'react/no-unescaped-entities': 'off'
     },
   },
 ];

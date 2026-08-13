@@ -352,7 +352,7 @@ export default function EmailTemplateEditor() {
                       placeholder="e.g., Your certificate is ready - {{courseName}}"
                       disabled={!isCreating && selectedTemplate?.isSystem}
                     />
-                    <small>Use {{variable}} syntax for dynamic content</small>
+                    <small>{'Use {{variable}} syntax for dynamic content'}</small>
                   </div>
 
                   <div className="form-group">
@@ -366,7 +366,7 @@ export default function EmailTemplateEditor() {
                       rows={12}
                       disabled={!isCreating && selectedTemplate?.isSystem}
                     />
-                    <small>Full HTML is supported. Use {{variable}} for dynamic content.</small>
+                    <small>{'Full HTML is supported. Use {{variable}} for dynamic content.'}</small>
                   </div>
 
                   <div className="form-group">
