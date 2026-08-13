@@ -63,7 +63,7 @@ const EmailPreferences = () => {
     <div className="email-preferences">
       <h2>Email Preferences</h2>
       <p className="email-preferences-description">
-        Choose which emails you'd like to receive from EduTalk. You can change these settings at any time.
+        Choose which emails you would like to receive from EduTalk. You can change these settings at any time.
       </p>
 
       {message && (

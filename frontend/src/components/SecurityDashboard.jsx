@@ -349,7 +349,7 @@ export default function SecurityDashboard() {
       {/* Flagged Tab */}
       {tab === 'flagged' && (
         <div className="tab-content">
-          <h2>ðŸš© Flagged Activities</h2>
+          <h2>⚠️ Flagged Activities</h2>
 
           {flaggedActivities.length === 0 ? (
             <p className="no-data">No flagged activities</p>
@@ -358,7 +358,7 @@ export default function SecurityDashboard() {
               {flaggedActivities.map((activity, index) => (
                 <div key={index} className="flagged-item">
                   <div className="flagged-header">
-                    <h4>âš ï¸ {activity.action}</h4>
+                    <h4>⚠️ {activity.action}</h4>
                     <span className="flag-reason">{activity.flagReason}</span>
                   </div>
                   <div className="flagged-body">

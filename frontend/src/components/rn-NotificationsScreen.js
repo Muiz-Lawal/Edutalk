@@ -292,7 +292,7 @@ export default function NotificationsScreen({ navigation }) {
       {/* Notifications List */}
       {filteredNotifications.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyStateIcon}>ðŸ””</Text>
+          <Text style={styles.emptyStateIcon}>🔔</Text>
           <Text style={styles.emptyStateTitle}>
             {filter === 'unread'
               ? 'No unread notifications'
@@ -302,7 +302,7 @@ export default function NotificationsScreen({ navigation }) {
           </Text>
           <Text style={styles.emptyStateSubtitle}>
             {filter === 'all'
-              ? 'You're all caught up!'
+              ? 'You are all caught up!'
               : 'Check back later'}
           </Text>
         </View>

@@ -6,7 +6,7 @@ const isReactNative = typeof navigator !== 'undefined' && navigator.product === 
 let RNAlert = null;
 try {
   // require at runtime to avoid bundling errors in web
-  // eslint-disable-next-line global-require
+   
   RNAlert = require('react-native').Alert;
 } catch (e) {
   RNAlert = null;

@@ -175,7 +175,7 @@ const SearchScreen = ({ navigation }) => {
           ) : results.length === 0 ? (
             <View style={styles.centerContainer}>
               <Text style={styles.noResults}>
-                No classes found for "{searchQuery}"
+                No classes found for {searchQuery}
               </Text>
             </View>
           ) : (

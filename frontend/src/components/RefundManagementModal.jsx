@@ -481,7 +481,7 @@ export default function RefundManagementModal({ transaction, onClose }) {
           {refundAmount > 0 && (
             <>
               <div className="warning-box">
-                âš ï¸ This refund will impact platform revenue and host earnings. Both parties will be notified of the refund.
+                ⚠️ This refund will impact platform revenue and host earnings. Both parties will be notified of the refund.
               </div>
 
               <div className="refund-calculation">

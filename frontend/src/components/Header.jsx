@@ -20,7 +20,7 @@ export default function Header() {
 
   const handleLogout = () => {
     // close socket on logout
-    try { closeSocket(); } catch (e) {}
+    try { closeSocket(); } catch (e) { console.warn('closeSocket failed', e); }
     logout();
     navigate('/');
     setMobileMenuOpen(false);
@@ -55,9 +55,9 @@ export default function Header() {
             message: notif.message || '',
             type: 'success',
             ttl: 6000,
-        action: { url: '/achievements', label: 'View' }
-      });
-    }
+            action: { url: '/achievements', label: 'View' },
+          });
+        }
       });
     }
 

@@ -137,7 +137,7 @@ const LoginScreen = ({ navigation, setUser, setToken }) => {
 
           {/* Sign Up Link */}
           <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>Don't have an account? </Text>
+            <Text style={styles.signupText}>Do not have an account? </Text>
             <TouchableOpacity onPress={handleSignUp} disabled={loading}>
               <Text style={styles.signupLink}>Sign Up</Text>
             </TouchableOpacity>
@@ -146,7 +146,7 @@ const LoginScreen = ({ navigation, setUser, setToken }) => {
 
         {/* Demo Info */}
         <View style={styles.demoInfo}>
-          <Text style={styles.demoText}>ðŸ“ Demo Credentials:</Text>
+          <Text style={styles.demoText}>Demo Credentials:</Text>
           <Text style={styles.demoEmail}>student@example.com / password123</Text>
         </View>
       </ScrollView>

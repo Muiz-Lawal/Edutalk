@@ -1,0 +1,71 @@
+import js from '@eslint/js';
+import react from 'eslint-plugin-react';
+
+export default [
+  js.configs.recommended,
+  {
+    ignores: ['node_modules/**', 'dist/**', 'build/**'],
+    files: ['**/*.{js,jsx}'],
+    plugins: {
+      react,
+    },
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ecmaFeatures: { jsx: true },
+      },
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        fetch: 'readonly',
+        Headers: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        FormData: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        performance: 'readonly',
+        location: 'readonly',
+        history: 'readonly',
+        screen: 'readonly',
+        Blob: 'readonly',
+        Notification: 'readonly',
+        WebSocket: 'readonly',
+        RTCPeerConnection: 'readonly',
+        RTCSessionDescription: 'readonly',
+        RTCIceCandidate: 'readonly',
+        MediaStream: 'readonly',
+        RTCIceCandidateInit: 'readonly',
+        RTCSessionDescriptionInit: 'readonly',
+        require: 'readonly',
+      },
+    },
+    settings: {
+      react: {
+        version: 'detect',
+      },
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      ...react.configs.recommended.rules,
+      'react/prop-types': 'off',
+      'react/display-name': 'off',
+      'react/react-in-jsx-scope': 'off',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
+    },
+  },
+];

@@ -16,7 +16,6 @@ const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const HostDashboardPage = React.lazy(() => import('./pages/HostDashboardPage'));
 const RecordingsPage = React.lazy(() => import('./pages/RecordingsPage'));
 const NotificationsPage = React.lazy(() => import('./pages/NotificationsPage'));
-const BundleBrowser = React.lazy(() => import('./pages/BundleBrowser'));
 const BundleCreation = React.lazy(() => import('./pages/BundleCreation'));
 const DynamicPricingPage = React.lazy(() => import('./pages/DynamicPricingPage'));
 const DiscountManager = React.lazy(() => import('./pages/DiscountManager'));
@@ -52,7 +51,6 @@ const AdminModeration = React.lazy(() => import('./pages/AdminModeration'));
 const AdminPayments = React.lazy(() => import('./pages/AdminPayments').then(module => ({ default: module.AdminPayments })));
 const AdminEmailJobs = React.lazy(() => import('./pages/AdminEmailJobs'));
 const AdminHosts = React.lazy(() => import('./pages/AdminHosts').then(module => ({ default: module.AdminHosts })));
-const AdminAnalytics = React.lazy(() => import('./pages/AdminAnalytics').then(module => ({ default: module.AdminAnalytics })));
 const AdminLogs = React.lazy(() => import('./pages/AdminLogs').then(module => ({ default: module.AdminLogs })));
 const AdminSettings = React.lazy(() => import('./pages/AdminSettings'));
 
@@ -73,7 +71,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import OfflineIndicator from './components/OfflineIndicator';
 import UpdatePrompt from './components/UpdatePrompt';
-import MobileNav from './components/MobileNav';
 import PushPermissionRequest from './components/PushPermissionRequest';
 
 // Styles
