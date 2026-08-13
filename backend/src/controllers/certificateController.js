@@ -15,7 +15,7 @@ export const generateCertificate = async (req, res) => {
 
     // Get enrollment data
     const subscription = await Subscription.findById(enrollmentId)
-      .populate('studentId')
+          .populate('userId')
       .populate('classId');
 
     if (!subscription) {
@@ -33,7 +33,7 @@ export const generateCertificate = async (req, res) => {
 
     // Create new certificate
     const certificate = new Certificate({
-      studentId: subscription.studentId._id,
+      studentId: subscription.userId._id,
       classId: subscription.classId._id,
       enrollmentId,
       completionDate: completionDate || new Date(),
