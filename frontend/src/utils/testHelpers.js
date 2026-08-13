@@ -243,7 +243,7 @@ export const testHelpers = {
     };
 
     console.log('✅ Test Results:');
-    console.table(results);
+    console.info(results);
 
     return results;
   },

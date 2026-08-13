@@ -5,6 +5,7 @@ import UserDetailsModal from '../components/UserDetailsModal';
 import AdminMessageModal from '../components/AdminMessageModal';
 import MessageBanner from '../components/MessageBanner';
 import '../styles/admin.css';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export const AdminUsers = () => {
   const { fetchUsers, suspendUser, unsuspendUser, deleteUser, loading, error } = useAdmin();
