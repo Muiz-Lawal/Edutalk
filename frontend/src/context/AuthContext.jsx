@@ -71,13 +71,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateProfile = async (profileData) => {
-    try {
-      const response = await api.put('/auth/profile', profileData);
-      setUser(response.data);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.put('/auth/profile', profileData);
+    setUser(response.data);
+    return response.data;
   };
 
   // Safe context object configurations
