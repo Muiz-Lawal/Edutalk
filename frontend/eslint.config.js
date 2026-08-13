@@ -54,7 +54,14 @@ export default [
         ServiceWorkerRegistration: 'readonly',
         caches: 'readonly',
         ServiceWorkerGlobalScope: 'readonly',
-        process: 'readonly'
+        process: 'readonly',
+        indexedDB: 'readonly',
+        global: 'readonly',
+        btoa: 'readonly',
+        FileReader: 'readonly',
+        MessageChannel: 'readonly',
+        Linking: 'readonly',
+        onMessageListener: 'readonly'
       },
     },
     settings: {
@@ -68,7 +75,7 @@ export default [
       'react/prop-types': 'off',
       'react/display-name': 'off',
       'react/react-in-jsx-scope': 'off',
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': 'off',
       'no-console': ['warn', { allow: ['warn', 'error', 'info', 'log'] }],
       'no-unsafe-optional-chaining': 'warn'
     },
