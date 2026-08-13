@@ -1,5 +1,6 @@
 import express from 'express';
 import User from '../models/User.js';
+import crypto from 'crypto';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -91,7 +92,7 @@ router.post('/send-verification', authenticateToken, async (req, res) => {
     await user.save();
 
     // Send verification email
-    const { sendEmail } = await import('../utils/email.js');
+    const { sendEmail } = await import('../utils/email2.js');
     await sendEmail({
       to: user.email,
       subject: 'Verify Your Email - EduTalk',

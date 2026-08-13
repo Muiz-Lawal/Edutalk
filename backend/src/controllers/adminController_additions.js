@@ -67,7 +67,7 @@ export const getEmailJobDetails = async (req, res) => {
   }
 };
 
-import { sendEmail } from '../utils/email.js';
+import { sendEmail } from '../utils/email2.js';
 
 export const sendEmailJobNow = async (req, res) => {
   try {

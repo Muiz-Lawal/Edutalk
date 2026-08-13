@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { sendEmail } from '../utils/email.js';
+import { sendEmail } from '../utils/email2.js';
 
 class AIModerationService {
   constructor() {
