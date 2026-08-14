@@ -3,11 +3,25 @@ name: Webhook smoke tests
 on:
   push:
     branches: [ agents/continue ]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      run_real_provider:
+        description: 'Run real-provider e2e tests (requires STRIPE & SENDGRID secrets)'
+        required: false
+        default: 'false'
 
 jobs:
   webhook-smoke:
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:5.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongo --eval 'db.adminCommand(\"ping\")'" --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      MONGODB_URI: mongodb://mongodb:27017/edutalk_test
     steps:
       - uses: actions/checkout@v4
 
@@ -22,10 +36,20 @@ jobs:
 
       - name: Start backend server
         working-directory: backend
-        run: |
-          nohup node src/server.js > server.log 2>&1 &
-          # give server time to start
-          sleep 6
+              env:
+                MONGODB_URI: ${{ job.services.mongodb.url || env.MONGODB_URI }}
+              run: |
+                # Wait for MongoDB service to be ready
+                for i in {1..20}; do
+                  if mongo --eval 'db.adminCommand("ping")' >/dev/null 2>&1; then
+                    echo "MongoDB ready"; break
+                  fi
+                  echo "Waiting for MongoDB..."; sleep 2
+                done
+
+                nohup node src/server.js > server.log 2>&1 &
+                # give server time to start
+                sleep 6
 
       - name: Run webhook smoke (signed fallback)
         working-directory: backend
