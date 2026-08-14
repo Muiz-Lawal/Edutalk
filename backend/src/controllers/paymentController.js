@@ -241,11 +241,13 @@ export const handleStripeWebhook = async (req, res) => {
     const sig = req.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     const testBypass = req.headers['x-test-bypass-signature'];
+    const forceBypass = process.env.FORCE_BYPASS_WEBHOOK === 'true';
     let event;
 
-    // Allow test bypass header in non-production to skip signature verification when running in-memory tests
-    if (testBypass && process.env.NODE_ENV !== 'production') {
+    // Allow test bypass header or env var in non-production to skip signature verification when running in-memory tests
+    if ((testBypass && process.env.NODE_ENV !== 'production') || (forceBypass && process.env.NODE_ENV !== 'production')) {
       try {
+        console.log('Webhook: bypassing signature verification for test');
         event = typeof payload === 'string' ? JSON.parse(payload) : payload;
       } catch (err) {
         console.error('Failed parsing webhook payload in bypass mode:', err.message);

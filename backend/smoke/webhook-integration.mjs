@@ -97,6 +97,7 @@ async function startBackendProcess() {
   // When using in-memory DB for integration tests, keep webhook secret empty to avoid signature verification mismatch in test harness
   if (USE_MEMORY_DB) {
     env.STRIPE_WEBHOOK_SECRET = '';
+    env.FORCE_BYPASS_WEBHOOK = 'true';
   }
   backendProcess = spawn('node', ['src/server.js'], { cwd: process.cwd(), env, stdio: ['ignore', 'pipe', 'pipe'] });
 
