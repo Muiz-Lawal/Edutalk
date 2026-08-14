@@ -1,10 +1,13 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
+import { spawn } from 'child_process';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5001';
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/edutalk';
-const CLEANUP = process.env.CLEANUP === 'true' || true; // default to true for CI/dev
+let MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/edutalk';
+const CLEANUP = process.env.CLEANUP === 'false' ? false : true; // default true
+const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' || false;
+const START_BACKEND_PROCESS = process.env.START_BACKEND_PROCESS === 'true' || false;
 
 async function fetchJson(path, opts = {}) {
   const res = await fetch(`${BACKEND_URL}${path}`, opts);
@@ -40,25 +43,33 @@ function signPayload(secret, bodyStr) {
   return `t=${timestamp},v1=${hmac}`;
 }
 
-async function cleanupTestData({ intentId, classTitle, hostEmailPrefix = 'host', studentEmailPrefix = 'student' }) {
+async function waitForServer(url, timeoutMs = 20000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const res = await fetch(url);
+      if (res.status === 200) return true;
+    } catch (e) {}
+    await new Promise(r => setTimeout(r, 500));
+  }
+  throw new Error('Server did not become ready in time');
+}
+
+async function cleanupTestData({ intentId, classTitle }) {
   try {
     await mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
     const db = mongoose.connection.db;
 
-    // Delete payments matching intentId
     if (intentId) {
-      await db.collection('payments').deleteMany({ stripePaymentIntentId: { $in: [intentId, { $regex: intentId }] } });
+      await db.collection('payments').deleteMany({ stripePaymentIntentId: intentId });
     }
 
-    // Delete subscriptions for users
     await db.collection('subscriptions').deleteMany({});
 
-    // Delete classes by title
     if (classTitle) {
       await db.collection('classes').deleteMany({ title: classTitle });
     }
 
-    // Delete users created by this test (host+ and student+)
     await db.collection('users').deleteMany({ email: { $regex: '^(host\\+|student\\+)' } });
 
     console.log('Cleanup completed');
@@ -69,6 +80,38 @@ async function cleanupTestData({ intentId, classTitle, hostEmailPrefix = 'host',
   }
 }
 
+let mongod = null;
+let backendProcess = null;
+
+async function startInMemoryMongo() {
+  const { MongoMemoryServer } = await import('mongodb-memory-server');
+  mongod = await MongoMemoryServer.create();
+  const uri = mongod.getUri();
+  console.log('Started in-memory MongoDB at', uri);
+  MONGODB_URI = uri;
+}
+
+async function startBackendProcess() {
+  console.log('Starting backend process...');
+  const env = { ...process.env, MONGODB_URI, PORT: '5001' };
+  backendProcess = spawn('node', ['src/server.js'], { cwd: '../', env, stdio: ['ignore', 'pipe', 'pipe'] });
+
+  backendProcess.stdout.on('data', (d) => process.stdout.write(`[backend] ${d}`));
+  backendProcess.stderr.on('data', (d) => process.stderr.write(`[backend] ${d}`));
+
+  // Wait for health
+  await waitForServer(`${BACKEND_URL}/api/health`, 20000);
+  console.log('Backend process is ready');
+}
+
+async function stopBackendProcess() {
+  if (backendProcess) {
+    console.log('Stopping backend process...');
+    try { backendProcess.kill(); } catch (e) { console.warn('Failed to kill backend process', e); }
+    backendProcess = null;
+  }
+}
+
 (async function main() {
   console.log('Starting webhook integration smoke test against', BACKEND_URL);
 
@@ -76,6 +119,14 @@ async function cleanupTestData({ intentId, classTitle, hostEmailPrefix = 'host',
   const classTitle = 'Integration Test Class';
 
   try {
+    if (USE_MEMORY_DB) {
+      await startInMemoryMongo();
+    }
+
+    if (START_BACKEND_PROCESS) {
+      await startBackendProcess();
+    }
+
     // 1) Create host
     const host = await registerUser('host');
     console.log('Host created');
@@ -154,6 +205,11 @@ async function cleanupTestData({ intentId, classTitle, hostEmailPrefix = 'host',
       try {
         await cleanupTestData({ intentId, classTitle });
       } catch (e) { console.warn('Cleanup in finally failed', e); }
+    }
+
+    try { await stopBackendProcess(); } catch(e){}
+    if (mongod) {
+      try { await mongod.stop(); } catch(e){}
     }
   }
 })();

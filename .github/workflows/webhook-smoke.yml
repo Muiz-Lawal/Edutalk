@@ -48,15 +48,19 @@ jobs:
                 done
 
                 if [[ "${{ github.event.inputs.run_real_provider }}" == 'true' ]]; then
-                  echo "Building Docker image for backend..."
-                  docker build -t edutalk-backend:ci .
-                  echo "Running backend container..."
-                  docker run -d --name edutalk-backend-ci -p 5001:5001 -e MONGODB_URI="mongodb://mongodb:27017/edutalk_test" edutalk-backend:ci
-                  sleep 6
+                  echo "Starting services with docker-compose..."
+                  docker-compose -f .github/docker-compose.ci.yml up -d --build
+                  # wait for backend to become healthy
+                  for i in {1..30}; do
+                    if curl -sS http://localhost:5001/api/health >/dev/null 2>&1; then
+                      echo "Backend healthy"; break
+                    fi
+                    echo "Waiting for backend..."; sleep 2
+                  done
                 else
-                  echo "Starting backend with node (no docker)..."
-                  nohup node src/server.js > server.log 2>&1 &
-                  sleep 6
+                  echo "Starting backend with in-memory DB mode (spawned by integration script)..."
+                  # No explicit backend start here; webhook-integration will spawn backend when START_BACKEND_PROCESS=true
+                  sleep 1
                 fi
 
       - name: Run webhook smoke (signed fallback)
