@@ -80,6 +80,33 @@ REDIS_URL=redis://localhost:6379
 - `POST /api/payments/confirm` - Confirm payment
 - `GET /api/payments/history` - Get payment history
 
+### Testing Stripe webhooks locally
+
+The backend exposes a server-side webhook endpoint at `POST /api/payments/webhook` which verifies Stripe signatures using the `STRIPE_WEBHOOK_SECRET` environment variable.
+
+Quick local test with the Stripe CLI (recommended):
+
+1. Install the Stripe CLI: https://stripe.com/docs/stripe-cli
+2. Authenticate the CLI with your Stripe account: `stripe login`
+3. Forward webhook events to your local server (replace `--forward-to` if your backend runs on a different port):
+
+   stripe listen --forward-to localhost:5001/api/payments/webhook
+
+4. Trigger a test event:
+
+   stripe trigger payment_intent.succeeded
+
+Manual test (without Stripe CLI) using the provided smoke script:
+
+From the backend folder run:
+
+```bash
+# uses STRIPE_WEBHOOK_SECRET from .env or provided env var
+STRIPE_WEBHOOK_SECRET=whsec_xxx node smoke/webhook-smoke.mjs
+```
+
+The smoke script posts a signed `payment_intent.succeeded` event and asserts the endpoint returns HTTP 200. It does not assert downstream DB side-effects — use the Stripe CLI + real test keys for full end-to-end verification.
+
 ## Project Structure
 
 ```
