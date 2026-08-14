@@ -1,0 +1,44 @@
+name: Webhook smoke tests
+
+on:
+  push:
+    branches: [ agents/continue ]
+  workflow_dispatch: {}
+
+jobs:
+  webhook-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci
+
+      - name: Start backend server
+        working-directory: backend
+        run: |
+          nohup node src/server.js > server.log 2>&1 &
+          # give server time to start
+          sleep 6
+
+      - name: Run webhook smoke (signed fallback)
+        working-directory: backend
+        env:
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          BACKEND_URL: http://localhost:5001
+        run: |
+          node smoke/webhook-smoke.mjs
+
+      - name: Run webhook integration (end-to-end)
+        working-directory: backend
+        env:
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          BACKEND_URL: http://localhost:5001
+        run: |
+          node smoke/webhook-integration.mjs
