@@ -164,26 +164,28 @@ async function stopBackendProcess() {
     const studentUser = studentLogin.user;
     console.log('Student created with id', studentUser.id || studentUser._id);
 
-    // 6) Post a signed payment_intent.succeeded webhook with metadata
-    intentId = `pi_integ_${Date.now()}`;
-    const event = {
-      id: `evt_integ_${Date.now()}`,
-      object: 'event',
-      type: 'payment_intent.succeeded',
-      data: { object: { id: intentId, metadata: { classId: classId, userId: studentUser.id || studentUser._id, numberOfDays: '7' } } }
-    };
-    const bodyStr = JSON.stringify(event);
-    const signature = WEBHOOK_SECRET ? signPayload(WEBHOOK_SECRET, bodyStr) : '';
-
-    const webhookRes = await fetch(`${BACKEND_URL}/api/payments/webhook`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...(signature ? { 'stripe-signature': signature } : {}), ...(USE_MEMORY_DB ? { 'x-test-bypass-signature': '1' } : {}) }, body: bodyStr
+    // 6) Student creates a payment intent (uses mock fallback when Stripe not configured)
+    const createIntentRes = await fetchJson('/api/payments/create-intent', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${studentToken}` },
+      body: JSON.stringify({ classId, numberOfDays: 7 })
     });
-    console.log('Webhook POST status:', webhookRes.status);
-    const webhookText = await webhookRes.text();
-    console.log('Webhook response body:', webhookText);
 
-    // 7) Allow processing to complete
-    await new Promise(r => setTimeout(r, 1000));
+    if (![200,201].includes(createIntentRes.status)) throw new Error('Create intent failed: ' + JSON.stringify(createIntentRes.body));
+
+    const clientSecret = createIntentRes.body.clientSecret || createIntentRes.body.client_secret || createIntentRes.body.clientsecret;
+    // Derive paymentIntentId from mock clientSecret format pi_mock_<ts>
+    let paymentIntentId = clientSecret;
+    if (typeof clientSecret === 'string' && clientSecret.startsWith('pi_mock_')) {
+      paymentIntentId = clientSecret;
+    }
+
+    // 7) Confirm payment (mock path supported)
+    const confirmRes = await fetchJson('/api/payments/confirm', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${studentToken}` },
+      body: JSON.stringify({ paymentIntentId, classId, numberOfDays: 7 })
+    });
+
+    console.log('Confirm response status:', confirmRes.status, 'body:', JSON.stringify(confirmRes.body));
 
     // 8) Query payment history as student
     const paymentsRes = await fetchJson('/api/payments/history', {
