@@ -101,3 +101,33 @@ export const sendEmailJobNow = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Test cleanup endpoint used by smoke/integration tests when running against a dev/test server.
+export const testCleanup = async (req, res) => {
+  try {
+    const tokenHeader = req.headers['x-test-cleanup-token'];
+    const expected = process.env.TEST_CLEANUP_TOKEN || '';
+
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ error: 'Not allowed in production' });
+    }
+
+    if (expected && tokenHeader !== expected) {
+      return res.status(401).json({ error: 'Invalid cleanup token' });
+    }
+
+    // Use direct model deletes to remove created test artifacts
+    await Promise.all([
+      EmailJob.deleteMany({}),
+      (await import('../models/Payment.js')).default.deleteMany({}),
+      (await import('../models/Subscription.js')).default.deleteMany({}),
+      (await import('../models/Class.js')).default.deleteMany({ title: { $regex: '^Integration Test Class' } }),
+      (await import('../models/User.js')).default.deleteMany({ email: { $regex: '^(host\\+|student\\+)' } }),
+    ]);
+
+    res.json({ message: 'Cleanup completed' });
+  } catch (err) {
+    console.error('Test cleanup failed:', err);
+    res.status(500).json({ error: err.message });
+  }
+};

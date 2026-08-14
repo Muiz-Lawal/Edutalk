@@ -447,6 +447,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/payments', paymentRoutes);
+
+// Test-only cleanup endpoint (dev/staging) - protected by TEST_CLEANUP_TOKEN header and disabled in production
+import { testCleanup } from './controllers/adminController_additions.js';
+app.post('/__test/cleanup', express.json(), async (req, res) => testCleanup(req, res));
+
 app.use('/api/video', videoRoutes);
 app.use('/api/recordings', recordingRoutes);
 app.use('/api/notifications', notificationRoutes);

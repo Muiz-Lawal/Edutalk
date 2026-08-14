@@ -34,7 +34,7 @@ jobs:
         working-directory: backend
         run: npm ci
 
-      - name: Start backend server
+      - name: Start backend server (node or docker)
         working-directory: backend
               env:
                 MONGODB_URI: ${{ job.services.mongodb.url || env.MONGODB_URI }}
@@ -47,9 +47,17 @@ jobs:
                   echo "Waiting for MongoDB..."; sleep 2
                 done
 
-                nohup node src/server.js > server.log 2>&1 &
-                # give server time to start
-                sleep 6
+                if [[ "${{ github.event.inputs.run_real_provider }}" == 'true' ]]; then
+                  echo "Building Docker image for backend..."
+                  docker build -t edutalk-backend:ci .
+                  echo "Running backend container..."
+                  docker run -d --name edutalk-backend-ci -p 5001:5001 -e MONGODB_URI="mongodb://mongodb:27017/edutalk_test" edutalk-backend:ci
+                  sleep 6
+                else
+                  echo "Starting backend with node (no docker)..."
+                  nohup node src/server.js > server.log 2>&1 &
+                  sleep 6
+                fi
 
       - name: Run webhook smoke (signed fallback)
         working-directory: backend
