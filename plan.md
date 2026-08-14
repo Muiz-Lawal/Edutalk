@@ -11,16 +11,17 @@ Finish Phase 6→7 transition: stabilize host create-class, payments, certificat
 - Fixed certificate generation timing and mapping
 - Added compact smoke scripts for auth → host → create-class → payments → certificates
 - Implemented server-side Stripe webhook handler and mounted POST /api/payments/webhook
-- Added a webhook smoke script and integration smoke script
+- Added webhook smoke script, integration smoke script, and in-memory DB runner for local validation
 - Fixed badgeEngine duplicate-export error
-- Added CI workflow to run webhook smoke tests (manual/dispatch on agents/continue branch)
+- Added separated CI smoke jobs: standard in-memory fast smoke and optional real-provider run
+- Added cleanup endpoint and test cleanup utilities for development smoke runs
 
 ## Next / remaining (short list)
 - Add DB-index review and apply indexes for frequently queried fields
 - Add structured logging and attach Sentry (or similar) for errors
 - Add retry/compensation strategies for transient Stripe/SendGrid errors
-- Add optional CI real-provider runs (requires secure secrets for STRIPE and SENDGRID)
-- Add cleanup utilities for smoke tests (optional)
+- Validate optional real-provider runs with secure CI secrets for STRIPE and SENDGRID
+- Expand smoke coverage to certificate issuance and admin flows
 
 ## How to run locally (summary)
 1. Copy .env.example to backend/.env and fill values (or use provided backend/.env for dev)

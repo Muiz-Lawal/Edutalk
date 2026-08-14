@@ -11,7 +11,33 @@ on:
         default: 'false'
 
 jobs:
-  webhook-smoke:
+  in-memory-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci
+
+      - name: Run in-memory webhook integration smoke
+        working-directory: backend
+        env:
+          USE_MEMORY_DB: 'true'
+          START_BACKEND_PROCESS: 'true'
+          CLEANUP: 'true'
+          BACKEND_URL: http://localhost:5001
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+        run: |
+          node smoke/webhook-integration.mjs
+
+  real-provider-smoke:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_real_provider == 'true' }}
     runs-on: ubuntu-latest
     services:
       mongodb:
@@ -34,47 +60,30 @@ jobs:
         working-directory: backend
         run: npm ci
 
-      - name: Start backend server (node or docker)
-        working-directory: backend
-              env:
-                MONGODB_URI: ${{ job.services.mongodb.url || env.MONGODB_URI }}
-              run: |
-                # Wait for MongoDB service to be ready
-                for i in {1..20}; do
-                  if mongo --eval 'db.adminCommand("ping")' >/dev/null 2>&1; then
-                    echo "MongoDB ready"; break
-                  fi
-                  echo "Waiting for MongoDB..."; sleep 2
-                done
+      - name: Start backend with compose
+        run: |
+          docker-compose -f .github/docker-compose.ci.yml up -d --build
+          for i in {1..30}; do
+            if curl -sS http://localhost:5001/api/health >/dev/null 2>&1; then
+              echo "Backend healthy"; break
+            fi
+            echo "Waiting for backend..."; sleep 2
+          done
 
-                if [[ "${{ github.event.inputs.run_real_provider }}" == 'true' ]]; then
-                  echo "Starting services with docker-compose..."
-                  docker-compose -f .github/docker-compose.ci.yml up -d --build
-                  # wait for backend to become healthy
-                  for i in {1..30}; do
-                    if curl -sS http://localhost:5001/api/health >/dev/null 2>&1; then
-                      echo "Backend healthy"; break
-                    fi
-                    echo "Waiting for backend..."; sleep 2
-                  done
-                else
-                  echo "Starting backend with in-memory DB mode (spawned by integration script)..."
-                  # No explicit backend start here; webhook-integration will spawn backend when START_BACKEND_PROCESS=true
-                  sleep 1
-                fi
-
-      - name: Run webhook smoke (signed fallback)
+      - name: Run webhook smoke against real provider backend
         working-directory: backend
         env:
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           BACKEND_URL: http://localhost:5001
         run: |
           node smoke/webhook-smoke.mjs
 
-      - name: Run webhook integration (end-to-end)
+      - name: Run integration smoke against real provider backend
         working-directory: backend
         env:
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           BACKEND_URL: http://localhost:5001
         run: |
           node smoke/webhook-integration.mjs
