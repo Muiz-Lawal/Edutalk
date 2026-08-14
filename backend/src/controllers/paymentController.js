@@ -233,3 +233,109 @@ export const getPaymentHistory = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Stripe webhook handler (server-to-server)
+export const handleStripeWebhook = async (req, res) => {
+  try {
+    const payload = req.body; // raw buffer when express.raw is used
+    const sig = req.headers['stripe-signature'];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    let event;
+
+    if (webhookSecret) {
+      try {
+        event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
+      } catch (err) {
+        console.error('Webhook signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+    } else {
+      // No webhook secret configured — attempt to parse body (unsafe for production)
+      event = typeof payload === 'string' ? JSON.parse(payload) : payload;
+    }
+
+    // Handle the event types we care about
+    switch (event.type) {
+      case 'payment_intent.succeeded': {
+        const pi = event.data.object;
+        const intentId = pi.id;
+
+        // Idempotency: if payment record already exists for this intent, skip
+        const existingPayment = await Payment.findOne({ stripePaymentIntentId: intentId });
+        if (existingPayment) {
+          console.log('Payment already recorded for intent', intentId);
+          return res.json({ received: true });
+        }
+
+        const metadata = pi.metadata || {};
+        const classId = metadata.classId;
+        const userId = metadata.userId;
+        const numberOfDays = parseInt(metadata.numberOfDays || '0', 10) || 0;
+
+        if (!classId || !userId) {
+          console.warn('Webhook payment intent missing metadata, skipping creation', intentId);
+          return res.json({ received: true });
+        }
+
+        // Load class and user
+        const classData = await Class.findById(classId);
+        const user = await User.findById(userId);
+        if (!classData || !user) {
+          console.warn('Class or user not found for webhook intent', intentId);
+          return res.json({ received: true });
+        }
+
+        const totalPrice = calculatePrice(classData.monthlyPrice, numberOfDays);
+        const finalAmount = totalPrice; // webhook won't know discounts here; confirmPayment endpoint handles discounts
+
+        const accessCode = generateAccessCode();
+        const startDate = new Date();
+        const endDate = new Date(startDate.getTime() + numberOfDays * 24 * 60 * 60 * 1000);
+
+        const subscription = new Subscription({
+          userId: userId,
+          classId,
+          accessCode,
+          numberOfDays,
+          startDate,
+          endDate,
+          status: 'active',
+          totalDaysPurchased: numberOfDays,
+          totalAmountPaid: finalAmount,
+        });
+        await subscription.save();
+
+        const split = calculatePaymentSplit(finalAmount, classData.hostId?.planTier);
+
+        const payment = new Payment({
+          userId,
+          classId,
+          subscriptionId: subscription._id,
+          amount: finalAmount,
+          currency: user.preferredCurrency || 'USD',
+          daysPurchased: numberOfDays,
+          ...split,
+          stripePaymentIntentId: intentId,
+          status: 'completed',
+          paymentType: 'new',
+        });
+        await payment.save();
+
+        // Update class total enrolled
+        classData.totalEnrolled += 1;
+        await classData.save();
+
+        console.log('Webhook processed payment_intent.succeeded for intent', intentId);
+        return res.json({ received: true });
+      }
+
+      // Add other event types as needed
+      default:
+        console.log('Unhandled Stripe event type:', event.type);
+        return res.json({ received: true });
+    }
+  } catch (err) {
+    console.error('Error handling webhook:', err);
+    return res.status(500).send('Internal error');
+  }
+};

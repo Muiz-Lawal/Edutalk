@@ -10,6 +10,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import classRoutes from './routes/classRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import { handleStripeWebhook } from './controllers/paymentController.js';
 import videoRoutes from './routes/videoRoutes.js';
 import recordingRoutes from './routes/recordingRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
@@ -434,6 +435,11 @@ app.use(cors({
   },
   credentials: true,
 }));
+
+// Stripe webhook endpoint requires the raw body for signature verification.
+// Mount this route before express.json() so the raw body is available to the handler.
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
