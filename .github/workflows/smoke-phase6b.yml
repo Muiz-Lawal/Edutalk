@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [ agents/continue ]
+  workflow_dispatch: {}
 
 jobs:
   smoke-and-phase6b:
