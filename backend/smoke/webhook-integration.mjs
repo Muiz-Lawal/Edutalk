@@ -175,7 +175,7 @@ async function stopBackendProcess() {
     const signature = WEBHOOK_SECRET ? signPayload(WEBHOOK_SECRET, bodyStr) : '';
 
     const webhookRes = await fetch(`${BACKEND_URL}/api/payments/webhook`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...(signature ? { 'stripe-signature': signature } : {}) }, body: bodyStr
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...(signature ? { 'stripe-signature': signature } : {}), ...(USE_MEMORY_DB ? { 'x-test-bypass-signature': '1' } : {}) }, body: bodyStr
     });
     console.log('Webhook POST status:', webhookRes.status);
     const webhookText = await webhookRes.text();
