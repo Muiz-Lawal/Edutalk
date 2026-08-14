@@ -94,6 +94,10 @@ async function startInMemoryMongo() {
 async function startBackendProcess() {
   console.log('Starting backend process...');
   const env = { ...process.env, MONGODB_URI, PORT: '5001' };
+  // When using in-memory DB for integration tests, keep webhook secret empty to avoid signature verification mismatch in test harness
+  if (USE_MEMORY_DB) {
+    env.STRIPE_WEBHOOK_SECRET = '';
+  }
   backendProcess = spawn('node', ['src/server.js'], { cwd: process.cwd(), env, stdio: ['ignore', 'pipe', 'pipe'] });
 
   backendProcess.stdout.on('data', (d) => process.stdout.write(`[backend] ${d}`));
