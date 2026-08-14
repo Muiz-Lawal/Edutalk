@@ -94,7 +94,7 @@ async function startInMemoryMongo() {
 async function startBackendProcess() {
   console.log('Starting backend process...');
   const env = { ...process.env, MONGODB_URI, PORT: '5001' };
-  backendProcess = spawn('node', ['src/server.js'], { cwd: '../', env, stdio: ['ignore', 'pipe', 'pipe'] });
+  backendProcess = spawn('node', ['src/server.js'], { cwd: process.cwd(), env, stdio: ['ignore', 'pipe', 'pipe'] });
 
   backendProcess.stdout.on('data', (d) => process.stdout.write(`[backend] ${d}`));
   backendProcess.stderr.on('data', (d) => process.stderr.write(`[backend] ${d}`));
@@ -143,7 +143,7 @@ async function stopBackendProcess() {
     console.log('Upgraded to host');
 
     // 4) Create class
-    const classPayload = { title: classTitle, description: 'Test class', category: 'testing', monthlyPrice: 100, isPublic: true };
+    const classPayload = { title: classTitle, description: 'Test class', category: 'Technology', monthlyPrice: 100, isPublic: true };
     const createClassRes = await fetchJson('/api/classes', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hostToken}` }, body: JSON.stringify(classPayload)
     });
