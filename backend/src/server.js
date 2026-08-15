@@ -1,10 +1,12 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import mongoose from 'mongoose';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import connectDB from './config/db.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import logger from './utils/logger.js';
 // Admin analytics dashboard - Phase 6F
 
 import authRoutes from './routes/authRoutes.js';
@@ -61,6 +63,15 @@ await connectDB();
 
 // Initialize email scheduler
 emailScheduler;
+
+app.use((req, res, next) => {
+  logger.info('Incoming request', {
+    method: req.method,
+    path: req.originalUrl,
+    ip: req.ip,
+  });
+  next();
+});
 
 // Socket.io middleware for authentication
 io.use(async (socket, next) => {
@@ -477,7 +488,22 @@ app.use('/api/analytics', analyticsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK' });
+  res.json({
+    status: 'OK',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    memory: process.memoryUsage().rss,
+  });
+});
+
+app.get('/api/ready', (req, res) => {
+  const ready = mongoose.connection.readyState === 1;
+  res.status(ready ? 200 : 503).json({
+    status: ready ? 'ready' : 'not_ready',
+    database: mongoose.connection.readyState,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Run aggregation job (dev only) - dynamic import
@@ -514,5 +540,5 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info('Server started', { port: PORT, env: process.env.NODE_ENV || 'development' });
 });

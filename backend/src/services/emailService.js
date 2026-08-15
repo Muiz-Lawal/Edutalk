@@ -1,6 +1,8 @@
 import EmailJob from '../models/EmailJob.js';
 import EmailTemplate from '../models/EmailTemplate.js';
 import nodemailer from 'nodemailer';
+import logger from '../utils/logger.js';
+import { withRetry } from '../utils/retry.js';
 
 /**
  * Email Service
@@ -70,7 +72,24 @@ class EmailService {
       };
 
       const transporter = this.getTransporter();
-      const result = await transporter.sendMail(mailOptions);
+      const result = await withRetry(
+        () => transporter.sendMail(mailOptions),
+        {
+          retries: 2,
+          baseDelayMs: 250,
+          shouldRetry: (error) => {
+            const message = String(error?.message || '').toLowerCase();
+            return ['timeout', 'network', 'econnreset', 'temporarily unavailable', '429', '503', '504'].some((token) => message.includes(token));
+          },
+          onRetry: ({ attempt, delayMs, error }) => {
+            logger.warn('Email send retry', {
+              attempt,
+              delayMs,
+              error: error?.message || 'Unknown error',
+            });
+          },
+        }
+      );
 
       return {
         success: true,
@@ -78,7 +97,7 @@ class EmailService {
         response: result.response,
       };
     } catch (error) {
-      console.error('Error sending email:', error);
+      logger.error('Error sending email', { error: error?.message || error });
       throw error;
     }
   }
@@ -106,7 +125,7 @@ class EmailService {
       await emailJob.save();
       return emailJob;
     } catch (error) {
-      console.error('Error queueing email:', error);
+      logger.error('Error queueing email', { error: error?.message || error });
       throw error;
     }
   }
@@ -134,7 +153,7 @@ class EmailService {
         textBody,
       });
     } catch (error) {
-      console.error('Error sending email from template:', error);
+      logger.error('Error sending email from template', { error: error?.message || error });
       throw error;
     }
   }
@@ -160,7 +179,7 @@ class EmailService {
         variables,
       });
     } catch (error) {
-      console.error('Error queueing email from template:', error);
+      logger.error('Error queueing email from template', { error: error?.message || error });
       throw error;
     }
   }
@@ -201,9 +220,9 @@ class EmailService {
             });
           }
 
-          console.log(`✓ Email sent to ${job.to}`);
+          logger.info('Email sent', { to: job.to });
         } catch (error) {
-          console.error(`✗ Failed to send email to ${job.to}:`, error.message);
+          logger.error('Failed to send email', { to: job.to, error: error.message });
 
           // Mark as failed
           job.status = 'failed';

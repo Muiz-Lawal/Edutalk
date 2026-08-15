@@ -23,7 +23,12 @@ jobs:
 
       - name: Install backend deps
         working-directory: backend
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Run in-memory webhook integration smoke
         working-directory: backend
@@ -37,7 +42,7 @@ jobs:
           node smoke/webhook-integration.mjs
 
   real-provider-smoke:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_real_provider == 'true' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_real_provider == 'true' && secrets.STRIPE_WEBHOOK_SECRET != '' && secrets.SENDGRID_API_KEY != '' }}
     runs-on: ubuntu-latest
     services:
       mongodb:
@@ -58,7 +63,19 @@ jobs:
 
       - name: Install backend deps
         working-directory: backend
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Verify provider secrets are configured
+        working-directory: backend
+        env:
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+        run: node smoke/require-provider-secrets.mjs
 
       - name: Start backend with compose
         run: |

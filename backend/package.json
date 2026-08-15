@@ -9,7 +9,8 @@
     "dev": "nodemon src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "integration-test": "node src/integration_test.js",
-    "smoke": "node smoke/smoke-tests-fixed.mjs"
+    "smoke": "node ../smoke/smoke-tests-fixed.mjs",
+    "release-check": "node smoke/release-readiness.mjs"
   },
   "keywords": [
     "education",

@@ -30,7 +30,11 @@ jobs:
       - name: Install backend deps
         working-directory: backend
         run: |
-          npm ci
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Start backend server
         working-directory: backend

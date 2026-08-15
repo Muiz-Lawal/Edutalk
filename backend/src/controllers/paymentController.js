@@ -6,6 +6,8 @@ import DiscountService from '../services/discountService.js';
 import Stripe from 'stripe';
 import { calculatePrice, calculatePaymentSplit, calculateContinuationPrice } from '../utils/pricing.js';
 import { generateAccessCode } from '../utils/accessCode.js';
+import logger from '../utils/logger.js';
+import { withRetry } from '../utils/retry.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_example');
 
@@ -78,21 +80,34 @@ export const createPaymentIntent = async (req, res) => {
     }
 
     try {
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amountCents,
-        currency: user.preferredCurrency?.toLowerCase() || 'usd',
-        metadata: {
-          classId: classId.toString(),
-          userId: req.user.userId.toString(),
-          numberOfDays,
-          discountCode: discountCodeToStore || '',
-        },
-      });
+      const paymentIntent = await withRetry(
+        () => stripe.paymentIntents.create({
+          amount: amountCents,
+          currency: user.preferredCurrency?.toLowerCase() || 'usd',
+          metadata: {
+            classId: classId.toString(),
+            userId: req.user.userId.toString(),
+            numberOfDays,
+            discountCode: discountCodeToStore || '',
+          },
+        }),
+        {
+          retries: 2,
+          baseDelayMs: 300,
+          onRetry: ({ attempt, delayMs, error }) => {
+            logger.warn('Stripe create intent retry', {
+              attempt,
+              delayMs,
+              error: error?.message || 'Unknown Stripe error',
+            });
+          },
+        }
+      );
 
       return res.json({ clientSecret: paymentIntent.client_secret, amount: finalAmount, numberOfDays });
     } catch (stripeErr) {
       // For local/dev runs, fallback to a mocked client secret so smoke tests can proceed when Stripe is not available or misconfigured
-      console.warn('Stripe create intent failed, falling back to mock client secret:', stripeErr?.message || stripeErr);
+      logger.warn('Stripe create intent failed, falling back to mock client secret', { error: stripeErr?.message || stripeErr });
       const fakeClientSecret = `pi_mock_${Date.now()}`;
       return res.json({ clientSecret: fakeClientSecret, amount: finalAmount, numberOfDays });
     }
