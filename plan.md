@@ -19,11 +19,29 @@ Finish Phase 6→7 transition: stabilize host create-class, payments, certificat
 - Re-ran the smoke validations successfully after the hardening patch set
 
 ## Next / remaining (short list)
-- Validate optional real-provider runs with secure CI secrets for STRIPE and SENDGRID
-- Fix CI install step for branch/workflow contexts (lockfile handling) — updated workflows to fallback to `npm install` when a lockfile is not present and generated package-lock.json for backend/frontend locally (to be committed)
-- Expand smoke coverage to admin and production deployment checks
+- Validate optional real-provider runs with secure CI secrets for STRIPE and email delivery (REQUIRED before Phase 7)
+- Fix CI install step for branch/workflow contexts (lockfile handling) — updated workflows to fallback to `npm install` when a lockfile is not present and generated package-lock.json for backend/frontend locally (committed)
+- Expand smoke coverage to admin and production deployment checks (add admin smoke runners)
 - Add a deployment-readiness script and verify the backend health/ready endpoints before release
 - Prepare certificate PDF/output polish and any release-specific deployment hardening
+
+### Remaining Phase-7 gating checklist (sequential)
+1. Ensure CI in-memory smoke is green (done: compact smoke passed in CI)
+2. Use Brevo SMTP as the supported real-provider email path; use SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM. A Brevo API key is not interchangeable with a SendGrid API key unless the code explicitly supports that provider's API.
+3. Configure repository secrets for real-provider runs: STRIPE_WEBHOOK_SECRET, STRIPE_SECRET_KEY, and the SMTP credentials (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM). These must be added to GitHub repo secrets by a repo admin.
+4. Run real-provider smoke (workflow_dispatch) and confirm payments, webhooks, and emails end-to-end in staging. Address any provider-specific failures.
+5. Finalize certificate PDF generation and visual polish in staging (confirm templates, fonts, and download endpoints).
+6. Verify logging, metrics, and alerts are configured for staging/production (structured logs, sampling, error rates, alert thresholds).
+7. Confirm DB indexes and backups for production scale (ensure indexes applied, create backup plan).
+8. Create release candidate tag and run release-readiness smoke against the release build.
+9. Deploy to staging and run post-deploy smoke and manual exploratory checks.
+10. When staging is green and stakeholders approve, create production release and run post-deploy smoke.
+
+Notes:
+- Steps 2–4 require provider secrets; do NOT store secrets in repo. Add them via GitHub -> Settings -> Secrets.
+- Brevo SMTP is the preferred alternative because the project already supports SMTP in [backend/src/services/emailService.js](C:/Users/abdul/Desktop/class.worktrees/continue/backend/src/services/emailService.js) and in [.env.example](C:/Users/abdul/Desktop/class.worktrees/continue/backend/.env.example).
+- While secrets are absent, use in-memory/mock modes for local and CI-based validation to avoid blocking progress.
+- I will proceed to configure the email provider path to Brevo and then rerun the real-provider smoke using SMTP credentials instead of SendGrid.
 
 ## How to run locally (summary)
 1. Copy .env.example to backend/.env and fill values (or use provided backend/.env for dev)
