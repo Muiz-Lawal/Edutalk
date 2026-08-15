@@ -42,7 +42,7 @@ jobs:
           node smoke/webhook-integration.mjs
 
   real-provider-smoke:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_real_provider == 'true' && secrets.STRIPE_WEBHOOK_SECRET != '' && secrets.SENDGRID_API_KEY != '' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_real_provider == 'true' }}
     runs-on: ubuntu-latest
     services:
       mongodb:
