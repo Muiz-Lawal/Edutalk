@@ -12,7 +12,7 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: ../backend
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/edutalk_test
       - NODE_ENV=development
