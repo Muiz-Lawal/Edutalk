@@ -1,6 +1,6 @@
 # Project plan and progress
 
-Updated: 2026-08-16 — local smoke verification completed; payment controller lazy-init committed (see commit f4d5752)
+Updated: 2026-08-16 — release candidate published (v1.0.0-rc1), deploy smoke helper added, GitHub secrets guide created, staging readiness checklist documented, and local smoke validation passed with mock-safe Stripe flow. The project is in the final release-readiness gate before the next product-development stage.
 
 ## High-level goal
 Finish Phase 6→7 transition: stabilize host create-class, payments, certificates, email; add compact smoke automation; and harden for production (webhook handling, CI smoke, tests, logging).
