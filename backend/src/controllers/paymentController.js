@@ -73,8 +73,9 @@ export const createPaymentIntent = async (req, res) => {
     const amountCents = Math.round(finalAmount * 100);
     
     // Create payment intent
-    // If STRIPE_SECRET_KEY is not configured or is the placeholder, mock a payment intent
-    if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === 'sk_test_example') {
+    // If STRIPE_SECRET_KEY is not configured, is the placeholder, or mock forcing is enabled, return a mocked payment intent
+    const forceMockPayments = process.env.FORCE_MOCK_PAYMENTS === 'true';
+    if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === 'sk_test_example' || forceMockPayments) {
       const fakeClientSecret = `pi_mock_${Date.now()}`;
       return res.json({ clientSecret: fakeClientSecret, amount: finalAmount, numberOfDays });
     }
