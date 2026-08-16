@@ -11,7 +11,16 @@ import { withRetry } from '../utils/retry.js';
 
 const forceMockPayments = process.env.FORCE_MOCK_PAYMENTS === 'true';
 const stripeKeyAvailable = !!process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_example';
-const stripe = stripeKeyAvailable && !forceMockPayments ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+let _stripeInstance = null;
+const getStripe = () => {
+  // Respect runtime FORCE_MOCK_PAYMENTS and missing/placeholder keys
+  if (process.env.FORCE_MOCK_PAYMENTS === 'true' || forceMockPayments) return null;
+  if (!stripeKeyAvailable) return null;
+  if (!_stripeInstance) {
+    _stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return _stripeInstance;
+};
 
 export const createPaymentIntent = async (req, res) => {
   try {
@@ -83,8 +92,16 @@ export const createPaymentIntent = async (req, res) => {
     }
 
     try {
+      const stripeClient = getStripe();
+      if (!stripeClient) {
+        // Defensive runtime guard: if Stripe is not available at runtime, return a mocked client secret
+        logger.warn('Stripe client not initialized at runtime, returning mocked client secret');
+        const fakeClientSecret = `pi_mock_${Date.now()}`;
+        return res.json({ clientSecret: fakeClientSecret, amount: finalAmount, numberOfDays });
+      }
+
       const paymentIntent = await withRetry(
-        () => stripe.paymentIntents.create({
+        () => stripeClient.paymentIntents.create({
           amount: amountCents,
           currency: user.preferredCurrency?.toLowerCase() || 'usd',
           metadata: {
@@ -137,7 +154,11 @@ export const confirmPayment = async (req, res) => {
       // Treat mocked intent as succeeded for local testing
       paymentIntent = { id: paymentIntentId, status: 'succeeded', metadata: {} };
     } else {
-      paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      const stripeClient = getStripe();
+      if (!stripeClient) {
+        return res.status(400).json({ message: 'Stripe not configured. Set FORCE_MOCK_PAYMENTS=true for local tests or provide STRIPE_SECRET_KEY.' });
+      }
+      paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
     }
 
     if (paymentIntent.status !== 'succeeded') {
@@ -273,7 +294,12 @@ export const handleStripeWebhook = async (req, res) => {
       }
     } else if (webhookSecret) {
       try {
-        event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
+        const stripeClient = getStripe();
+        if (!stripeClient) {
+          console.error('Webhook: Stripe client not initialized but STRIPE_WEBHOOK_SECRET is present.');
+          return res.status(400).send('Webhook Error: Stripe client not initialized');
+        }
+        event = stripeClient.webhooks.constructEvent(payload, sig, webhookSecret);
       } catch (err) {
         console.error('Webhook signature verification failed:', err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);
