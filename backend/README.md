@@ -80,7 +80,21 @@ REDIS_URL=redis://localhost:6379
 - `POST /api/payments/confirm` - Confirm payment
 - `GET /api/payments/history` - Get payment history
 
-### Testing Stripe webhooks locally
+### Local mock payments (FORCE_MOCK_PAYMENTS)
+
+During local development it's often desirable to avoid calling the real Stripe API. The project supports a mock-safe mode for payments:
+
+- To force purely mocked payments (returns pi_mock_* client secrets and treats them as succeeded), set the environment variable:
+
+  FORCE_MOCK_PAYMENTS=true
+
+- Alternatively, remove or clear STRIPE_SECRET_KEY from your environment to allow the code to fall back to mocked mode.
+
+Notes:
+- Use FORCE_MOCK_PAYMENTS=true when running the smoke scripts locally to avoid hitting Stripe or requiring real keys.
+- When running with real provider keys in staging/CI, ensure STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are set and FORCE_MOCK_PAYMENTS is not `true`.
+
+## Testing Stripe webhooks locally
 
 The backend exposes a server-side webhook endpoint at `POST /api/payments/webhook` which verifies Stripe signatures using the `STRIPE_WEBHOOK_SECRET` environment variable.
 

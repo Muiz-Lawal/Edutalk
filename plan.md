@@ -1,6 +1,6 @@
 # Project plan and progress
 
-Updated: 2026-08-14
+Updated: 2026-08-16 — local smoke verification completed; payment controller lazy-init committed (see commit f4d5752)
 
 ## High-level goal
 Finish Phase 6→7 transition: stabilize host create-class, payments, certificates, email; add compact smoke automation; and harden for production (webhook handling, CI smoke, tests, logging).
