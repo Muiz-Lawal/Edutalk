@@ -9,7 +9,9 @@ import { generateAccessCode } from '../utils/accessCode.js';
 import logger from '../utils/logger.js';
 import { withRetry } from '../utils/retry.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_example');
+const forceMockPayments = process.env.FORCE_MOCK_PAYMENTS === 'true';
+const stripeKeyAvailable = !!process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_example';
+const stripe = stripeKeyAvailable && !forceMockPayments ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
 export const createPaymentIntent = async (req, res) => {
   try {
