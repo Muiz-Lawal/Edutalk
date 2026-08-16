@@ -17,8 +17,9 @@ Testing
 - Local compact and confirm+certificate smoke tests passed.
 
 Notes
-- Real end-to-end payment and email tests require STRIPE_SECRET_KEY and SENDGRID_API_KEY in backend .env (do not commit secrets).
+- Real end-to-end payment and email tests require STRIPE_SECRET_KEY and SMTP credentials (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM) for Brevo SMTP in backend .env (do not commit secrets). Use the Brevo SMTP relay settings in .env.example as a template.
 - Legacy backend/src/utils/email.js is now a thin wrapper that re-exports the safe implementation in email2.js.
+- Added FORCE_MOCK_PAYMENTS runtime guard and lazy Stripe initialization to avoid accidental calls to Stripe in local development; set FORCE_MOCK_PAYMENTS=true to force mocked payments locally.
 
 Next steps
 - Consider enabling the workflow to run on main or adding staging environment runs.
