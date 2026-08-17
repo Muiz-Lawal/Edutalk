@@ -1,6 +1,33 @@
 # Project plan and progress
 
-Updated: 2026-08-16 — release candidate published (v1.0.0-rc1), deploy smoke helper added, GitHub secrets guide created, staging readiness checklist documented, and local smoke validation passed with mock-safe Stripe flow. The project is in the final release-readiness gate before the next product-development stage.
+Updated: 2026-08-17 — Release-readiness completed locally; mock-safe payment flow validated; draft release published (v1.0.0-rc1). Staging secrets were added and local smoke passed. Moving to Phase 2 (product development) with an initial kickoff.
+
+Phase 2 kickoff (short term goals)
+- Real-time video (WebRTC): prototype one-to-one and small-group rooms, server-side signalling, TURN/STUN config.
+- Session recording: record, store, and playback classroom sessions; design storage and retention.
+- AI features: moderation, summarization, and auto-generated resource notes.
+- Analytics & reporting: host dashboards, student engagement metrics, event collection.
+- Payment polish & automation: finalize Stripe webhooks, automated payouts, and reconciliation in production.
+
+Immediate next actions (first sprint)
+1. Phase-2 kickoff meeting & architecture review (stakeholders). (owner: product/tech lead)
+2. Proof-of-concept: WebRTC signalling server + simple React client integration. (owner: engineering)
+3. Session recording POC (select storage, S3-compatible, or cloud provider). (owner: engineering)
+4. AI moderation POC (content moderation and summarization pipeline). (owner: engineering/data)
+5. Add integration tests and CI coverage for new realtime/recording flows. (owner: QA/engineering)
+
+Acceptance criteria to move Phase-2 from discovery → build
+- A working WebRTC POC with signalling and connectivity across NATs (TURN configured).
+- Session recording proof that stores and plays back recordings with metadata searchable by class/session.
+- Basic AI moderation/summarization that flags policy violations and generates short summaries for recorded sessions.
+- CI runners for realtime flows and end-to-end smoke passing on a staging environment.
+
+Notes
+- Production rollout requires deployment automation, metrics, and monitoring for realtime components (TURN servers, media servers).
+- Keep release branch v1.0.0-rc1 for any hotfixes; phase-2 work can begin on `feature/phase-2-kickoff` or similar branch.
+
+Files changed and scripts added during release-readiness are retained on branch `agents/continue`. Continue Phase-2 work on a new feature branch and open PRs against main when ready.
+
 
 ## High-level goal
 Finish Phase 6→7 transition: stabilize host create-class, payments, certificates, email; add compact smoke automation; and harden for production (webhook handling, CI smoke, tests, logging).
@@ -17,6 +44,7 @@ Finish Phase 6→7 transition: stabilize host create-class, payments, certificat
 - Added cleanup endpoint and test cleanup utilities for development smoke runs
 - Completed production hardening pass: request logging, health/readiness checks, retry wrappers for transient failures, and hot-path DB indexes for users, classes, payments, and subscriptions
 - Re-ran the smoke validations successfully after the hardening patch set
+- Fixed frontend/backend live-stream URL mismatches and added backward-compatible live routes; validated host/viewer join flow locally (stream creation + viewer join + stats) on localhost:5001
 
 ## Next / remaining (short list)
 - Validate optional real-provider runs with secure CI secrets for STRIPE and email delivery (REQUIRED before Phase 7)
