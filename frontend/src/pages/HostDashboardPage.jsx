@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Navigate, Link } from 'react-router-dom';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import RecommendationMetrics from '../components/RecommendationMetrics';
+import LoadingSpinner from '../components/LoadingSpinner';
 import api from '../utils/api';
 import '../styles/Dashboard.css';
 
@@ -30,7 +31,7 @@ export default function HostDashboardPage() {
   };
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <LoadingSpinner fullPage={true} message="Loading dashboard..." />;
   }
 
   if (!isAuthenticated || !user?.isHost) {
@@ -65,6 +66,9 @@ export default function HostDashboardPage() {
           <section className="dashboard-card quick-actions-card">
             <h2>Quick Actions</h2>
             <div className="quick-actions-grid">
+              <Link to="/create-class" className="btn btn-primary">
+                ➕ Create Class
+              </Link>
               <Link to="/moderation" className="btn btn-primary">
                 🛡️ Moderation
               </Link>
@@ -102,7 +106,7 @@ export default function HostDashboardPage() {
             ) : (
               <>
                 <p>You haven't created any classes yet.</p>
-                <button className="btn btn-primary">Create a New Class</button>
+                <Link to="/create-class" className="btn btn-primary">Create a New Class</Link>
               </>
             )}
           </section>

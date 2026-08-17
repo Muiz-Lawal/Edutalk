@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 import CertificatePreview from '../components/CertificatePreview';
+import LoadingSpinner from '../components/LoadingSpinner';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/CertificateGalleryPage.css';
 
 const CertificateGalleryPage = () => {
@@ -9,6 +11,7 @@ const CertificateGalleryPage = () => {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [selectedCertificate, setSelectedCertificate] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all'); // all, verified, shared
 
@@ -67,10 +70,10 @@ const CertificateGalleryPage = () => {
         return;
       }
 
-      alert('Download link is not available at this time.');
+      setError('Download link is not available at this time.');
     } catch (err) {
       console.error('Download failed:', err);
-      alert('Failed to download certificate');
+      setError('Failed to download certificate. Please try again.');
     }
   };
 
@@ -81,32 +84,32 @@ const CertificateGalleryPage = () => {
       });
 
       if (response.data?.success) {
-        alert('Certificate share link generated successfully!');
+        setSuccess('Certificate share link generated successfully.');
       } else {
-        alert('Could not generate share link.');
+        setError('Could not generate share link.');
       }
     } catch (err) {
       console.error('Share failed:', err);
-      alert('Failed to share certificate');
+      setError('Failed to share certificate. Please try again.');
     }
   };
 
   const handleVerify = async (verificationCode) => {
     try {
       if (!verificationCode) {
-        alert('No verification code available');
+        setError('No verification code available.');
         return;
       }
 
       const response = await api.get(`/certificates/verify/${verificationCode}`);
       if (response.data?.success) {
-        alert('Certificate verified successfully!');
+        setSuccess('Certificate verified successfully.');
       } else {
-        alert('Certificate verification failed');
+        setError('Certificate verification failed.');
       }
     } catch (err) {
       console.error('Verification failed:', err);
-      alert('Certificate verification failed');
+      setError('Certificate verification failed. Please try again.');
     }
   };
 
@@ -120,7 +123,7 @@ const CertificateGalleryPage = () => {
   if (loading) {
     return (
       <div className="certificate-gallery-page">
-        <div className="certificate-gallery-page__loading">Loading certificates...</div>
+        <LoadingSpinner fullPage={true} message="Loading certificates..." />
       </div>
     );
   }
@@ -135,9 +138,21 @@ const CertificateGalleryPage = () => {
       </div>
 
       {error && (
-        <div className="certificate-gallery-page__error">
-          <p>{error}</p>
-        </div>
+        <MessageBanner
+          type="error"
+          title="Certificate action failed"
+          message={error}
+          onClose={() => setError(null)}
+        />
+      )}
+
+      {success && (
+        <MessageBanner
+          type="success"
+          title="Success"
+          message={success}
+          onClose={() => setSuccess(null)}
+        />
       )}
 
       <div className="certificate-gallery-page__container">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/AdminAnalyticsDashboard.css';
 
 export default function AdminAnalyticsDashboard() {
@@ -17,6 +18,7 @@ export default function AdminAnalyticsDashboard() {
 
   const [exportFormat, setExportFormat] = useState('csv');
   const [exporting, setExporting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     fetchAnalytics();
@@ -59,9 +61,11 @@ export default function AdminAnalyticsDashboard() {
 
   const handleExport = async () => {
     if (engagement.length === 0) {
-      alert('No data to export');
+      setError('No data to export');
       return;
     }
+    setError('');
+    setSuccessMessage('');
     setExporting(true);
     try {
       if (exportFormat === 'csv') {
@@ -69,8 +73,9 @@ export default function AdminAnalyticsDashboard() {
       } else if (exportFormat === 'json') {
         exportToJSON();
       }
+      setSuccessMessage('Analytics exported successfully');
     } catch (err) {
-      alert('Export failed: ' + err.message);
+      setError('Export failed: ' + err.message);
     } finally {
       setExporting(false);
     }
@@ -239,9 +244,23 @@ export default function AdminAnalyticsDashboard() {
           </div>
         </div>
       </div>
-
-      {/* Error Display */}
-      {error && <div className="admin-error-message">{error}</div>}
+ 
+      {error && (
+        <MessageBanner
+          type="error"
+          title="Analytics export failed"
+          message={error}
+          onClose={() => setError('')}
+        />
+      )}
+      {successMessage && (
+        <MessageBanner
+          type="success"
+          title="Export complete"
+          message={successMessage}
+          onClose={() => setSuccessMessage('')}
+        />
+      )}
 
       {/* Data Table */}
       <div className="analytics-data-section">

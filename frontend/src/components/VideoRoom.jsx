@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import api from '../utils/api';
 import 'C:/Users/abdul/Desktop/class/frontend/src/styles/VideoRoom.css';
@@ -16,6 +16,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
   const [isConnected, setIsConnected] = useState(false);
   const [stats, setStats] = useState({});
   const [activeSpeaker, setActiveSpeaker] = useState(null);
+  const [error, setError] = useState(null);
 
   const localVideoRef = useRef(null);
   const socketRef = useRef(null);
@@ -55,7 +56,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
       });
 
       socketRef.current.on('connect', () => {
-        console.log('✓ Connected to signaling server');
+        console.log('âœ“ Connected to signaling server');
         setIsConnected(true);
         // Join room with data
         socketRef.current.emit('join-room', { roomId });
@@ -72,7 +73,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
 
     } catch (error) {
       console.error('Failed to initialize video room:', error);
-      alert(`Failed to initialize video room: ${error.message}`);
+      setError(`Failed to initialize video room: ${error.message}`);
     }
   };
 
@@ -523,6 +524,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
 
   return (
     <div className="video-room">
+      {error && <div className="alert alert-error" style={{margin:12}}>{error}</div>}
       <div className="video-container">
         <div className="videos-grid">
           {/* Local video */}
@@ -534,7 +536,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
               playsInline
               className="video-element"
             />
-            <span className="video-label">📹 You</span>
+            <span className="video-label">ðŸ“¹ You</span>
           </div>
 
           {/* Remote video tiles */}
@@ -559,7 +561,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
                 ) : (
                   <div className="video-placeholder">Loading...</div>
                 )}
-                <span className="video-label">👤 {participant.email.split('@')[0]}</span>
+                <span className="video-label">ðŸ‘¤ {participant.email.split('@')[0]}</span>
                 {stats[participant.socketId] && (
                   <span className="video-stats">{stats[participant.socketId].bitrate}</span>
                 )}
@@ -588,7 +590,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
             onClick={toggleAudio}
             title="Toggle Audio"
           >
-            🎤 {isAudioEnabled ? 'On' : 'Off'}
+            ðŸŽ¤ {isAudioEnabled ? 'On' : 'Off'}
           </button>
 
           <button
@@ -596,7 +598,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
             onClick={toggleVideo}
             title="Toggle Video"
           >
-            🎥 {isVideoEnabled ? 'On' : 'Off'}
+            ðŸŽ¥ {isVideoEnabled ? 'On' : 'Off'}
           </button>
 
           <button
@@ -604,7 +606,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
             onClick={isScreenSharing ? stopScreenShare : startScreenShare}
             title="Share Screen"
           >
-            📺 {isScreenSharing ? 'Stop' : 'Share'}
+            ðŸ“º {isScreenSharing ? 'Stop' : 'Share'}
           </button>
 
           <button
@@ -612,7 +614,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
             onClick={recordingStatus === 'idle' ? startRecording : stopRecording}
             title="Record Session"
           >
-            ⭕ {recordingStatus}
+            â­• {recordingStatus}
           </button>
 
           <button
@@ -620,14 +622,14 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
             onClick={endSession}
             title="End Session"
           >
-            ☎️ Leave
+            â˜Žï¸ Leave
           </button>
         </div>
       </div>
 
       {/* Chat Panel */}
       <div className="chat-panel">
-        <h3>💬 Chat</h3>
+        <h3>ðŸ’¬ Chat</h3>
         <div className="messages">
           {chatMessages.map((msg, idx) => (
             <div key={idx} className="message">
@@ -649,3 +651,4 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
     </div>
   );
 }
+

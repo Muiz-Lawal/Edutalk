@@ -1,4 +1,4 @@
-# EduTalk Frontend
+﻿# EduTalk Frontend
 
 React + Vite frontend for the EduTalk platform.
 
@@ -16,7 +16,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs on `http://localhost:5173`
+Frontend runs on http://localhost:5173
 
 3. Build for production:
 
@@ -29,39 +29,41 @@ npm run build
 ```
 src/
 ├── components/
-│   └── Header.jsx              # Navigation component
+│   ├── Header.jsx
+│   ├── MessageBanner.jsx
+│   ├── PromptDialog.jsx
+│   ├── ConfirmDialog.jsx
+│   └── ...
 ├── context/
-│   └── AuthContext.jsx         # Global auth state
+│   └── AuthContext.jsx
 ├── hooks/
-│   └── useAuth.js              # Custom auth hook
+│   └── useAuth.js
 ├── pages/
-│   ├── LandingPage.jsx         # Home page
-│   ├── LoginPage.jsx           # Login form
-│   ├── SignupPage.jsx          # Signup form
-│   ├── BrowseClassesPage.jsx   # Class catalog
-│   ├── ClassDetailPage.jsx     # Class details & enrollment
-│   ├── DashboardPage.jsx       # Student dashboard
-│   └── HostDashboardPage.jsx   # Host dashboard
+│   ├── LandingPage.jsx
+│   ├── LoginPage.jsx
+│   ├── SignupPage.jsx
+│   ├── BrowseClassesPage.jsx
+│   ├── ClassDetailPage.jsx
+│   ├── DashboardPage.jsx
+│   ├── HostDashboardPage.jsx
+│   ├── CreateClassPage.jsx
+│   └── ...
 ├── styles/
-│   ├── global.css              # Global styles
-│   ├── Header.css
-│   ├── Auth.css
-│   ├── BrowseClasses.css
-│   ├── ClassDetail.css
-│   ├── Dashboard.css
-│   └── LandingPage.css
+│   ├── global.css
+│   ├── CreateClassPage.css
+│   └── ...
 ├── utils/
-│   └── api.js                  # Axios instance & API client
-├── App.jsx                     # Main app component
-└── main.jsx                    # Entry point
+│   └── api.js
+├── App.jsx
+└── main.jsx
 ```
 
 ## Configuration
 
-Create a `.env` file with:
+Create a .env file with:
 
 ```env
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:5001/api
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
 ```
 
@@ -69,135 +71,93 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
 
 ✅ User authentication (login/signup)
 ✅ Class browsing & filtering
-✅ Class detail page with scheduling
-✅ Tiered pricing visualization
-✅ Student dashboard
-✅ Host dashboard
-✅ Responsive design
-✅ Protected routes
+✅ Class detail page with enrollment
+✅ Host dashboard with analytics
+✅ Host Create Class page with schedule builder
+✅ Responsive layout and mobile support
+✅ Protected routes and JWT handling
+✅ Accessible modals and alerts
 
 ## Pages
 
 ### Public Pages
 
-- **Landing Page** - Hero section, features, pricing info
-- **Browse Classes** - Search, filter, category browsing
-- **Class Details** - Full class info, enrollment card
-- **Login** - Email/password authentication
-- **Signup** - Registration form with host option
+- **Landing Page** - Hero, featured classes, platform overview
+- **Browse Classes** - Search, filter, categories
+- **Class Details** - Course info, pricing, enrollment card
+- **Login** - User authentication
+- **Signup** - New user registration with host upgrade option
 
 ### Protected Pages (Auth Required)
 
-- **Student Dashboard** - Enrollments, payment history, profile
-- **Host Dashboard** - Classes, earnings, analytics, free slots
+- **Student Dashboard** - Enrollments, progress, profile
+- **Host Dashboard** - Class management, earnings, analytics
+- **Create Class** - Host class creation with pricing and schedule settings
 
 ## Components
 
-### Header
+### Key Reusable UI
 
-- Logo/branding
-- Navigation links
-- Auth-based menu (login/logout)
-- Teacher/learning mode toggle
+- `Header` - Navigation and auth menu
+- `MessageBanner` - Accessible status/error messages
+- `PromptDialog` / `ConfirmDialog` - Non-blocking modals
+- `LoadingSpinner` - Inline and full-page loading states
 
 ## Styling
 
-- **CSS Architecture**: BEM (Block, Element, Modifier) pattern
-- **Color Scheme**: Purple gradient (#667eea, #764ba2)
-- **Responsive**: Mobile-first approach
-- **Breakpoints**: 768px (tablet/desktop)
+- CSS with mobile-first responsive design
+- Breakpoints: 480px, 768px, 1024px
+- BEM-like naming for component styles
+- Accessible focus states and form controls
 
 ## API Integration
 
-All API calls go through the `api.js` utility which:
+All API calls use `api.js`:
 
-- Creates Axios instance with baseURL
-- Auto-attaches JWT token to requests
-- Handles response/error interceptors
+- Creates Axios instance with `baseURL`
+- Auto-attaches JWT from localStorage
+- Handles 401 responses and redirects to login
 
 Endpoints used:
 
 - `/auth/register`, `/auth/login`, `/auth/profile`
-- `/classes`, `/classes/:id`
+- `/classes`, `/classes/my-classes`, `/classes/:id`
 - `/payments/create-intent`, `/payments/confirm`
 
 ## Development Scripts
 
 ```bash
-# Start dev server
-npm run dev
+npm run dev          # start Vite dev server (localhost:5173)
+npm run build        # production build (runs tsc + vite build)
+npm run preview      # preview built site
+npm run lint         # run ESLint against src (flat-config)
+```
 
-# Build for production
-npm run build
+Running lint locally
 
-# Preview production build
-npm run preview
+- ESLint is configured with a flat config at `frontend/eslint.config.js`. To run:
 
-# Lint code
+```bash
+cd frontend
+npm install
 npm run lint
 ```
 
-## Key Features to Implement Next
+- The repo currently allows a small set of development warnings (unused vars in platform-wide components). To silence intentional unused variables, prefix them with an underscore (e.g. `_err`) or update the rule in `frontend/eslint.config.js`.
 
-- [ ] Stripe payment form integration
-- [ ] Session join/video room
-- [ ] Recording playback
-- [ ] Review submission
-- [ ] Class creation form
-- [ ] Schedule builder
-- [ ] Analytics charts
-- [ ] User profile editor
-- [ ] Notification system
-- [ ] Mobile PWA support
+## Notes
 
-## Dependencies
+- The Create Class page is available at `/create-class` for host users.
+- The frontend now includes an ESLint configuration and ignores `node_modules` and `dist`.
+- If you add or update JSX pages, run `npm run lint` before committing.
 
-- **react**: UI library
-- **react-dom**: React DOM rendering
-- **react-router-dom**: Routing
-- **axios**: HTTP client
-- **@stripe/react-stripe-js**: Stripe components
-- **@stripe/stripe-js**: Stripe SDK
+## Next Steps
 
-## Dev Dependencies
-
-- **@vitejs/plugin-react**: Vite React plugin
-- **vite**: Build tool & dev server
-
-## Authentication Flow
-
-1. User registers/logs in
-2. Backend returns JWT token
-3. Token stored in localStorage
-4. Token auto-attached to API requests
-5. Logout clears token
-
-## Responsive Design
-
-- **Desktop**: 1200px max container
-- **Tablet**: Grid columns adjust
-- **Mobile**: Single column, touch-optimized
-
-## Performance
-
-- Code splitting via React Router
-- Lazy loading images
-- CSS optimization
-- Minified production build
-
-## TODO (Phase 2+)
-
-- [ ] Add TypeScript
-- [ ] E2E testing (Cypress)
-- [ ] Unit tests (Vitest)
-- [ ] Storybook component library
-- [ ] Dark mode support
-- [ ] i18n translations
-- [ ] Accessibility audit
-- [ ] Performance optimization
-- [ ] PWA installation
+- [ ] Add stronger automated tests for shared UI components
+- [ ] Add E2E coverage for host class creation and checkout flows
+- [ ] Complete certificate PDF generation and email delivery
 
 ---
 
-**Backend API URL**: http://localhost:5000
+**Backend API URL**: http://localhost:5001
 **Frontend URL**: http://localhost:5173

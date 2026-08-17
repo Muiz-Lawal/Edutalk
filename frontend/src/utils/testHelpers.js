@@ -13,8 +13,8 @@ export const testHelpers = {
       indexedDB: 'indexedDB' in window,
       localStorage: 'localStorage' in window,
       cacheAPI: 'caches' in window,
-      periodicSync: 'periodicSync' in ServiceWorkerRegistration?.prototype || false,
-      backgroundSync: 'sync' in ServiceWorkerRegistration?.prototype || false,
+      periodicSync: (typeof ServiceWorkerRegistration !== 'undefined' && ServiceWorkerRegistration.prototype && 'periodicSync' in ServiceWorkerRegistration.prototype) || false,
+      backgroundSync: (typeof ServiceWorkerRegistration !== 'undefined' && ServiceWorkerRegistration.prototype && 'sync' in ServiceWorkerRegistration.prototype) || false,
       sharedStorage: 'sharedStorage' in window,
     };
 
@@ -57,9 +57,8 @@ export const testHelpers = {
     const results = [];
     for (const endpoint of endpoints) {
       try {
-        const response = await fetch(
-          `http://localhost:5000${endpoint.path}`
-        );
+        const apiBase = import.meta?.env?.VITE_API_URL || 'http://localhost:5001';
+                const response = await fetch(`${apiBase.replace(/\/\/$/, '')}${endpoint.path}`);
         results.push({
           endpoint: endpoint.path,
           status: response.status,
@@ -244,7 +243,7 @@ export const testHelpers = {
     };
 
     console.log('✅ Test Results:');
-    console.table(results);
+    console.info(results);
 
     return results;
   },

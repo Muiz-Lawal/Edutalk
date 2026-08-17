@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ConfirmDialog from './ConfirmDialog';
 import { useAdmin } from '../context/AdminContext';
 
 const ContentReviewModal = ({ content, onClose }) => {
@@ -15,6 +16,7 @@ const ContentReviewModal = ({ content, onClose }) => {
   const [action, setAction] = useState(null);
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
   const handleApprove = async () => {
     setLoading(true);
@@ -72,14 +74,16 @@ const ContentReviewModal = ({ content, onClose }) => {
     }
   };
 
-  const handleRemove = async () => {
+  const requestRemove = () => {
     if (!reason.trim()) {
       setError('Removal reason is required');
       return;
     }
-    if (!window.confirm('Are you sure you want to PERMANENTLY remove this class? This action cannot be undone.')) {
-      return;
-    }
+    setShowRemoveConfirm(true);
+  };
+
+  const doRemove = async () => {
+    setShowRemoveConfirm(false);
     setLoading(true);
     setError(null);
     try {
@@ -549,13 +553,24 @@ const ContentReviewModal = ({ content, onClose }) => {
             <button
               type="button"
               className="btn btn-danger"
-              onClick={handleRemove}
+              onClick={requestRemove}
               disabled={loading}
             >
               {loading ? <span><span className="loading-spinner"></span>Processing...</span> : 'Remove'}
             </button>
           )}
         </div>
+
+        <ConfirmDialog
+          open={showRemoveConfirm}
+          title="Confirm removal"
+          message="Are you sure you want to PERMANENTLY remove this class? This action cannot be undone."
+          onConfirm={doRemove}
+          onCancel={() => setShowRemoveConfirm(false)}
+          confirmLabel="Remove"
+          cancelLabel="Cancel"
+        />
+
       </div>
     </div>
   );

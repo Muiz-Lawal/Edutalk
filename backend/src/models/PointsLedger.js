@@ -40,7 +40,7 @@ const pointsLedgerSchema = new mongoose.Schema({
 
 pointsLedgerSchema.statics.getBalance = async function (userId) {
   const result = await this.aggregate([
-    { $match: { userId: mongoose.Types.ObjectId(userId) } },
+    { $match: { userId: new mongoose.Types.ObjectId(userId) } },
     { $group: { _id: '$userId', balance: { $sum: '$amount' } } },
   ]);
 

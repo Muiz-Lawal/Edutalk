@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import AchievementBadge from '../components/AchievementBadge';
+import LoadingSpinner from '../components/LoadingSpinner';
+import MessageBanner from '../components/MessageBanner';
 import api from '../utils/api';
 import '../styles/LeaderboardPage.css';
 
@@ -87,7 +89,7 @@ const LeaderboardPage = () => {
   if (loading) {
     return (
       <div className="leaderboard-page">
-        <div className="leaderboard-page__loading">Loading leaderboard...</div>
+        <LoadingSpinner fullPage={true} message="Loading leaderboard..." />
       </div>
     );
   }
@@ -102,9 +104,12 @@ const LeaderboardPage = () => {
       </div>
 
       {error && (
-        <div className="leaderboard-page__error">
-          <p>Error: {error}</p>
-        </div>
+        <MessageBanner
+          type="error"
+          title="Leaderboard unavailable"
+          message={error}
+          onClose={() => setError(null)}
+        />
       )}
 
       {/* Controls */}

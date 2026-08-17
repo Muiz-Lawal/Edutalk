@@ -1,7 +1,7 @@
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import EmailJob from '../models/EmailJob.js';
-import { sendEmail } from '../utils/email.js';
+import { sendEmail } from '../utils/email2.js';
 
 export const createNotification = async (userId, type, data) => {
   try {

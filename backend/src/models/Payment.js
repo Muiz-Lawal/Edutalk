@@ -71,4 +71,8 @@ const paymentSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+paymentSchema.index({ userId: 1, createdAt: -1 });
+paymentSchema.index({ classId: 1, status: 1, createdAt: -1 });
+paymentSchema.index({ stripePaymentIntentId: 1 });
+
 export default mongoose.model('Payment', paymentSchema);

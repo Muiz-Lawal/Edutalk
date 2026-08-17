@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
+import ConfirmDialog from '../components/ConfirmDialog';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/SecurityDashboard.css';
 
 export default function SecurityDashboard() {
@@ -12,6 +14,7 @@ export default function SecurityDashboard() {
   const [tab, setTab] = useState('overview'); // overview, sessions, activity, flagged
   const [filterAction, setFilterAction] = useState('');
   const [filterSeverity, setFilterSeverity] = useState('');
+  const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   useEffect(() => {
     fetchSecurityData();
@@ -41,30 +44,42 @@ export default function SecurityDashboard() {
     }
   };
 
-  const handleLogoutSession = async (sessionId) => {
-    if (!window.confirm('Logout this session?')) return;
-
-    try {
-      await api.post(`/security/sessions/${sessionId}/logout`);
-      setActiveSessions(activeSessions.filter(s => s._id !== sessionId));
-    } catch (err) {
-      alert('Failed to logout session');
-    }
+  const handleLogoutSession = (sessionId) => {
+    setConfirm({
+      open: true,
+      title: 'Logout Session',
+      message: 'Logout this session?',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        try {
+          await api.post(`/security/sessions/${sessionId}/logout`);
+          setActiveSessions(activeSessions.filter(s => s._id !== sessionId));
+        } catch (err) {
+          setError('Failed to logout session');
+        }
+      },
+    });
   };
 
-  const handleLogoutAll = async () => {
-    if (!window.confirm('Logout from all sessions? You will need to login again.')) return;
-
-    try {
-      await api.post('/security/sessions/logout-all');
-      setActiveSessions([]);
-      setTimeout(() => {
-        localStorage.removeItem('token');
-        window.location.href = '/admin/login';
-      }, 1000);
-    } catch (err) {
-      alert('Failed to logout all sessions');
-    }
+  const handleLogoutAll = () => {
+    setConfirm({
+      open: true,
+      title: 'Logout All Sessions',
+      message: 'Logout from all sessions? You will need to login again.',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        try {
+          await api.post('/security/sessions/logout-all');
+          setActiveSessions([]);
+          setTimeout(() => {
+            localStorage.removeItem('token');
+            window.location.href = '/admin/login';
+          }, 1000);
+        } catch (err) {
+          setError('Failed to logout all sessions');
+        }
+      },
+    });
   };
 
   const handleExportLogs = async () => {
@@ -82,7 +97,8 @@ export default function SecurityDashboard() {
       element.click();
       document.body.removeChild(element);
     } catch (err) {
-      alert('Failed to export logs');
+      setError('Failed to export logs');
+      console.error(err);
     }
   };
 
@@ -102,24 +118,24 @@ export default function SecurityDashboard() {
 
   const getActionIcon = (action) => {
     const icons = {
-      login: '🔓',
-      logout: '🔒',
-      user_deleted: '🗑️',
-      admin_created: '👤',
-      '2fa_enabled': '🔐',
-      '2fa_disabled': '🔑',
-      password_changed: '🔑',
-      failed_login: '❌',
-      inactivity_logout: '⏰',
-      session_logout: '🔓',
+      login: 'ðŸ”“',
+      logout: 'ðŸ”’',
+      user_deleted: 'ðŸ—‘ï¸',
+      admin_created: 'ðŸ‘¤',
+      '2fa_enabled': 'ðŸ”',
+      '2fa_disabled': 'ðŸ”‘',
+      password_changed: 'ðŸ”‘',
+      failed_login: 'âŒ',
+      inactivity_logout: 'â°',
+      session_logout: 'ðŸ”“',
     };
-    return icons[action] || '•';
+    return icons[action] || 'â€¢';
   };
 
   if (loading) {
     return (
       <div className="security-dashboard">
-        <div className="loading">⏳ Loading security dashboard...</div>
+        <div className="loading">â³ Loading security dashboard...</div>
       </div>
     );
   }
@@ -127,11 +143,21 @@ export default function SecurityDashboard() {
   return (
     <div className="security-dashboard">
       <div className="security-header">
-        <h1>🔐 Security Dashboard</h1>
+        <h1>ðŸ” Security Dashboard</h1>
         <p>Monitor your admin account security and activity</p>
       </div>
 
-      {error && <div className="security-error">{error}</div>}
+      {error && (
+        <MessageBanner type="error" title="Security error" message={error} onClose={() => setError('')} />
+      )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ open: false })}
+      />
 
       {/* Tab Navigation */}
       <div className="security-tabs">
@@ -139,25 +165,25 @@ export default function SecurityDashboard() {
           className={`tab-btn ${tab === 'overview' ? 'active' : ''}`}
           onClick={() => setTab('overview')}
         >
-          📊 Overview
+          ðŸ“Š Overview
         </button>
         <button
           className={`tab-btn ${tab === 'sessions' ? 'active' : ''}`}
           onClick={() => setTab('sessions')}
         >
-          📱 Sessions ({activeSessions.length})
+          ðŸ“± Sessions ({activeSessions.length})
         </button>
         <button
           className={`tab-btn ${tab === 'activity' ? 'active' : ''}`}
           onClick={() => setTab('activity')}
         >
-          📋 Activity Logs
+          ðŸ“‹ Activity Logs
         </button>
         <button
           className={`tab-btn ${tab === 'flagged' ? 'active' : ''}`}
           onClick={() => setTab('flagged')}
         >
-          🚩 Flagged ({flaggedActivities.length})
+          ðŸš© Flagged ({flaggedActivities.length})
         </button>
       </div>
 
@@ -166,7 +192,7 @@ export default function SecurityDashboard() {
         <div className="tab-content">
           <div className="overview-grid">
             <div className="overview-card">
-              <div className="card-icon">📱</div>
+              <div className="card-icon">ðŸ“±</div>
               <div className="card-info">
                 <h3>Active Sessions</h3>
                 <p className="card-value">{activeSessions.length}</p>
@@ -174,7 +200,7 @@ export default function SecurityDashboard() {
             </div>
 
             <div className="overview-card">
-              <div className="card-icon">📝</div>
+              <div className="card-icon">ðŸ“</div>
               <div className="card-info">
                 <h3>Activity Logs</h3>
                 <p className="card-value">{activityLogs.length}</p>
@@ -182,7 +208,7 @@ export default function SecurityDashboard() {
             </div>
 
             <div className="overview-card">
-              <div className="card-icon">🚩</div>
+              <div className="card-icon">ðŸš©</div>
               <div className="card-info">
                 <h3>Flagged Activities</h3>
                 <p className="card-value">{flaggedActivities.length}</p>
@@ -190,7 +216,7 @@ export default function SecurityDashboard() {
             </div>
 
             <div className="overview-card">
-              <div className="card-icon">📈</div>
+              <div className="card-icon">ðŸ“ˆ</div>
               <div className="card-info">
                 <h3>30-Day Trends</h3>
                 <p className="card-value">{trends.length} events</p>
@@ -227,7 +253,7 @@ export default function SecurityDashboard() {
               onClick={handleLogoutAll}
               disabled={activeSessions.length === 0}
             >
-              🚪 Logout All Sessions
+              ðŸšª Logout All Sessions
             </button>
           </div>
 
@@ -239,18 +265,18 @@ export default function SecurityDashboard() {
                 <div key={session._id} className="session-card">
                   <div className="session-info">
                     <h3>{session.browserInfo.name} on {session.browserInfo.os}</h3>
-                    <p>🌐 {session.ipAddress}</p>
-                    <p>🔓 Logged in: {formatDate(session.loginTime)}</p>
-                    <p>⏰ Last activity: {formatDate(session.lastActivityTime)}</p>
+                    <p>ðŸŒ {session.ipAddress}</p>
+                    <p>ðŸ”“ Logged in: {formatDate(session.loginTime)}</p>
+                    <p>â° Last activity: {formatDate(session.lastActivityTime)}</p>
                     {session.twoFAVerified && (
-                      <p className="verified">✓ 2FA Verified</p>
+                      <p className="verified">âœ“ 2FA Verified</p>
                     )}
                   </div>
                   <button
                     className="btn btn-small btn-danger"
                     onClick={() => handleLogoutSession(session._id)}
                   >
-                    🚪 Logout
+                    ðŸšª Logout
                   </button>
                 </div>
               ))}
@@ -265,14 +291,14 @@ export default function SecurityDashboard() {
           <div className="activity-header">
             <h2>Activity Logs</h2>
             <button className="btn btn-primary" onClick={handleExportLogs}>
-              💾 Export as CSV
+              ðŸ’¾ Export as CSV
             </button>
           </div>
 
           <div className="activity-filters">
-            <input
+            <input aria-label="Filter by action..."
               type="text"
-              placeholder="Filter by action..."
+               placeholder="Filter by action..."
               value={filterAction}
               onChange={(e) => setFilterAction(e.target.value)}
               className="filter-input"
@@ -283,10 +309,10 @@ export default function SecurityDashboard() {
               className="filter-select"
             >
               <option value="">All Severities</option>
-              <option value="low">🟢 Low</option>
-              <option value="medium">🟡 Medium</option>
-              <option value="high">🔴 High</option>
-              <option value="critical">⚫ Critical</option>
+              <option value="low">ðŸŸ¢ Low</option>
+              <option value="medium">ðŸŸ¡ Medium</option>
+              <option value="high">ðŸ”´ High</option>
+              <option value="critical">âš« Critical</option>
             </select>
           </div>
 
@@ -305,7 +331,7 @@ export default function SecurityDashboard() {
                     <div className="activity-details">
                       <h4>{log.action}</h4>
                       <p>{log.description}</p>
-                      <p className="meta">🌐 {log.ipAddress} • {formatDate(log.createdAt)}</p>
+                      <p className="meta">ðŸŒ {log.ipAddress} â€¢ {formatDate(log.createdAt)}</p>
                     </div>
                     <div
                       className="severity-badge"
@@ -323,7 +349,7 @@ export default function SecurityDashboard() {
       {/* Flagged Tab */}
       {tab === 'flagged' && (
         <div className="tab-content">
-          <h2>🚩 Flagged Activities</h2>
+          <h2>⚠️ Flagged Activities</h2>
 
           {flaggedActivities.length === 0 ? (
             <p className="no-data">No flagged activities</p>
@@ -350,3 +376,4 @@ export default function SecurityDashboard() {
     </div>
   );
 }
+

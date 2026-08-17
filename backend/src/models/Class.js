@@ -122,4 +122,8 @@ const classSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+classSchema.index({ hostId: 1, status: 1, createdAt: -1 });
+classSchema.index({ category: 1, isPublic: 1, status: 1 });
+classSchema.index({ title: 'text', description: 'text', tags: 'text' });
+
 export default mongoose.model('Class', classSchema);

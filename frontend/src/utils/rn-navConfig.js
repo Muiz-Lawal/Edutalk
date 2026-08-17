@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 /**
@@ -262,7 +262,7 @@ export const spacing = {
   md: 12,
   lg: 16,
   xl: 24,
-  2xl: 32,
+  '2xl': 32,
 };
 
 /**

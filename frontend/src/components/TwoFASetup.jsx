@@ -117,7 +117,7 @@ export default function TwoFASetup() {
             </div>
 
             <div className="manual-entry">
-              <p>Can't scan? Enter this code manually:</p>
+              <p>Cannot scan? Enter this code manually:</p>
               <div className="secret-box">
                 <code>{secret}</code>
                 <button

@@ -4,20 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AdminProvider } from './context/AdminContext';
 import Header from './components/Header';
 import ProtectedRoute from './components/ProtectedRoute';
-
-// Loading component for lazy-loaded routes
-const LoadingSpinner = () => (
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '60vh',
-    fontSize: '18px',
-    color: '#666'
-  }}>
-    <div>Loading...</div>
-  </div>
-);
+import LoadingSpinner from './components/LoadingSpinner';
 
 // Lazy load all page components for code splitting
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
@@ -29,11 +16,11 @@ const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const HostDashboardPage = React.lazy(() => import('./pages/HostDashboardPage'));
 const RecordingsPage = React.lazy(() => import('./pages/RecordingsPage'));
 const NotificationsPage = React.lazy(() => import('./pages/NotificationsPage'));
-const BundleBrowser = React.lazy(() => import('./pages/BundleBrowser'));
 const BundleCreation = React.lazy(() => import('./pages/BundleCreation'));
 const DynamicPricingPage = React.lazy(() => import('./pages/DynamicPricingPage'));
 const DiscountManager = React.lazy(() => import('./pages/DiscountManager'));
 const EnrollmentPage = React.lazy(() => import('./pages/EnrollmentPage'));
+const CreateClassPage = React.lazy(() => import('./pages/CreateClassPage'));
 const ModerationPage = React.lazy(() => import('./pages/ModerationPage'));
 const UserAppealsPage = React.lazy(() => import('./pages/UserAppealsPage'));
 const LiveStreamHost = React.lazy(() => import('./pages/LiveStreamHost'));
@@ -64,9 +51,11 @@ const AdminModeration = React.lazy(() => import('./pages/AdminModeration'));
 const AdminPayments = React.lazy(() => import('./pages/AdminPayments').then(module => ({ default: module.AdminPayments })));
 const AdminEmailJobs = React.lazy(() => import('./pages/AdminEmailJobs'));
 const AdminHosts = React.lazy(() => import('./pages/AdminHosts').then(module => ({ default: module.AdminHosts })));
-const AdminAnalytics = React.lazy(() => import('./pages/AdminAnalytics').then(module => ({ default: module.AdminAnalytics })));
 const AdminLogs = React.lazy(() => import('./pages/AdminLogs').then(module => ({ default: module.AdminLogs })));
 const AdminSettings = React.lazy(() => import('./pages/AdminSettings'));
+
+// Phase 6C - Email Notifications
+const EmailTemplateEditor = React.lazy(() => import('./pages/EmailTemplateEditor'));
 
 // Lazy load heavy components
 const VideoRoom = React.lazy(() => import('./components/VideoRoom'));
@@ -82,7 +71,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import OfflineIndicator from './components/OfflineIndicator';
 import UpdatePrompt from './components/UpdatePrompt';
-import MobileNav from './components/MobileNav';
 import PushPermissionRequest from './components/PushPermissionRequest';
 
 // Styles
@@ -144,6 +132,14 @@ function App() {
               element={
                 <ProtectedRoute requireHost>
                   <HostDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create-class"
+              element={
+                <ProtectedRoute requireHost>
+                  <CreateClassPage />
                 </ProtectedRoute>
               }
             />
@@ -370,6 +366,17 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* Phase 6C - Email Notifications */}
+            <Route
+              path="/admin/email-templates"
+              element={
+                <ProtectedRoute>
+                  <EmailTemplateEditor />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               path="/admin/management"
               element={

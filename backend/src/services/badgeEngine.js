@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-export default class BadgeEngine {
+class BadgeEngine {
   constructor() {}
 
   static async run() {

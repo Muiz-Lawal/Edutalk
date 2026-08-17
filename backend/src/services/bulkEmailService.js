@@ -1,4 +1,4 @@
-import { sendEmail } from '../utils/email.js';
+import { sendEmail } from '../utils/email2.js';
 import User from '../models/User.js';
 import Class from '../models/Class.js';
 import Subscription from '../models/Subscription.js';

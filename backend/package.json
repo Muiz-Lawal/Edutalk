@@ -8,7 +8,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "integration-test": "node src/integration_test.js"
+    "integration-test": "node src/integration_test.js",
+    "smoke": "node ../smoke/smoke-tests-fixed.mjs",
+    "release-check": "node smoke/release-readiness.mjs"
   },
   "keywords": [
     "education",
@@ -18,7 +20,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@sendgrid/mail": "^8.1.6",
     "axios": "^1.5.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -39,6 +40,7 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "mongodb-memory-server": "^8.12.1"
   }
 }

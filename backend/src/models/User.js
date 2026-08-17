@@ -148,4 +148,9 @@ const userSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+userSchema.index({ email: 1 });
+userSchema.index({ isHost: 1, hostVerified: 1, planTier: 1 });
+userSchema.index({ isStudent: 1, lastActivityAt: -1 });
+userSchema.index({ createdAt: -1 });
+
 export default mongoose.model('User', userSchema);

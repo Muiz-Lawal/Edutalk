@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import ConfirmDialog from '../components/ConfirmDialog';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/AdminManagement.css';
 
 const AdminManagement = () => {
@@ -31,6 +33,7 @@ const AdminManagement = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
+  const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   // Fetch admins
   useEffect(() => {
@@ -116,19 +119,23 @@ const AdminManagement = () => {
   };
 
   // Delete admin
-  const handleDeleteAdmin = async (adminId) => {
-    if (!window.confirm('Are you sure you want to delete this admin? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      await api.delete(`/admin/admins/${adminId}`);
-      setSuccess('✅ Admin deleted successfully!');
-      fetchAdmins();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to delete admin');
-    }
+  const handleDeleteAdmin = (adminId) => {
+    setConfirm({
+      open: true,
+      title: 'Delete Admin',
+      message: 'Are you sure you want to delete this admin? This action cannot be undone.',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        try {
+          await api.delete(`/admin/admins/${adminId}`);
+          setSuccess('✅ Admin deleted successfully!');
+          fetchAdmins();
+          setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+          setError(err.response?.data?.error || 'Failed to delete admin');
+        }
+      },
+    });
   };
 
   // Check if user is superadmin
@@ -149,8 +156,20 @@ const AdminManagement = () => {
         <p>Create and manage admin accounts with different roles and privileges</p>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
+      {error && (
+        <MessageBanner type="error" title="Admin error" message={error} onClose={() => setError('')} />
+      )}
+      {success && (
+        <MessageBanner type="success" title="Success" message={success} onClose={() => setSuccess('')} />
+      )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ open: false })}
+      />
 
       {/* Create Admin Button */}
       <div className="admin-controls">

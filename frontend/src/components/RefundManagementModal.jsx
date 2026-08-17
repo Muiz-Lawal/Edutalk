@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 
 export default function RefundManagementModal({ transaction, onClose }) {
   const [refundType, setRefundType] = useState('full');
@@ -70,7 +70,7 @@ export default function RefundManagementModal({ transaction, onClose }) {
         notes,
       });
 
-      alert('Refund initiated successfully!');
+      // Refund initiated successfully
       onClose();
     } catch (error) {
       setFormError(error.message);
@@ -361,8 +361,8 @@ export default function RefundManagementModal({ transaction, onClose }) {
 
       <div className="refund-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>↩️ Manage Refund</h2>
-          <button className="close-button" onClick={onClose}>✕</button>
+          <h2>â†©ï¸ Manage Refund</h2>
+          <button className="close-button" onClick={onClose}>âœ•</button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-content">
@@ -527,3 +527,4 @@ export default function RefundManagementModal({ transaction, onClose }) {
     </div>
   );
 }
+

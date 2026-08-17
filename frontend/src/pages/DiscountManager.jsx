@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import DiscountAnalyticsDashboard from '../components/DiscountAnalyticsDashboard';
+import ConfirmDialog from '../components/ConfirmDialog';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/DiscountManager.css';
 
 export default function DiscountManager() {
@@ -223,22 +225,24 @@ export default function DiscountManager() {
   };
 
   // DELETE DISCOUNT
-  const handleDelete = async (discountId) => {
-    const confirmDelete = window.confirm(
-      'Are you sure you want to delete this discount?'
-    );
+  const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null });
 
-    if (!confirmDelete) return;
-
-    try {
-      await api.delete(`/discounts/${discountId}`);
-
-      fetchDiscounts();
-    } catch (err) {
-      setError('Failed to delete discount');
-
-      console.error(err);
-    }
+  const handleDelete = (discountId) => {
+    setConfirm({
+      open: true,
+      title: 'Delete Discount',
+      message: 'Are you sure you want to delete this discount?',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        try {
+          await api.delete(`/discounts/${discountId}`);
+          fetchDiscounts();
+        } catch (err) {
+          setError('Failed to delete discount');
+          console.error(err);
+        }
+      },
+    });
   };
 
   // TOGGLE STATUS
@@ -328,6 +332,17 @@ export default function DiscountManager() {
 
   return (
     <div className="discount-manager">
+      {error && (
+        <MessageBanner type="error" title="Discounts" message={error} onClose={() => setError(null)} />
+      )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ open: false })}
+      />
 
       {/* HEADER */}
       <div className="manager-header">

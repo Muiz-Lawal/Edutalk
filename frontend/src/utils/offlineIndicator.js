@@ -166,7 +166,7 @@ export const offlineIndicatorScript = `
       indicator.classList.remove('offline');
       indicator.classList.add('online');
       indicator.querySelector('.offline-indicator__message').textContent = 
-        'You\'re online • All changes synced';
+        "You're online • All changes synced";
       
       // Hide after 3 seconds
       setTimeout(() => {

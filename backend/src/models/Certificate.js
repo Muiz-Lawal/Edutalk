@@ -132,8 +132,8 @@ certificateSchema.index({ studentId: 1, classId: 1 });
 certificateSchema.index({ verificationCode: 1 });
 certificateSchema.index({ issuedDate: -1 });
 
-// Pre-save: Generate certificate number if not exists
-certificateSchema.pre('save', function(next) {
+// Pre-validate: Generate certificate number if not exists (must run before validation)
+certificateSchema.pre('validate', function(next) {
   if (!this.certificateNumber) {
     const timestamp = Date.now().toString(36).toUpperCase();
     const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();

@@ -1,0 +1,64 @@
+name: Smoke + Phase6B Validation
+
+on:
+  pull_request:
+  push:
+    branches: [ agents/continue ]
+  workflow_dispatch: {}
+
+jobs:
+  smoke-and-phase6b:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand({ ping: 1 })'" --health-interval=10s --health-timeout=5s --health-retries=5
+    env:
+      MONGODB_URI: mongodb://localhost:27017/edutalk_ci
+      PORT: 5001
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Start backend server
+        working-directory: backend
+        run: |
+          nohup node src/server.js > server.log 2>&1 &
+          # wait for server to be ready
+          for i in {1..30}; do
+            if curl -sSf http://localhost:5001/api/health >/dev/null; then
+              echo 'backend ready'; break; fi; sleep 2; done
+          tail -n +1 server.log | sed -n '1,200p'
+
+      - name: Run compact smoke tests
+        run: |
+          node smoke/smoke-tests-fixed.mjs
+
+      - name: Run Phase 6B validation
+        working-directory: .
+        run: |
+          node ./phase6b-validation.mjs
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-logs
+          path: backend/server.log
