@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useLocation } from 'react-router-dom';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import RecommendationMetrics from '../components/RecommendationMetrics';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -21,12 +21,13 @@ export default function HostDashboardPage() {
   const fetchHostClasses = async () => {
     try {
       const response = await api.get('/classes/my-classes');
+      console.debug('[HostDashboard] fetched host classes', response.status, response.data);
       setClasses(response.data);
-      if (response.data.length > 0) {
+      if (Array.isArray(response.data) && response.data.length > 0) {
         setSelectedClassId(response.data[0]._id);
       }
     } catch (error) {
-      console.error('Failed to fetch host classes:', error);
+      console.error('Failed to fetch host classes:', error?.response || error.message || error);
     }
   };
 
