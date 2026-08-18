@@ -11,7 +11,7 @@ api.interceptors.request.use((config) => {
   // Try to get token, fallback to tempToken (for expired password scenario)
   const token = localStorage.getItem('token') || localStorage.getItem('tempToken');
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers.Authorization = 'Bearer ' + token;
   }
   return config;
 });
