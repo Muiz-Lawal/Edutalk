@@ -38,9 +38,19 @@ const pointsLedgerSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+const normalizeObjectId = (value) => {
+  if (!value) return null;
+  if (value instanceof mongoose.Types.ObjectId) return value;
+  if (mongoose.Types.ObjectId.isValid(value)) return new mongoose.Types.ObjectId(value);
+  return null;
+};
+
 pointsLedgerSchema.statics.getBalance = async function (userId) {
+  const normalizedUserId = normalizeObjectId(userId);
+  if (!normalizedUserId) return 0;
+
   const result = await this.aggregate([
-    { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+    { $match: { userId: normalizedUserId } },
     { $group: { _id: '$userId', balance: { $sum: '$amount' } } },
   ]);
 
@@ -52,12 +62,15 @@ pointsLedgerSchema.statics.record = async function ({ userId, type = 'achievemen
     throw new Error('PointsLedger.record requires userId and numeric amount');
   }
 
+  const normalizedUserId = normalizeObjectId(userId);
+  const normalizedClassId = normalizeObjectId(classId);
+  const normalizedReferenceId = normalizeObjectId(referenceId);
   const entry = new this({
-    userId,
+    userId: normalizedUserId || userId,
     type,
     amount,
-    classId,
-    referenceId,
+    classId: normalizedClassId || classId,
+    referenceId: normalizedReferenceId || referenceId,
     description,
     metadata,
   });
