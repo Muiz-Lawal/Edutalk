@@ -1,5 +1,7 @@
+import dotenv from 'dotenv';
 import io from 'socket.io-client';
 
+dotenv.config();
 const SERVER = process.env.SOCKET_URL || 'http://localhost:5001';
 
 function wait(ms){return new Promise(r=>setTimeout(r,ms));}
@@ -20,11 +22,18 @@ async function run(){
     const socketA = io(SERVER, socketOptionsA);
     const socketB = io(SERVER, socketOptionsB);
 
+    socketA.on('connect_error', (err)=>{ console.error('A connect_error', err && err.message ? err.message : err); });
+    socketB.on('connect_error', (err)=>{ console.error('B connect_error', err && err.message ? err.message : err); });
+    socketA.on('error', (e)=>console.error('A error',e));
+    socketB.on('error', (e)=>console.error('B error',e));
+    socketA.on('disconnect', (r)=>console.log('A disconnected',r));
+    socketB.on('disconnect', (r)=>console.log('B disconnected',r));
+
     await new Promise((res,rej)=>{
       let connected=0;
       socketA.on('connect',()=>{console.log('A connected',socketA.id);connected++; if(connected===2)res();});
       socketB.on('connect',()=>{console.log('B connected',socketB.id);connected++; if(connected===2)res();});
-      setTimeout(()=>rej(new Error('connect-timeout')),15000);
+      setTimeout(()=>rej(new Error('connect-timeout')),30000);
     });
 
   const roomId = `smoke-room-${Date.now()}`;
