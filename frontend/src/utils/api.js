@@ -13,6 +13,14 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = 'Bearer ' + token;
   }
+
+  // Debug: log outgoing requests so we can see whether the frontend attempts to call the backend
+  try {
+    console.debug('[API] request', (config.method || 'GET').toUpperCase(), (config.baseURL || '') + (config.url || ''), config.headers);
+  } catch (e) {
+    // ignore logging errors
+  }
+
   return config;
 });
 
