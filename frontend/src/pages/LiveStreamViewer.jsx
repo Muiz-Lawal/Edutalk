@@ -8,6 +8,9 @@ import StreamMetadata from '../components/StreamMetadata';
 import QualitySelector from '../components/QualitySelector';
 import '../styles/LiveStreamViewer.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const SOCKET_SERVER_URL = API_BASE_URL.replace(/\/api$/, '');
+
 export default function LiveStreamViewer() {
   const { streamId } = useParams();
   const navigate = useNavigate();
@@ -46,7 +49,7 @@ export default function LiveStreamViewer() {
       try {
         setLoading(true);
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/streams/${streamId}`,
+          `${API_BASE_URL}/live/${streamId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setStream(response.data);
@@ -78,7 +81,7 @@ export default function LiveStreamViewer() {
     const trackJoin = async () => {
       try {
         await axios.post(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${streamId}/viewer-join`,
+          `${API_BASE_URL}/live/${streamId}/viewer-join`,
           {
             qualitySelected: selectedQuality,
             browser: getBrowserInfo(),
@@ -100,7 +103,7 @@ export default function LiveStreamViewer() {
   useEffect(() => {
     if (!stream || !token) return;
 
-    socketRef.current = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+    socketRef.current = io(SOCKET_SERVER_URL, {
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
@@ -167,7 +170,7 @@ export default function LiveStreamViewer() {
   const fetchChatHistory = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${streamId}/chat?limit=50`,
+        `${API_BASE_URL}/live/${streamId}/chat?limit=50`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMessages(response.data || []);
@@ -180,7 +183,7 @@ export default function LiveStreamViewer() {
   const handleSendMessage = async (messageText) => {
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${streamId}/chat`,
+        `${API_BASE_URL}/live/${streamId}/chat`,
         { message: messageText },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -215,7 +218,7 @@ export default function LiveStreamViewer() {
   const handleBeforeUnload = async () => {
     try {
       await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${streamId}/viewer-leave`,
+        `${API_BASE_URL}/live/${streamId}/viewer-leave`,
         {
           watchTime,
           engagement: Math.round(engagement)

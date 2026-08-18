@@ -38,6 +38,10 @@ const AchievementsPage = React.lazy(() => import('./pages/AchievementsPage'));
 const LeaderboardPage = React.lazy(() => import('./pages/LeaderboardPage'));
 const PointsHistoryPage = React.lazy(() => import('./pages/PointsHistoryPage'));
 
+// POC Pages (Phase 2)
+const WebrtcPoc = React.lazy(() => import('./pages/WebrtcPoc'));
+const RecordingPoc = React.lazy(() => import('./pages/RecordingPoc'));
+
 // Phase 6F - Analytics
 const AnalyticsDashboard = React.lazy(() => import('./pages/AnalyticsDashboard'));
 const AdminAnalyticsDashboard = React.lazy(() => import('./pages/AdminAnalyticsDashboard'));
@@ -420,6 +424,8 @@ function App() {
               }
             />
 
+            <Route path="/webrtc-poc" element={<WebrtcPoc />} />
+            <Route path="/recording-poc" element={<RecordingPoc />} />
             <Route path="*" element={<Navigate to="/" replace />} />
              </Routes>
            </Suspense>

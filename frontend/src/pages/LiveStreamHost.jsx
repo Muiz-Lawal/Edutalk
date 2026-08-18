@@ -7,6 +7,9 @@ import StreamControls from '../components/StreamControls';
 import ViewerStats from '../components/ViewerStats';
 import '../styles/LiveStreamHost.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const SOCKET_SERVER_URL = API_BASE_URL.replace(/\/api$/, '');
+
 export default function LiveStreamHost() {
   const { classId } = useParams();
   const navigate = useNavigate();
@@ -43,7 +46,7 @@ export default function LiveStreamHost() {
       return;
     }
 
-    socketRef.current = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+    socketRef.current = io(SOCKET_SERVER_URL, {
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
@@ -83,7 +86,7 @@ export default function LiveStreamHost() {
     const interval = setInterval(async () => {
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${stream._id}/stats`,
+          `${API_BASE_URL}/live/${stream._id}/stats`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setViewers(res.data.stats.currentViewers);
@@ -133,7 +136,7 @@ export default function LiveStreamHost() {
       setError(null);
 
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live`,
+        `${API_BASE_URL}/live`,
         {
           classId,
           title,
@@ -173,7 +176,7 @@ export default function LiveStreamHost() {
       };
 
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${stream._id}/start`,
+        `${API_BASE_URL}/live/${stream._id}/start`,
         { quality: qualityConfig },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -209,7 +212,7 @@ export default function LiveStreamHost() {
       setError(null);
 
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${stream._id}/stop`,
+        `${API_BASE_URL}/live/${stream._id}/stop`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

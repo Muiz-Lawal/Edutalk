@@ -1,7 +1,9 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import api from '../utils/api';
-import 'C:/Users/abdul/Desktop/class/frontend/src/styles/VideoRoom.css';
+import '../styles/VideoRoom.css';
+
+const SOCKET_SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5001/api').replace(/\/api$/, '');
 
 export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) {
   const [participants, setParticipants] = useState([]);
@@ -51,7 +53,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
 
       // Initialize Socket.io connection
       const authToken = localStorage.getItem('token');
-      socketRef.current = io('http://localhost:5000', {
+      socketRef.current = io(SOCKET_SERVER_URL, {
         auth: { token: authToken },
       });
 

@@ -30,6 +30,13 @@ const router = express.Router();
 // Create live stream (host only)
 router.post('/', verifyToken, createLiveStream);
 
+// Backward-compatible aliases for legacy client routes
+router.get('/streams/:id', getLiveStream);
+router.post('/streams/:id/viewer-join', joinStream);
+router.post('/streams/:id/viewer-leave', leaveStream);
+router.get('/streams/:id/chat', getChatMessages);
+router.post('/streams/:id/chat', verifyToken, sendChatMessage);
+
 // Get specific stream details
 router.get('/:id', getLiveStream);
 

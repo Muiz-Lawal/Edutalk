@@ -9,7 +9,7 @@ export const emailNotificationService = {
    */
   sendAchievementNotification: async (userId, achievement, token) => {
     try {
-      const response = await fetch('http://localhost:5000/api/notifications/email/achievement', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/notifications/email/achievement`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -44,7 +44,7 @@ export const emailNotificationService = {
    */
   sendCompletionNotification: async (userId, courseData, token) => {
     try {
-      const response = await fetch('http://localhost:5000/api/notifications/email/completion', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/notifications/email/completion`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -78,7 +78,7 @@ export const emailNotificationService = {
    */
   sendMilestoneNotification: async (userId, milestone, token) => {
     try {
-      const response = await fetch('http://localhost:5000/api/notifications/email/milestone', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/notifications/email/milestone`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -113,7 +113,7 @@ export const emailNotificationService = {
    */
   sendProgressReminder: async (userId, enrollmentData, token) => {
     try {
-      const response = await fetch('http://localhost:5000/api/notifications/email/reminder', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/notifications/email/reminder`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -148,7 +148,7 @@ export const emailNotificationService = {
    */
   sendCertificateNotification: async (userId, certificateData, token) => {
     try {
-      const response = await fetch('http://localhost:5000/api/notifications/email/certificate', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/notifications/email/certificate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -185,7 +185,7 @@ export const emailNotificationService = {
    */
   subscribeToNotifications: async (userId, preferences, token) => {
     try {
-      const response = await fetch('http://localhost:5000/api/notifications/subscribe', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/notifications/subscribe`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -221,7 +221,7 @@ export const emailNotificationService = {
    */
   getNotificationPreferences: async (userId, token) => {
     try {
-      const response = await fetch('http://localhost:5000/api/notifications/preferences', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/notifications/preferences`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

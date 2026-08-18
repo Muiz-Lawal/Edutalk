@@ -54,13 +54,6 @@ jobs:
   real-provider-smoke:
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_real_provider == 'true' }}
     runs-on: ubuntu-latest
-    services:
-      mongodb:
-        image: mongo:5.0
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongo --eval 'db.adminCommand(\"ping\")'" --health-interval 10s --health-timeout 5s --health-retries 5
     env:
       MONGODB_URI: mongodb://mongodb:27017/edutalk_test
     steps:

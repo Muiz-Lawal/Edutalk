@@ -8,7 +8,7 @@ import { Platform } from 'react-native';
 export const config = {
   // API Configuration
   api: {
-    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001/api',
     timeout: 15000,
     headers: {
       'Content-Type': 'application/json',
