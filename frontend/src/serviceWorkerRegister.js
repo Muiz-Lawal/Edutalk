@@ -1,4 +1,10 @@
 export const registerServiceWorker = async () => {
+  // Only register the service worker in production
+  if (!import.meta.env.PROD) {
+    console.log('Skipping service worker registration in development');
+    return null;
+  }
+
   if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js');
