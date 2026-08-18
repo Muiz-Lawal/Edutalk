@@ -127,4 +127,4 @@ export default class BadgeEngine {
 // run once when required
 export async function runBadgeEngine() { await BadgeEngine.run(); }
 
-export default BadgeEngine;
+export { BadgeEngine };

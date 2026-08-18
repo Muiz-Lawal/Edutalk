@@ -1,8 +1,11 @@
+import mongoose from 'mongoose';
 import ModerationLog from '../models/ModerationLog.js';
 import User from '../models/User.js';
 import Review from '../models/Review.js';
 import aiModerationService from '../services/aiModerationService.js';
 import { sendEmail } from '../utils/email.js';
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // Get moderation queue for admin review
 export const getModerationQueue = async (req, res) => {
@@ -83,6 +86,8 @@ export const processModerationDecision = async (req, res) => {
               contentType: log.contentType.replace(/_/g, ' '),
               reason: reason || 'This content violates our community guidelines',
               categories: Object.keys(log.categories || {}).filter(k => log.categories[k]).join(', '),
+              appealUrl: `${FRONTEND_URL}/appeals`,
+              dashboardUrl: `${FRONTEND_URL}/dashboard`,
             },
           });
         }
@@ -414,6 +419,7 @@ export const submitContentAppeal = async (req, res) => {
             userName: user.firstName,
             contentType: log.contentType.replace(/_/g, ' '),
             originalReason: log.reviewNotes,
+            dashboardUrl: `${FRONTEND_URL}/dashboard`,
           },
         });
       }
@@ -510,6 +516,7 @@ export const reviewAppeal = async (req, res) => {
             userName: user.firstName,
             decision: decision === 'approved' ? 'approved' : 'denied',
             notes,
+            dashboardUrl: `${FRONTEND_URL}/dashboard`,
           },
         });
       }
@@ -553,7 +560,22 @@ export const getModerationQueueAdvanced = async (req, res) => {
     }
 
     if (userId) {
-      query.userId = userId;
+      const normalized = userId.trim();
+      if (mongoose.Types.ObjectId.isValid(normalized)) {
+        query.userId = normalized;
+      } else {
+        const matchedUser = await User.findOne({
+          $or: [
+            { email: normalized.toLowerCase() },
+            { username: normalized },
+          ],
+        });
+        if (matchedUser) {
+          query.userId = matchedUser._id;
+        } else {
+          query.userId = null;
+        }
+      }
     }
 
     if (appealStatus && appealStatus !== 'none') {
@@ -614,7 +636,24 @@ export const exportModerationLogs = async (req, res) => {
     if (status) query.status = status;
     if (contentType) query.contentType = contentType;
     if (severity) query.severity = severity;
-    if (userId) query.userId = userId;
+    if (userId) {
+      const normalized = userId.trim();
+      if (mongoose.Types.ObjectId.isValid(normalized)) {
+        query.userId = normalized;
+      } else {
+        const matchedUser = await User.findOne({
+          $or: [
+            { email: normalized.toLowerCase() },
+            { username: normalized },
+          ],
+        });
+        if (matchedUser) {
+          query.userId = matchedUser._id;
+        } else {
+          query.userId = null;
+        }
+      }
+    }
     if (appealStatus && appealStatus !== 'none') {
       query['appeal.status'] = appealStatus;
     }

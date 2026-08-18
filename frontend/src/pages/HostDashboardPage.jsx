@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import RecommendationMetrics from '../components/RecommendationMetrics';
-import api from '../utils/api';
+import ClassForm from '../components/ClassForm';
+import { getHostClasses, deleteClass } from '../utils/api';
 import '../styles/Dashboard.css';
 
 export default function HostDashboardPage() {
   const { user, isAuthenticated, loading } = useAuth();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [classes, setClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState(null);
+  const [actionMessage, setActionMessage] = useState('');
+  const [isClassModalOpen, setIsClassModalOpen] = useState(false);
+  const [classToEdit, setClassToEdit] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated && user?.isHost) {
@@ -17,15 +23,73 @@ export default function HostDashboardPage() {
     }
   }, [isAuthenticated, user?.isHost]);
 
+  useEffect(() => {
+    const modal = searchParams.get('modal');
+    const editId = searchParams.get('edit');
+
+    if (modal === 'create') {
+      setClassToEdit(null);
+      setIsClassModalOpen(true);
+      return;
+    }
+
+    if (modal === 'edit' && editId) {
+      setClassToEdit({ _id: editId });
+      setIsClassModalOpen(true);
+      return;
+    }
+
+    if (!modal && isClassModalOpen) {
+      setClassToEdit(null);
+      setIsClassModalOpen(false);
+    }
+  }, [searchParams, isClassModalOpen]);
+
   const fetchHostClasses = async () => {
     try {
-      const response = await api.get('/classes/my-classes');
-      setClasses(response.data);
-      if (response.data.length > 0) {
-        setSelectedClassId(response.data[0]._id);
+      const response = await getHostClasses();
+      const hostClasses = response?.classes || response || [];
+      setClasses(hostClasses);
+      if (hostClasses.length > 0 && !selectedClassId) {
+        setSelectedClassId(hostClasses[0]._id);
       }
     } catch (error) {
       console.error('Failed to fetch host classes:', error);
+      setActionMessage('Unable to load your classes right now.');
+    }
+  };
+
+  const openCreateModal = () => {
+    setClassToEdit(null);
+    setIsClassModalOpen(true);
+  };
+
+  const openEditModal = (cls) => {
+    setClassToEdit(cls);
+    setIsClassModalOpen(true);
+  };
+
+  const closeClassModal = () => {
+    setIsClassModalOpen(false);
+    setClassToEdit(null);
+  };
+
+  const handleClassModalSuccess = async (_classData, meta = {}) => {
+    setActionMessage(meta.isEditing ? 'Class updated successfully.' : 'Class created successfully.');
+    setIsClassModalOpen(false);
+    setClassToEdit(null);
+    await fetchHostClasses();
+  };
+
+  const handleDeleteClass = async (classId) => {
+    if (!window.confirm('Delete this class?')) return;
+    try {
+      await deleteClass(classId);
+      setActionMessage('Class deleted successfully.');
+      await fetchHostClasses();
+    } catch (error) {
+      console.error('Failed to delete class:', error);
+      setActionMessage('Failed to delete class.');
     }
   };
 
@@ -40,7 +104,17 @@ export default function HostDashboardPage() {
   return (
     <div className="dashboard-page">
       <div className="container">
-        <h1>Host Dashboard</h1>
+        <div className="dashboard-header">
+          <div>
+            <h1>Host Dashboard</h1>
+            <p>Manage your classes, sessions, and student insights from one place.</p>
+          </div>
+          <div className="dashboard-header-actions">
+            <button type="button" className="btn btn-primary" onClick={openCreateModal}>+ Create Class</button>
+          </div>
+        </div>
+
+        {actionMessage && <div className={`dashboard-alert ${actionMessage.includes('Failed') ? 'dashboard-alert--error' : ''}`}>{actionMessage}</div>}
 
         <div className="host-stats">
           <div className="stat-card">
@@ -65,18 +139,10 @@ export default function HostDashboardPage() {
           <section className="dashboard-card quick-actions-card">
             <h2>Quick Actions</h2>
             <div className="quick-actions-grid">
-              <Link to="/moderation" className="btn btn-primary">
-                🛡️ Moderation
-              </Link>
-              <Link to="/appeals" className="btn btn-primary">
-                📋 Appeals
-              </Link>
-              <Link to="/analytics" className="btn btn-primary">
-                📊 Analytics
-              </Link>
-              <Link to="/schedules" className="btn btn-primary">
-                📅 Schedules
-              </Link>
+              <Link to="/moderation" className="btn btn-primary">🛡️ Moderation</Link>
+              <Link to="/appeals" className="btn btn-primary">📋 Appeals</Link>
+              <Link to="/analytics" className="btn btn-primary">📊 Analytics</Link>
+              <Link to="/schedules" className="btn btn-primary">📅 Schedules</Link>
             </div>
           </section>
 
@@ -85,24 +151,29 @@ export default function HostDashboardPage() {
             {classes.length > 0 ? (
               <div className="class-list">
                 {classes.map((cls) => (
-                  <div
-                    key={cls._id}
-                    className={`class-item ${selectedClassId === cls._id ? 'active' : ''}`}
-                  >
-                    <div onClick={() => setSelectedClassId(cls._id)} style={{ flex: 1, cursor: 'pointer' }}>
-                      <h4>{cls.title}</h4>
-                      <p className="class-category">{cls.category}</p>
+                  <div key={cls._id} className={`class-item ${selectedClassId === cls._id ? 'active' : ''}`}>
+                    <div className="class-item__main" onClick={() => setSelectedClassId(cls._id)}>
+                      <div className="class-item__top">
+                        <h4>{cls.title}</h4>
+                        <span className="class-item__badge">{cls.category || 'General'}</span>
+                      </div>
+                      <p className="class-item__meta">
+                        {cls.monthlyPrice ? `$${cls.monthlyPrice}/mo` : 'Flexible pricing'} • {cls.schedule?.length ? `${cls.schedule.length} sessions` : 'Custom schedule'}
+                      </p>
                     </div>
-                    <Link to={`/go-live/${cls._id}`} className="btn btn-success btn-sm">
-                      Go Live
-                    </Link>
+                    <div className="class-item__actions">
+                      <Link to={`/class/${cls._id}`} className="btn btn-sm btn-secondary">View</Link>
+                      <button type="button" className="btn btn-sm btn-secondary" onClick={() => openEditModal(cls)}>Edit</button>
+                      <button type="button" className="btn btn-sm btn-secondary" onClick={() => handleDeleteClass(cls._id)}>Delete</button>
+                      <Link to={`/go-live/${cls._id}`} className="btn btn-sm btn-success">Go Live</Link>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
               <>
                 <p>You haven't created any classes yet.</p>
-                <button className="btn btn-primary">Create a New Class</button>
+                <button type="button" className="btn btn-primary" onClick={openCreateModal}>Create a New Class</button>
               </>
             )}
           </section>
@@ -137,6 +208,19 @@ export default function HostDashboardPage() {
           </div>
         )}
       </div>
+
+      {isClassModalOpen && (
+        <div className="class-modal-overlay" onClick={closeClassModal}>
+          <div className="class-modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={closeClassModal} aria-label="Close class form">
+                ✕
+              </button>
+            </div>
+            <ClassForm initialData={classToEdit || null} onSuccess={handleClassModalSuccess} onCancel={closeClassModal} showHeader={true} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

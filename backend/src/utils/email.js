@@ -42,7 +42,7 @@ export const sendEmail = async (...args) => {
       {
         personalizations: [
           {
-            to: [{ email: toEmail }],
+            to: [{ email: to }],
             subject: subject,
           },
         ],

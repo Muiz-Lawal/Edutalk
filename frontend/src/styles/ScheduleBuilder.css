@@ -1,0 +1,54 @@
+.schedule-builder {
+  border: 1px solid #e6e6e6;
+  padding: 12px;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.schedule-builder__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.schedule-builder__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.schedule-builder__row select,
+.schedule-builder__row input[type="time"],
+.schedule-builder__row input[type="number"] {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.schedule-builder__duration {
+  width: 88px;
+}
+
+.schedule-builder__remove {
+  background: transparent;
+  border: none;
+  color: #d9534f;
+  cursor: pointer;
+}
+
+.schedule-builder__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.schedule-builder__hint {
+  color: #666;
+  font-size: 12px;
+}
+
+.schedule-builder__empty {
+  color: #777;
+  padding: 8px 0;
+}

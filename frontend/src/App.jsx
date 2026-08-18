@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -27,6 +28,7 @@ const BrowseClassesPage = React.lazy(() => import('./pages/BrowseClassesPage'));
 const ClassDetailPage = React.lazy(() => import('./pages/ClassDetailPage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const HostDashboardPage = React.lazy(() => import('./pages/HostDashboardPage'));
+const CreateClassPage = React.lazy(() => import('./pages/CreateClassPage'));
 const RecordingsPage = React.lazy(() => import('./pages/RecordingsPage'));
 const NotificationsPage = React.lazy(() => import('./pages/NotificationsPage'));
 const BundleBrowser = React.lazy(() => import('./pages/BundleBrowser'));
@@ -144,6 +146,22 @@ function App() {
               element={
                 <ProtectedRoute requireHost>
                   <HostDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create-class"
+              element={
+                <ProtectedRoute requireHost>
+                  <CreateClassPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/host-dashboard/create-class"
+              element={
+                <ProtectedRoute requireHost>
+                  <CreateClassPage />
                 </ProtectedRoute>
               }
             />

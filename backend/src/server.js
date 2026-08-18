@@ -425,12 +425,18 @@ io.on('connection', (socket) => {
 // Middleware
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.has(origin)) {
-      callback(null, true);
-      return;
+    // Allow requests with no origin (e.g., curl, native apps)
+    if (!origin) return callback(null, true);
+
+    // Allow explicit allowedOrigins
+    if (allowedOrigins.has(origin)) return callback(null, true);
+
+    // In development, allow all local development origins to avoid CORS issues
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
     }
 
-    callback(new Error('Not allowed by CORS'));
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));
