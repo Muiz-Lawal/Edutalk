@@ -82,17 +82,33 @@ REDIS_URL=redis://localhost:6379
 
 ### Local mock payments (FORCE_MOCK_PAYMENTS)
 
-During local development it's often desirable to avoid calling the real Stripe API. The project supports a mock-safe mode for payments:
+During local development it's often desirable to avoid calling the real Stripe API. The project supports a mock-safe mode for payments and the behavior can be forced deterministically:
 
 - To force purely mocked payments (returns pi_mock_* client secrets and treats them as succeeded), set the environment variable:
 
   FORCE_MOCK_PAYMENTS=true
 
-- Alternatively, remove or clear STRIPE_SECRET_KEY from your environment to allow the code to fall back to mocked mode.
+- The payment controller now honors FORCE_MOCK_PAYMENTS explicitly and will bypass any runtime Stripe initialization when set to `true`. This is the recommended way to run the smoke scripts locally.
+
+- Alternatively, removing or clearing STRIPE_SECRET_KEY from your environment will also cause the code to fall back to mocked mode, but that approach is less explicit than using FORCE_MOCK_PAYMENTS.
 
 Notes:
 - Use FORCE_MOCK_PAYMENTS=true when running the smoke scripts locally to avoid hitting Stripe or requiring real keys.
 - When running with real provider keys in staging/CI, ensure STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are set and FORCE_MOCK_PAYMENTS is not `true`.
+
+## WebRTC / TURN configuration
+
+The signalling server exposes a simple configuration endpoint that clients can call to obtain ICE/TURN server configuration:
+
+GET /webrtc/config
+
+- Supply TURN servers via the environment variable `TURN_SERVERS` or `WEBRTC_TURN_SERVERS` as a JSON array of objects, for example:
+
+  TURN_SERVERS='[{"urls":["turn:turn.example.com:3478"],"username":"user","credential":"pass"}]'
+
+- The endpoint will fall back to `stun:stun.l.google.com:19302` if no TURN/STUN configuration is provided.
+
+- For production-grade WebRTC across NATs, configure one or more TURN servers (or a managed TURN provider) and set the env var before starting the signalling server.
 
 ## Testing Stripe webhooks locally
 

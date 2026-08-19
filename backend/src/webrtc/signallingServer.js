@@ -11,6 +11,32 @@ app.use(express.json());
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
+// Provide ICE server configuration for clients (optional). Set TURN_SERVERS as JSON string
+// e.g. TURN_SERVERS='[{"urls":["turn:turn.example.com:3478"],"username":"user","credential":"pass"}]'
+app.get('/webrtc/config', (req, res) => {
+  try {
+    const raw = process.env.TURN_SERVERS || process.env.WEBRTC_TURN_SERVERS || '';
+    let iceServers = [];
+    if (raw) {
+      try {
+        iceServers = JSON.parse(raw);
+      } catch (e) {
+        // support semicolon/comma separated basic urls
+        const parts = raw.split(/[,;]\s*/).filter(Boolean);
+        iceServers = parts.map(url => ({ urls: [url] }));
+      }
+    } else {
+      // Provide a default STUN server so clients have at least STUN
+      iceServers = [ { urls: ['stun:stun.l.google.com:19302'] } ];
+    }
+
+    return res.json({ iceServers });
+  } catch (err) {
+    console.error('Failed to build webrtc config', err.message);
+    return res.status(500).json({ error: 'Failed to build config' });
+  }
+});
+
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 

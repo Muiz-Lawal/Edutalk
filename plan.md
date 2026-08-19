@@ -1,5 +1,7 @@
 # Project plan and progress
 
+Latest: 2026-08-19T09:20:18+01:00 — Sequential stabilization tasks executed and validated locally (compact smoke, admin smoke, end-to-end certificate run). Key outcomes: smoke scripts added and run, payment mock behavior hardened for deterministic local runs, server-side certificate PDF generation validated and saved to uploads/, and WebRTC signalling server extended to serve ICE/TURN config to clients.
+
 Updated: 2026-08-19T02:34:12+01:00 — Release-readiness completed locally; runtime stabilization applied and host/admin flows validated. Key fixes: frontend auth header formatting, disabled dev service worker to avoid stale bundles, fixed HostDashboard hook imports, normalized frontend user identity (id/_id/userId), hardened PointsLedger ObjectId handling, removed duplicate default export in badge engine, seeded admin account for smoke tests, and validated create-class and admin moderation flows. Frontend production build passed.
 
 Recent updates (2026-08-19):
