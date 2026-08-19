@@ -33,12 +33,17 @@ export default function Header() {
   useEffect(() => {
     let mounted = true;
     async function fetchBalance() {
-      if (!user) return;
+      const userId = user?._id || user?.id || user?.userId;
+      if (!user || !userId || user.isAdmin) {
+        if (mounted) setPointsBalance(null);
+        return;
+      }
       try {
-        const res = await api.get(`/points/balance/${user._id}`);
-        if (mounted) setPointsBalance(res.data.balance || 0);
+        const res = await api.get(`/points/balance/${userId}`);
+        if (mounted) setPointsBalance(res.data.balance ?? res.data.data?.balance ?? 0);
       } catch (err) {
         console.warn('Failed to load points balance', err.message || err);
+        if (mounted) setPointsBalance(null);
       }
     }
 

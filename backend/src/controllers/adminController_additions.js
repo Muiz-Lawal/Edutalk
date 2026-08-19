@@ -131,3 +131,42 @@ export const testCleanup = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Dev-only helper: create a subscription directly (bypass payment) for testing
+export const createTestSubscription = async (req, res) => {
+  try {
+    if (process.env.NODE_ENV === 'production') return res.status(403).json({ error: 'Not allowed in production' });
+
+    const { userId, classId, numberOfDays = 1 } = req.body;
+    if (!userId || !classId) return res.status(400).json({ error: 'userId and classId required' });
+
+    const Subscription = (await import('../models/Subscription.js')).default;
+    const ClassModel = (await import('../models/Class.js')).default;
+    const UserModel = (await import('../models/User.js')).default;
+
+    const user = await UserModel.findById(userId);
+    const clazz = await ClassModel.findById(classId);
+    if (!user || !clazz) return res.status(404).json({ error: 'User or Class not found' });
+
+    const startDate = new Date();
+    const endDate = new Date(startDate.getTime() + numberOfDays * 24 * 60 * 60 * 1000);
+
+    const sub = new Subscription({
+      userId: user._id,
+      classId: clazz._id,
+      accessCode: `TESTSUB-${Date.now()}`,
+      numberOfDays,
+      startDate,
+      endDate,
+      status: 'active',
+      totalDaysPurchased: numberOfDays,
+      totalAmountPaid: 0,
+    });
+
+    await sub.save();
+    return res.json({ success: true, subscriptionId: sub._id });
+  } catch (err) {
+    console.error('createTestSubscription error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};

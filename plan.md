@@ -1,6 +1,22 @@
 # Project plan and progress
 
-Updated: 2026-08-17 — Release-readiness completed locally; mock-safe payment flow validated; draft release published (v1.0.0-rc1). Staging secrets were added and local smoke passed. Moving to Phase 2 (product development) with an initial kickoff.
+Updated: 2026-08-19T02:34:12+01:00 — Release-readiness completed locally; runtime stabilization applied and host/admin flows validated. Key fixes: frontend auth header formatting, disabled dev service worker to avoid stale bundles, fixed HostDashboard hook imports, normalized frontend user identity (id/_id/userId), hardened PointsLedger ObjectId handling, removed duplicate default export in badge engine, seeded admin account for smoke tests, and validated create-class and admin moderation flows. Frontend production build passed.
+
+Recent updates (2026-08-19):
+- Normalized user identity and updated AuthContext to persist both id and _id for compatibility with Points APIs and other callers.
+- Fixed points-balance callers across Header, Dashboard, PointsHistory, Achievements, and Leaderboard pages to use either id/_id and skip calls for admin accounts.
+- Seeded admin@edutalk.com (Admin123456!) into the edutalk database for local smoke testing and confirmed admin login and admin dashboards load.
+- Ensured backend sockets and points ledger errors were resolved by normalizing ObjectId usage and adjusting aggregation logic.
+- Confirmed frontend build (vite) succeeds and admin/host flows render in-browser; moderation dashboard and admin management pages load.
+- Implemented a simple certificate preview and print-to-PDF path at GET /api/certificates/preview/:certificateId and ensured generated certificates include display-friendly studentName and className data (dev-friendly PDF stub).
+- Started WebRTC POC signalling server (ws://localhost:4000) and validated the frontend WebrtcPoc page connects and sends signals (basic smoke).
+
+Next actions (short):
+- Continue admin smoke validation (post-login admin actions, moderation approvals).
+- Certificate PDF polish: finalize template assets, font embedding, and a server-side HTML→PDF generator (puppeteer or wkhtmltopdf) so pdfUrl points to a true PDF file in storage.
+- Continue Phase-2 POC work (recording POC and AI moderation), and add CI jobs to test signalling and recording flows once a media-capable staging runner is available.
+
+(See Completed/Next sections below for full context.)
 
 Phase 2 kickoff (short term goals)
 - Real-time video (WebRTC): prototype one-to-one and small-group rooms, server-side signalling, TURN/STUN config.

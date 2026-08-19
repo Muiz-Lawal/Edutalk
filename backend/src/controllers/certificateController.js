@@ -3,6 +3,9 @@ import StudentProgress from '../models/StudentProgress.js';
 import Subscription from '../models/Subscription.js';
 import Class from '../models/Class.js';
 import User from '../models/User.js';
+import generateCertificatePdf from '../utils/generateCertificatePdf.js';
+import path from 'path';
+import fs from 'fs';
 
 // Generate certificate when course is completed
 export const generateCertificate = async (req, res) => {
@@ -31,6 +34,11 @@ export const generateCertificate = async (req, res) => {
       return res.status(400).json({ message: 'Certificate already issued for this enrollment' });
     }
 
+    // Prepare certificateData with additional display-friendly fields
+    const studentFullName = `${subscription.userId.firstName || ''} ${subscription.userId.lastName || ''}`.trim();
+    const courseTitle = courseData?.courseTitle || subscription.classId.title;
+    const className = subscription.classId.title || courseTitle;
+
     // Create new certificate
     const certificate = new Certificate({
       studentId: subscription.userId._id,
@@ -38,7 +46,8 @@ export const generateCertificate = async (req, res) => {
       enrollmentId,
       completionDate: completionDate || new Date(),
       certificateData: {
-        courseTitle: courseData?.courseTitle || subscription.classId.title,
+        studentName: studentFullName || `${subscription.userId.email}`,
+        courseTitle: courseTitle,
         courseDescription: courseData?.courseDescription || subscription.classId.description,
         hoursCompleted: progress ? Math.round(progress.totalTimeSpent / 60) : 0,
         finalScore: progress?.overallScore || 0,
@@ -49,6 +58,30 @@ export const generateCertificate = async (req, res) => {
     });
 
     await certificate.save();
+
+    // Generate a real PDF and store under uploads/certificates
+    try {
+      const outDir = path.resolve(process.cwd(), 'uploads', 'certificates');
+      fs.mkdirSync(outDir, { recursive: true });
+      const outPath = path.join(outDir, `${certificate._id}.pdf`);
+      const genResult = await generateCertificatePdf({
+        _id: certificate._id,
+        studentName: certificate.certificateData.studentName,
+        className: certificate.certificateData.courseTitle || certificate.classId?.title,
+        issuedAt: certificate.issuedDate || new Date()
+      }, outPath);
+
+      // Publicly accessible url served by express static
+      certificate.pdfUrl = `/uploads/certificates/${certificate._id}.pdf`;
+      certificate.pdfSize = genResult.size || 0;
+      await certificate.save();
+    } catch (pdfErr) {
+      // Fall back to preview URL if PDF generation fails
+      console.error('PDF generation failed:', pdfErr);
+      certificate.pdfUrl = `/api/certificates/preview/${certificate._id}`;
+      certificate.pdfSize = 0;
+      await certificate.save();
+    }
 
     // Update progress status
     if (progress) {
@@ -68,6 +101,77 @@ export const generateCertificate = async (req, res) => {
     res.status(500).json({ message: 'Error generating certificate', error: error.message });
   }
 };
+
+// Preview certificate HTML (simple render for manual PDF printing)
+export const previewCertificate = async (req, res) => {
+  try {
+    const { certificateId } = req.params;
+    const cert = await Certificate.findById(certificateId)
+      .populate('studentId', 'firstName lastName email')
+      .populate('classId', 'title');
+
+    if (!cert) return res.status(404).send('<h1>Certificate not found</h1>');
+
+    const data = {
+      studentName: cert.certificateData?.studentName || `${cert.studentId.firstName || ''} ${cert.studentId.lastName || ''}`.trim(),
+      className: cert.classId?.title || cert.certificateData?.courseTitle,
+      completionDate: cert.completionDate || cert.issuedDate,
+      certificateNumber: cert.certificateNumber,
+      verificationCode: cert.verificationCode,
+      instructorName: cert.certificateData?.instructorName || 'EduTalk Instructor',
+      certificateMessage: cert.certificateData?.certificateMessage || ''
+    };
+
+    // Minimal HTML that mirrors the frontend preview — suitable for printing to PDF
+    const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Certificate ${data.certificateNumber}</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #1f2937; }
+    .container { width: 100%; max-width: 900px; margin: 40px auto; padding: 40px; border: 6px solid #b45309; background: linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%); }
+    h1 { text-align: center; font-size: 32px; margin: 0 0 16px; }
+    h2 { text-align: center; font-size: 28px; margin: 8px 0; }
+    .intro { text-align: center; margin-top: 20px; font-size: 16px; color: #374151; }
+    .details { margin-top: 32px; display:flex; justify-content:space-between; }
+    .signature { text-align:center; margin-top:40px; }
+    code { background:#f3f4f6; padding:4px 6px; border-radius:4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Certificate of Completion</h1>
+    <div class="intro">This is to certify that</div>
+    <h2>${escapeHtml(data.studentName)}</h2>
+    <div class="intro">has successfully completed the course</div>
+    <h2>${escapeHtml(data.className)}</h2>
+    <div class="details">
+      <div>Certificate No.: <strong>${escapeHtml(data.certificateNumber)}</strong></div>
+      <div>Completion Date: <strong>${new Date(data.completionDate).toLocaleDateString()}</strong></div>
+    </div>
+    <div class="signature">
+      <div style="margin-top:40px;">${escapeHtml(data.instructorName)}</div>
+      <div style="font-size:12px;color:#6b7280;">EduTalk Certification Authority</div>
+    </div>
+    <div style="margin-top:20px;text-align:center;font-size:12px;color:#6b7280;">Verification code: <code>${escapeHtml(data.verificationCode)}</code></div>
+  </div>
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (error) {
+    console.error('Error rendering certificate preview:', error);
+    res.status(500).send('<h1>Error rendering certificate preview</h1>');
+  }
+};
+
+// Simple HTML escaper to avoid injection in preview
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 
 // Get certificate details
 export const getCertificate = async (req, res) => {

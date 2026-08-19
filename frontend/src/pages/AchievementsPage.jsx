@@ -32,11 +32,16 @@ const AchievementsPage = () => {
 
         // Fetch points balance for current user
         try {
-          const uid = user?.id || user?.userId || '';
-          const balanceRes = await api.get(`/points/balance/${uid}`);
-          setPointsBalance(balanceRes.data?.data?.balance ?? 0);
+          const uid = user?._id || user?.id || user?.userId || '';
+          if (!uid || user?.isAdmin) {
+            setPointsBalance(0);
+          } else {
+            const balanceRes = await api.get(`/points/balance/${uid}`);
+            setPointsBalance(balanceRes.data?.data?.balance ?? balanceRes.data?.balance ?? 0);
+          }
         } catch (balanceErr) {
           console.warn('Failed to fetch points balance:', balanceErr.message || balanceErr);
+          setPointsBalance(0);
         }
       } catch (err) {
         console.error('Failed to load achievements:', err);

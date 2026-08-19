@@ -13,24 +13,38 @@ export default function PointsHistoryPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!user) return;
+    const userId = user?._id || user?.id || user?.userId;
+    if (!user || !userId || user.isAdmin) {
+      setLoading(false);
+      setBalance(0);
+      setHistory([]);
+      return;
+    }
     fetchPoints();
   }, [user]);
 
   const fetchPoints = async () => {
+    const userId = user?._id || user?.id || user?.userId;
+    if (!userId || user?.isAdmin) {
+      setBalance(0);
+      setHistory([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const bRes = await api.get(`/points/balance/${user._id}`);
-      setBalance(bRes.data.balance || 0);
+      const bRes = await api.get(`/points/balance/${userId}`);
+      setBalance(bRes.data.balance ?? bRes.data.data?.balance ?? 0);
     } catch (err) {
       console.error('Failed to fetch points balance', err);
       setError('Failed to load your points balance. Please try again.');
     }
 
     try {
-      const hRes = await api.get(`/points/history/${user._id}`);
-      setHistory(hRes.data.history || []);
+      const hRes = await api.get(`/points/history/${userId}`);
+      setHistory(hRes.data.history || hRes.data.data?.history || []);
     } catch (err) {
       console.error('Failed to fetch points history', err);
       setError('Failed to load points history. Please refresh the page.');

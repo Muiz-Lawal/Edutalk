@@ -11,12 +11,17 @@ export default function DashboardPage() {
   useEffect(() => {
     let mounted = true;
     async function loadPoints() {
-      if (!user) return;
+      const userId = user?._id || user?.id || user?.userId;
+      if (!user || !userId || user.isAdmin) {
+        if (mounted) setPoints(null);
+        return;
+      }
       try {
-        const res = await api.get(`/points/balance/${user._id}`);
-        if (mounted) setPoints(res.data.balance || 0);
+        const res = await api.get(`/points/balance/${userId}`);
+        if (mounted) setPoints(res.data.balance ?? res.data.data?.balance ?? 0);
       } catch (err) {
         console.warn('Failed to load points balance', err.message || err);
+        if (mounted) setPoints(null);
       }
     }
     loadPoints();

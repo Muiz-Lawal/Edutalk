@@ -46,25 +46,26 @@ const LeaderboardPage = () => {
 
         // fetch user points balance to show in user rank area
         let userBalance = 0;
+        const userId = user?._id || user?.id || user?.userId;
         try {
-          if (user?.id) {
-            const balanceRes = await api.get(`/points/balance/${user.id}`);
-            userBalance = balanceRes.data?.data?.balance ?? 0;
+          if (userId && !user?.isAdmin) {
+            const balanceRes = await api.get(`/points/balance/${userId}`);
+            userBalance = balanceRes.data?.data?.balance ?? balanceRes.data?.balance ?? 0;
           }
         } catch (balErr) {
           console.warn('Failed to fetch user points balance:', balErr.message || balErr);
         }
 
-        if (user?.id) {
-          const currentUser = normalized.find(entry => entry.studentId === user.id || String(entry.studentId) === String(user.id));
+        if (userId) {
+          const currentUser = normalized.find(entry => String(entry.studentId) === String(userId));
           if (currentUser) {
             setUserRank({
               ...currentUser,
               points: currentUser.points ?? userBalance,
-              rank: currentUser.rank || normalized.findIndex(e => e.studentId === currentUser.studentId) + 1
+              rank: currentUser.rank || normalized.findIndex(e => String(e.studentId) === String(currentUser.studentId)) + 1
             });
           } else {
-            setUserRank(userBalance ? { studentId: user.id, studentName: `${user.firstName || ''} ${user.lastName || ''}`.trim(), points: userBalance, rank: null } : null);
+            setUserRank(userBalance ? { studentId: userId, studentName: `${user.firstName || ''} ${user.lastName || ''}`.trim(), points: userBalance, rank: null } : null);
           }
         }
       } catch (err) {

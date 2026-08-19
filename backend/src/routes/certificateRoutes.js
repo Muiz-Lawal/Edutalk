@@ -9,7 +9,8 @@ import {
   listCertificates,
   getCertificateTemplates,
   getCertificateAnalytics,
-  exportCertificates
+  exportCertificates,
+  previewCertificate
 } from '../controllers/certificateController.js';
 
 const router = express.Router();
@@ -39,6 +40,9 @@ router.get('/', listCertificates);
 
 // Generate certificate
 router.post('/', generateCertificate);
+
+// Preview route (dev-friendly print-to-PDF)
+router.get('/:certificateId/preview', previewCertificate);
 
 // Generic routes MUST come last
 router.get('/:certificateId/download', downloadCertificate);
