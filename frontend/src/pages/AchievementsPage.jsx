@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import AchievementBadge from '../components/AchievementBadge';
+import LoadingSpinner from '../components/LoadingSpinner';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/AchievementsPage.css';
 import { useAuth } from '../hooks/useAuth';
 
@@ -30,11 +32,16 @@ const AchievementsPage = () => {
 
         // Fetch points balance for current user
         try {
-          const uid = user?.id || user?.userId || '';
-          const balanceRes = await api.get(`/points/balance/${uid}`);
-          setPointsBalance(balanceRes.data?.data?.balance ?? 0);
+          const uid = user?._id || user?.id || user?.userId || '';
+          if (!uid || user?.isAdmin) {
+            setPointsBalance(0);
+          } else {
+            const balanceRes = await api.get(`/points/balance/${uid}`);
+            setPointsBalance(balanceRes.data?.data?.balance ?? balanceRes.data?.balance ?? 0);
+          }
         } catch (balanceErr) {
           console.warn('Failed to fetch points balance:', balanceErr.message || balanceErr);
+          setPointsBalance(0);
         }
       } catch (err) {
         console.error('Failed to load achievements:', err);
@@ -54,7 +61,7 @@ const AchievementsPage = () => {
   if (loading) {
     return (
       <div className="achievements-page">
-        <div className="achievements-page__loading">Loading your achievements...</div>
+        <LoadingSpinner fullPage={true} message="Loading your achievements..." />
       </div>
     );
   }
@@ -62,9 +69,12 @@ const AchievementsPage = () => {
   if (error) {
     return (
       <div className="achievements-page">
-        <div className="achievements-page__error">
-          <p>{error}</p>
-        </div>
+        <MessageBanner
+          type="error"
+          title="Achievements could not load"
+          message={error}
+          onClose={() => setError(null)}
+        />
       </div>
     );
   }

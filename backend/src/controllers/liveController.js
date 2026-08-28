@@ -213,9 +213,13 @@ export const stopLiveStream = async (req, res) => {
 
 export const joinStream = async (req, res) => {
   try {
-    const { liveStreamId } = req.body;
+    const liveStreamId = req.body?.liveStreamId || req.body?.streamId || req.params?.id || req.params?.streamId;
     const userId = req.user?.userId || null;
     const sessionId = uuidv4();
+
+    if (!liveStreamId) {
+      return res.status(400).json({ message: 'liveStreamId is required' });
+    }
 
     const liveStream = await LiveStream.findById(liveStreamId);
     if (!liveStream) {
@@ -271,7 +275,12 @@ export const joinStream = async (req, res) => {
 
 export const leaveStream = async (req, res) => {
   try {
-    const { liveStreamId, sessionId } = req.body;
+    const liveStreamId = req.body?.liveStreamId || req.body?.streamId || req.params?.id || req.params?.streamId;
+    const sessionId = req.body?.sessionId || req.body?.viewerSessionId;
+
+    if (!liveStreamId || !sessionId) {
+      return res.status(400).json({ message: 'liveStreamId and sessionId are required' });
+    }
 
     const streamViewer = await StreamViewer.findOne({
       liveStreamId,

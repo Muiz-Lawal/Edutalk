@@ -174,7 +174,7 @@ class EmailScheduler {
       try {
         const EmailJob = await import('../models/EmailJob.js');
         const { default: EmailJobModel } = EmailJob;
-        const { sendEmail } = await import('../utils/email.js');
+        const { sendEmail } = await import('../utils/email2.js');
 
         // Find pending jobs with less than 5 attempts
         const pending = await EmailJobModel.find({ status: 'pending', attempts: { $lt: 5 } }).limit(20).sort({ createdAt: 1 });

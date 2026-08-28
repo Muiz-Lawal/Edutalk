@@ -1,0 +1,127 @@
+.message-banner {
+  display: block;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  font-family: inherit;
+  color: #111827;
+  line-height: 1.5;
+  border: 1px solid transparent;
+}
+
+.message-banner__content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.message-banner__text {
+  min-width: 0;
+  flex: 1;
+}
+
+.message-banner__title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: inherit;
+}
+
+.message-banner__message {
+  font-size: 14px;
+  color: inherit;
+  word-break: break-word;
+}
+
+.message-banner__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.message-banner__action,
+.message-banner__close {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.message-banner__action:hover,
+.message-banner__close:hover {
+  transform: translateY(-1px);
+}
+
+.message-banner__action {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.message-banner__close {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.message-banner--error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.message-banner--error .message-banner__action,
+.message-banner--error .message-banner__close {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.message-banner--success {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #166534;
+}
+
+.message-banner--success .message-banner__action,
+.message-banner--success .message-banner__close {
+  background: #d1fae5;
+  color: #166534;
+}
+
+.message-banner--info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.message-banner--info .message-banner__action,
+.message-banner--info .message-banner__close {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+@media (max-width: 640px) {
+  .message-banner__content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .message-banner__actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .message-banner__close,
+  .message-banner__action {
+    width: auto;
+  }
+}

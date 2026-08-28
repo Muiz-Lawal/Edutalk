@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import ScheduleCard from './ScheduleCard';
+import ConfirmDialog from './ConfirmDialog';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/ScheduledStreamsDashboard.css';
 
 export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
@@ -10,6 +12,7 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   const ITEMS_PER_PAGE = 20;
 
@@ -62,16 +65,22 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
     console.log('Edit schedule:', schedule);
   };
 
-  const handleCancel = async (schedule) => {
-    if (!window.confirm('Are you sure you want to cancel this schedule?')) return;
-
-    try {
-      await api.put(`/schedules/${schedule._id}`, { status: 'cancelled' });
-      fetchSchedules();
-    } catch (err) {
-      console.error('Error cancelling schedule:', err);
-      setError('Failed to cancel schedule');
-    }
+  const handleCancel = (schedule) => {
+    setConfirm({
+      open: true,
+      title: 'Cancel Schedule',
+      message: 'Are you sure you want to cancel this schedule?',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        try {
+          await api.put(`/schedules/${schedule._id}`, { status: 'cancelled' });
+          fetchSchedules();
+        } catch (err) {
+          console.error('Error cancelling schedule:', err);
+          setError('Failed to cancel schedule');
+        }
+      },
+    });
   };
 
   const handleViewDetails = (schedule) => {
@@ -97,6 +106,18 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
 
   return (
     <div className="scheduled-streams-dashboard">
+
+      {error && (
+        <MessageBanner type="error" title="Schedules" message={error} onClose={() => setError(null)} />
+      )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ open: false })}
+      />
       {/* Stats Section */}
       <div className="stats-section">
         <div className="stat-card">
@@ -122,7 +143,7 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
             setCurrentPage(1);
           }}
         >
-          📅 Upcoming ({stats.upcoming})
+          ðŸ“… Upcoming ({stats.upcoming})
         </button>
         <button
           className={`tab-button ${activeTab === 'active' ? 'active' : ''}`}
@@ -131,7 +152,7 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
             setCurrentPage(1);
           }}
         >
-          🔴 Active ({stats.active})
+          ðŸ”´ Active ({stats.active})
         </button>
         <button
           className={`tab-button ${activeTab === 'past' ? 'active' : ''}`}
@@ -140,15 +161,15 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
             setCurrentPage(1);
           }}
         >
-          ✅ Past ({stats.past})
+          âœ… Past ({stats.past})
         </button>
       </div>
 
       {/* Search and Create Section */}
       <div className="controls-section">
-        <input
+        <input aria-label="Search schedules by title or description..."
           type="text"
-          placeholder="Search schedules by title or description..."
+           placeholder="Search schedules by title or description..."
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value);
@@ -157,7 +178,7 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
           className="search-input"
         />
         <button className="create-btn" onClick={() => window.location.href = '/schedules'}>
-          ➕ Create New Schedule
+          âž• Create New Schedule
         </button>
       </div>
 
@@ -194,7 +215,7 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
             </div>
           ) : (
             <div className="empty-state">
-              <div className="empty-icon">📭</div>
+              <div className="empty-icon">ðŸ“­</div>
               <p>{getEmptyMessage()}</p>
               {activeTab === 'upcoming' && (
                 <button 
@@ -215,7 +236,7 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 className="pagination-btn"
               >
-                ← Previous
+                â† Previous
               </button>
               <span className="pagination-info">
                 Page {currentPage} of {totalPages}
@@ -225,7 +246,7 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 className="pagination-btn"
               >
-                Next →
+                Next â†’
               </button>
             </div>
           )}
@@ -234,3 +255,4 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
     </div>
   );
 }
+

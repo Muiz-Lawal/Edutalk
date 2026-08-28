@@ -1,0 +1,128 @@
+name: Webhook smoke tests
+
+on:
+  push:
+    branches: [ agents/continue ]
+  workflow_dispatch:
+    inputs:
+      run_real_provider:
+        description: 'Run real-provider e2e tests (requires STRIPE + Brevo SMTP secrets)'
+        required: false
+        default: 'false'
+
+jobs:
+  in-memory-smoke:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'" --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      MONGODB_URI: mongodb://localhost:27017/edutalk_ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Run in-memory webhook integration smoke
+        working-directory: backend
+        env:
+          USE_MEMORY_DB: 'false'
+          START_BACKEND_PROCESS: 'true'
+          CLEANUP: 'true'
+          BACKEND_URL: http://localhost:5001
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          MONGODB_URI: mongodb://localhost:27017/edutalk_ci
+        run: |
+          node smoke/webhook-integration.mjs
+
+  real-provider-smoke:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_real_provider == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      MONGODB_URI: mongodb://mongodb:27017/edutalk_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Verify provider secrets are configured
+        working-directory: backend
+        env:
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+        run: node smoke/require-provider-secrets.mjs
+
+      - name: Start backend with compose
+        run: |
+          if command -v docker-compose >/dev/null 2>&1; then
+            docker-compose -f .github/docker-compose.ci.yml up -d --build
+          else
+            docker compose -f .github/docker-compose.ci.yml up -d --build
+          fi
+          for i in {1..30}; do
+            if curl -sS http://localhost:5001/api/health >/dev/null 2>&1; then
+              echo "Backend healthy"; break
+            fi
+            echo "Waiting for backend..."; sleep 2
+          done
+
+      - name: Run webhook smoke against real provider backend
+        working-directory: backend
+        env:
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          BACKEND_URL: http://localhost:5001
+        run: |
+          node smoke/webhook-smoke.mjs
+
+      - name: Run integration smoke against real provider backend
+        working-directory: backend
+        env:
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          BACKEND_URL: http://localhost:5001
+        run: |
+          node smoke/webhook-integration.mjs

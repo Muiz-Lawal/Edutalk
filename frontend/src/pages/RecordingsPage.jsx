@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import RecordingPlayer from '../components/RecordingPlayer';
+import ConfirmDialog from '../components/ConfirmDialog';
+import MessageBanner from '../components/MessageBanner';
 import 'C:/Users/abdul/Desktop/class/frontend/src/styles/RecordingsPage.css';
 
 export default function RecordingsPage() {
@@ -8,6 +10,8 @@ export default function RecordingsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedRecording, setSelectedRecording] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null });
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchRecordings();
@@ -24,15 +28,22 @@ export default function RecordingsPage() {
     }
   };
 
-  const deleteRecording = async (recordingId) => {
-    if (window.confirm('Are you sure you want to delete this recording?')) {
-      try {
-        await api.delete(`/recordings/${recordingId}`);
-        fetchRecordings();
-      } catch (error) {
-        console.error('Failed to delete recording:', error);
-      }
-    }
+  const deleteRecording = (recordingId) => {
+    setConfirm({
+      open: true,
+      title: 'Delete Recording',
+      message: 'Are you sure you want to delete this recording?',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        try {
+          await api.delete(`/recordings/${recordingId}`);
+          fetchRecordings();
+        } catch (err) {
+          console.error('Failed to delete recording:', err);
+          setError('Failed to delete recording');
+        }
+      },
+    });
   };
 
   if (selectedRecording) {
@@ -56,6 +67,17 @@ export default function RecordingsPage() {
 
   return (
     <div className="recordings-page">
+      {error && (
+        <MessageBanner type="error" title="Recordings" message={error} onClose={() => setError(null)} />
+      )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ open: false })}
+      />
       <div className="container">
         <div className="page-header">
           <h1>My Recordings</h1>

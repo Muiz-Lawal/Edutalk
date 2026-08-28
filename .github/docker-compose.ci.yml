@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  mongodb:
+    image: mongo:5.0
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../backend
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/edutalk_test
+      - NODE_ENV=development
+    ports:
+      - '5001:5001'
+    depends_on:
+      mongodb:
+        condition: service_healthy

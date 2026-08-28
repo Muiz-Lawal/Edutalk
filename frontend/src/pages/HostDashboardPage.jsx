@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useLocation } from 'react-router-dom';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import RecommendationMetrics from '../components/RecommendationMetrics';
+import LoadingSpinner from '../components/LoadingSpinner';
 import api from '../utils/api';
 import '../styles/Dashboard.css';
 
@@ -20,17 +21,18 @@ export default function HostDashboardPage() {
   const fetchHostClasses = async () => {
     try {
       const response = await api.get('/classes/my-classes');
+      console.debug('[HostDashboard] fetched host classes', response.status, response.data);
       setClasses(response.data);
-      if (response.data.length > 0) {
+      if (Array.isArray(response.data) && response.data.length > 0) {
         setSelectedClassId(response.data[0]._id);
       }
     } catch (error) {
-      console.error('Failed to fetch host classes:', error);
+      console.error('Failed to fetch host classes:', error?.response || error.message || error);
     }
   };
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <LoadingSpinner fullPage={true} message="Loading dashboard..." />;
   }
 
   if (!isAuthenticated || !user?.isHost) {
@@ -65,6 +67,9 @@ export default function HostDashboardPage() {
           <section className="dashboard-card quick-actions-card">
             <h2>Quick Actions</h2>
             <div className="quick-actions-grid">
+              <Link to="/create-class" className="btn btn-primary">
+                ➕ Create Class
+              </Link>
               <Link to="/moderation" className="btn btn-primary">
                 🛡️ Moderation
               </Link>
@@ -102,7 +107,7 @@ export default function HostDashboardPage() {
             ) : (
               <>
                 <p>You haven't created any classes yet.</p>
-                <button className="btn btn-primary">Create a New Class</button>
+                <Link to="/create-class" className="btn btn-primary">Create a New Class</Link>
               </>
             )}
           </section>

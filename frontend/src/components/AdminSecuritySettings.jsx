@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
+import ConfirmDialog from '../components/ConfirmDialog';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/AdminSecuritySettings.css';
 
 export default function AdminSecuritySettings() {
@@ -12,6 +14,7 @@ export default function AdminSecuritySettings() {
   const [tab, setTab] = useState('overview'); // overview, 2fa, history
   const [showBackupCodes, setShowBackupCodes] = useState(false);
   const [twoFAModal, setTwoFAModal] = useState(null); // null, 'enable', 'disable'
+  const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   useEffect(() => {
     fetchSecuritySettings();
@@ -39,35 +42,43 @@ export default function AdminSecuritySettings() {
     setLoading(false);
   };
 
-  const handleDisable2FA = async () => {
-    if (!window.confirm('⚠️ Disabling 2FA will reduce your account security. Are you sure?')) {
-      return;
-    }
-
-    try {
-      await api.post('/security/2fa/disable');
-      setTwoFAEnabled(false);
-      setSuccess('✅ Two-Factor Authentication disabled');
-      setTwoFAModal(null);
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to disable 2FA');
-    }
+  const handleDisable2FA = () => {
+    setConfirm({
+      open: true,
+      title: 'Disable Two-Factor Authentication',
+      message: '⚠️ Disabling 2FA will reduce your account security. Are you sure?',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        try {
+          await api.post('/security/2fa/disable');
+          setTwoFAEnabled(false);
+          setSuccess('✅ Two-Factor Authentication disabled');
+          setTwoFAModal(null);
+          setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+          setError(err.response?.data?.error || 'Failed to disable 2FA');
+        }
+      },
+    });
   };
 
-  const handleRegenerateCodes = async () => {
-    if (!window.confirm('Generate new backup codes? Old codes will no longer work.')) {
-      return;
-    }
-
-    try {
-      const response = await api.post('/security/2fa/regenerate-backup-codes');
-      setBackupCodes(response.data.backupCodes);
-      setSuccess('✅ New backup codes generated');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to regenerate backup codes');
-    }
+  const handleRegenerateCodes = () => {
+    setConfirm({
+      open: true,
+      title: 'Regenerate Backup Codes',
+      message: 'Generate new backup codes? Old codes will no longer work.',
+      onConfirm: async () => {
+        setConfirm({ open: false });
+        try {
+          const response = await api.post('/security/2fa/regenerate-backup-codes');
+          setBackupCodes(response.data.backupCodes);
+          setSuccess('✅ New backup codes generated');
+          setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+          setError(err.response?.data?.error || 'Failed to regenerate backup codes');
+        }
+      },
+    });
   };
 
   const formatDate = (date) => {
@@ -85,7 +96,8 @@ export default function AdminSecuritySettings() {
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    alert('✓ Copied to clipboard');
+    setSuccess('✓ Copied to clipboard');
+    setTimeout(() => setSuccess(''), 2500);
   };
 
   if (loading) {
@@ -99,8 +111,30 @@ export default function AdminSecuritySettings() {
         <p>Manage your admin account security preferences</p>
       </div>
 
-      {error && <div className="settings-error">{error}</div>}
-      {success && <div className="settings-success">{success}</div>}
+      {error && (
+        <MessageBanner
+          type="error"
+          title="Security error"
+          message={error}
+          onClose={() => setError('')}
+        />
+      )}
+      {success && (
+        <MessageBanner
+          type="success"
+          title="Success"
+          message={success}
+          onClose={() => setSuccess('')}
+        />
+      )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ open: false })}
+      />
 
       {/* Tab Navigation */}
       <div className="settings-tabs">

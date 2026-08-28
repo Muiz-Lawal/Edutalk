@@ -16,37 +16,40 @@ export const useServiceWorker = () => {
 
     if (!supported) return;
 
-    // Register service worker
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then((reg) => {
-        console.log('[App] Service Worker registered:', reg.scope);
-        setRegistration(reg);
-        setIsReady(true);
+    // Only register the service worker in production builds.
+    if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then((reg) => {
+          console.log('[App] Service Worker registered:', reg.scope);
+          setRegistration(reg);
+          setIsReady(true);
 
-        // Check for updates periodically only in production to avoid dev-server noise
-        if (import.meta.env.PROD) {
+          // Check for updates periodically only in production to avoid dev-server noise
           updateIntervalId = window.setInterval(() => {
             reg.update().catch(() => {});
           }, 60000);
-        }
 
-        // Listen for updates
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          console.log('[App] New Service Worker installing...');
+          // Listen for updates
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            console.log('[App] New Service Worker installing...');
 
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'activated') {
-              console.log('[App] New Service Worker activated');
-              setUpdateAvailable(true);
-            }
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'activated') {
+                console.log('[App] New Service Worker activated');
+                setUpdateAvailable(true);
+              }
+            });
           });
+        })
+        .catch((err) => {
+          console.error('[App] Service Worker registration failed:', err);
+          setIsReady(false);
         });
-      })
-      .catch((err) => {
-        console.error('[App] Service Worker registration failed:', err);
-        setIsReady(false);
-      });
+    } else {
+      console.log('[App] Skipping Service Worker registration in development mode');
+      setIsReady(false);
+    }
 
     // Listen for controller change (SW update applied)
     navigator.serviceWorker.addEventListener('controllerchange', () => {

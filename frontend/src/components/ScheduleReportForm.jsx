@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import '../styles/ScheduleReportForm.css';
 
 export default function ScheduleReportForm({ onSubmit, onCancel }) {
@@ -213,12 +213,12 @@ export default function ScheduleReportForm({ onSubmit, onCancel }) {
         {/* Subject Line */}
         <div className="form-group">
           <label>Email Subject</label>
-          <input 
+          <input aria-label="Email subject line" 
             type="text" 
             name="subject" 
             value={formData.subject} 
             onChange={handleChange}
-            placeholder="Email subject line"
+             placeholder="Email subject line"
           />
         </div>
 
@@ -276,3 +276,4 @@ export default function ScheduleReportForm({ onSubmit, onCancel }) {
     </div>
   );
 }
+

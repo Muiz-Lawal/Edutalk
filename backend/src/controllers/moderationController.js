@@ -2,7 +2,7 @@ import ModerationLog from '../models/ModerationLog.js';
 import User from '../models/User.js';
 import Review from '../models/Review.js';
 import aiModerationService from '../services/aiModerationService.js';
-import { sendEmail } from '../utils/email.js';
+import { sendEmail } from '../utils/email2.js';
 
 // Get moderation queue for admin review
 export const getModerationQueue = async (req, res) => {

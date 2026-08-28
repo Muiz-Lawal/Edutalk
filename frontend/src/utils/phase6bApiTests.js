@@ -3,7 +3,7 @@
  * Tests all progress, certificate, and achievement endpoints
  */
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5001/api';
 let testResults = {
   passed: 0,
   failed: 0,

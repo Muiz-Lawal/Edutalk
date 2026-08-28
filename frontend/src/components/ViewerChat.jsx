@@ -121,7 +121,7 @@ export default function ViewerChat({
       <div className="chat-input-section">
         {isBlocked ? (
           <div className="chat-blocked-notice">
-            <p className="blocked-title">🚫 You're temporarily muted</p>
+            <p className="blocked-title">🚫 You are temporarily muted</p>
             <p className="blocked-reason">{blockReason}</p>
             <small>You can send messages again in a few minutes</small>
           </div>

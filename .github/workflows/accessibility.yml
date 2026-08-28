@@ -1,0 +1,52 @@
+name: accessibility
+
+on:
+  push:
+    branches: [ main, master, 'agents/*' ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lighthouse:
+    name: Lighthouse accessibility audit
+    runs-on: ubuntu-latest
+    permissions: read-all
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: |
+          npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm run build
+
+      - name: Serve built site
+        run: |
+          npm install -g http-server
+          nohup http-server frontend/dist -p 8080 > http-server.log 2>&1 &
+          sleep 3
+
+      - name: Run Lighthouse (accessibility)
+        run: |
+          npx -y lighthouse http://localhost:8080 --only-categories=accessibility --chrome-flags='--no-sandbox' --output=json --output-path=./lhr/accessibility.json || true
+
+      - name: Upload Lighthouse report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-accessibility-report
+          path: ./lhr/accessibility.json
+
+      - name: Print summary (best-effort)
+        run: |
+          if [ -f ./lhr/accessibility.json ]; then node -e "const r=require('./lhr/accessibility.json'); console.log('Accessibility score:', r.categories.accessibility.score);" || true; fi

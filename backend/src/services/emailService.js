@@ -1,0 +1,385 @@
+import EmailJob from '../models/EmailJob.js';
+import EmailTemplate from '../models/EmailTemplate.js';
+import nodemailer from 'nodemailer';
+import logger from '../utils/logger.js';
+import { withRetry } from '../utils/retry.js';
+
+/**
+ * Email Service
+ * Handles sending, scheduling, and managing emails
+ */
+
+// Initialize email transporter (configure with your provider)
+let transporter = null;
+
+const initializeTransporter = () => {
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+  const smtpSecure = process.env.SMTP_SECURE === 'true';
+  const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const smtpPass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD || process.env.EMAIL_PASSWORD;
+
+  if (smtpHost && smtpUser && smtpPass) {
+    return nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+  }
+
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+  }
+
+  throw new Error('No valid email transporter configuration found. Set SMTP_HOST, SMTP_USER, and SMTP_PASS or EMAIL_USER and EMAIL_PASSWORD.');
+};
+
+class EmailService {
+  constructor() {
+    this.transporter = null;
+  }
+
+  getTransporter() {
+    if (!this.transporter) {
+      this.transporter = initializeTransporter();
+    }
+    return this.transporter;
+  }
+
+  /**
+   * Send an immediate email
+   */
+  async sendEmail(to, subject, htmlBody, options = {}) {
+    try {
+      const mailOptions = {
+        from: process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@edutalk.app',
+        to,
+        subject,
+        html: htmlBody,
+        text: options.textBody,
+        cc: options.cc,
+        bcc: options.bcc,
+      };
+
+      const transporter = this.getTransporter();
+      const result = await withRetry(
+        () => transporter.sendMail(mailOptions),
+        {
+          retries: 2,
+          baseDelayMs: 250,
+          shouldRetry: (error) => {
+            const message = String(error?.message || '').toLowerCase();
+            return ['timeout', 'network', 'econnreset', 'temporarily unavailable', '429', '503', '504'].some((token) => message.includes(token));
+          },
+          onRetry: ({ attempt, delayMs, error }) => {
+            logger.warn('Email send retry', {
+              attempt,
+              delayMs,
+              error: error?.message || 'Unknown error',
+            });
+          },
+        }
+      );
+
+      return {
+        success: true,
+        messageId: result.messageId,
+        response: result.response,
+      };
+    } catch (error) {
+      logger.error('Error sending email', { error: error?.message || error });
+      throw error;
+    }
+  }
+
+  /**
+   * Queue an email for sending
+   */
+  async queueEmail(to, subject, htmlBody, options = {}) {
+    try {
+      const emailJob = new EmailJob({
+        to,
+        subject,
+        htmlBody,
+        textBody: options.textBody,
+        userId: options.userId,
+        classId: options.classId,
+        templateId: options.templateId,
+        templateVariables: options.variables,
+        scheduledFor: options.scheduledFor || new Date(),
+        priority: options.priority || 'normal',
+        metadata: options.metadata,
+        tags: options.tags,
+      });
+
+      await emailJob.save();
+      return emailJob;
+    } catch (error) {
+      logger.error('Error queueing email', { error: error?.message || error });
+      throw error;
+    }
+  }
+
+  /**
+   * Send email from template
+   */
+  async sendFromTemplate(to, templateSlug, variables = {}, options = {}) {
+    try {
+      const template = await EmailTemplate.findOne({ slug: templateSlug, isActive: true });
+
+      if (!template) {
+        throw new Error(`Email template not found: ${templateSlug}`);
+      }
+
+      // Interpolate variables into template
+      const subject = this.interpolateTemplate(template.subject, variables);
+      const htmlBody = this.interpolateTemplate(template.htmlContent, variables);
+      const textBody = template.textContent
+        ? this.interpolateTemplate(template.textContent, variables)
+        : null;
+
+      return await this.sendEmail(to, subject, htmlBody, {
+        ...options,
+        textBody,
+      });
+    } catch (error) {
+      logger.error('Error sending email from template', { error: error?.message || error });
+      throw error;
+    }
+  }
+
+  /**
+   * Queue email from template
+   */
+  async queueFromTemplate(to, templateSlug, variables = {}, options = {}) {
+    try {
+      const template = await EmailTemplate.findOne({ slug: templateSlug, isActive: true });
+
+      if (!template) {
+        throw new Error(`Email template not found: ${templateSlug}`);
+      }
+
+      // Interpolate variables
+      const subject = this.interpolateTemplate(template.subject, variables);
+      const htmlBody = this.interpolateTemplate(template.htmlContent, variables);
+
+      return await this.queueEmail(to, subject, htmlBody, {
+        ...options,
+        templateId: template._id,
+        variables,
+      });
+    } catch (error) {
+      logger.error('Error queueing email from template', { error: error?.message || error });
+      throw error;
+    }
+  }
+
+  /**
+   * Process queued emails (run periodically)
+   */
+  async processQueue() {
+    try {
+      const readyJobs = await EmailJob.getReadyForSend();
+
+      for (const job of readyJobs) {
+        try {
+          // Mark as sending
+          job.status = 'sending';
+          job.attempts += 1;
+          await job.save();
+
+          // Send email
+          const result = await this.sendEmail(job.to, job.subject, job.htmlBody, {
+            cc: job.cc,
+            bcc: job.bcc,
+            textBody: job.textBody,
+          });
+
+          // Mark as sent
+          job.status = 'sent';
+          job.sentAt = new Date();
+          job.providerId = result.messageId;
+          job.providerResponse = result.response;
+          await job.save();
+
+          // Update template usage
+          if (job.templateId) {
+            await EmailTemplate.findByIdAndUpdate(job.templateId, {
+              $inc: { usageCount: 1 },
+              lastUsed: new Date(),
+            });
+          }
+
+          logger.info('Email sent', { to: job.to });
+        } catch (error) {
+          logger.error('Failed to send email', { to: job.to, error: error.message });
+
+          // Mark as failed
+          job.status = 'failed';
+          job.lastError = error.message;
+
+          // Schedule retry
+          if (job.attempts < job.maxAttempts) {
+            const delay = Math.min(60000 * Math.pow(2, job.attempts), 3600000); // Exponential backoff
+            job.nextRetryAt = new Date(Date.now() + delay);
+            job.status = 'pending'; // Set back to pending for retry
+          }
+
+          await job.save();
+        }
+      }
+
+      console.log(`Processed ${readyJobs.length} queued emails`);
+      return readyJobs.length;
+    } catch (error) {
+      console.error('Error processing email queue:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send bulk emails
+   */
+  async sendBulk(recipients, subject, htmlBody, options = {}) {
+    try {
+      const jobs = recipients.map(recipient => {
+        const to = typeof recipient === 'string' ? recipient : recipient.email;
+        const variables = typeof recipient === 'object' ? recipient.variables || {} : {};
+
+        return {
+          to,
+          subject: this.interpolateTemplate(subject, variables),
+          htmlBody: this.interpolateTemplate(htmlBody, variables),
+          templateVariables: variables,
+          ...options,
+        };
+      });
+
+      // Queue all jobs
+      const queuedJobs = await EmailJob.insertMany(
+        jobs.map(job => ({
+          ...job,
+          scheduledFor: options.scheduledFor || new Date(),
+          priority: options.priority || 'normal',
+          templateId: options.templateId || job.templateId,
+          userId: options.userId || job.userId,
+        }))
+      );
+
+      return queuedJobs;
+    } catch (error) {
+      console.error('Error sending bulk emails:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Interpolate template variables
+   * Replaces {{variable}} with actual values
+   */
+  interpolateTemplate(template, variables = {}) {
+    let result = template;
+
+    Object.keys(variables).forEach(key => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      result = result.replace(regex, variables[key] || '');
+    });
+
+    return result;
+  }
+
+  /**
+   * Get email job status
+   */
+  async getJobStatus(jobId) {
+    return await EmailJob.findById(jobId);
+  }
+
+  /**
+   * Get job history for user
+   */
+  async getUserEmailHistory(userId, options = {}) {
+    const query = { userId };
+
+    if (options.status) {
+      query.status = options.status;
+    }
+
+    return await EmailJob.find(query)
+      .sort({ createdAt: -1 })
+      .skip(options.skip || 0)
+      .limit(options.limit || 20);
+  }
+
+  /**
+   * Get job history for class
+   */
+  async getClassEmailHistory(classId, options = {}) {
+    const query = { classId };
+
+    if (options.status) {
+      query.status = options.status;
+    }
+
+    return await EmailJob.find(query)
+      .sort({ createdAt: -1 })
+      .skip(options.skip || 0)
+      .limit(options.limit || 20);
+  }
+
+  /**
+   * Delete old email jobs (for cleanup)
+   */
+  async deleteOldJobs(daysOld = 90) {
+    const cutoffDate = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000);
+
+    const result = await EmailJob.deleteMany({
+      status: 'sent',
+      sentAt: { $lt: cutoffDate },
+    });
+
+    return result.deletedCount;
+  }
+
+  /**
+   * Get email stats
+   */
+  async getStats() {
+    const stats = await EmailJob.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const result = {
+      total: 0,
+      pending: 0,
+      sent: 0,
+      failed: 0,
+      bounced: 0,
+    };
+
+    stats.forEach(stat => {
+      result[stat._id] = stat.count;
+      result.total += stat.count;
+    });
+
+    return result;
+  }
+}
+
+// Export singleton instance
+export default new EmailService();

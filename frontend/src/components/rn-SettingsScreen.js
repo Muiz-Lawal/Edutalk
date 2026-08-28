@@ -1,4 +1,4 @@
-/**
+﻿/**
  * React Native Settings Screen
  * User preferences and app settings
  */
@@ -10,12 +10,13 @@ import {
   Text,
   TouchableOpacity,
   Switch,
-  Alert,
+  
   ActivityIndicator,
   StyleSheet,
   SafeAreaView,
   Linking,
 } from 'react-native';
+import crossAlert from '../utils/crossPlatformAlert';
 import { useAuth } from '../context/RNAuthContext';
 import api from '../utils/api';
 
@@ -72,7 +73,7 @@ export default function SettingsScreen({ navigation }) {
       await AsyncStorage.setItem('app_settings', JSON.stringify(newSettings));
       setSettings(newSettings);
     } catch (error) {
-      Alert.alert('Error', 'Failed to save settings');
+      crossAlert('Error', 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -89,7 +90,7 @@ export default function SettingsScreen({ navigation }) {
   };
 
   const handleLogout = () => {
-    Alert.alert(
+    crossAlert(
       'Logout',
       'Are you sure you want to logout?',
       [
@@ -104,7 +105,7 @@ export default function SettingsScreen({ navigation }) {
                 routes: [{ name: 'Login' }],
               });
             } catch (error) {
-              Alert.alert('Error', 'Logout failed');
+              crossAlert('Error', 'Logout failed');
             }
           },
           style: 'destructive',
@@ -114,7 +115,7 @@ export default function SettingsScreen({ navigation }) {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
+    crossAlert(
       'Delete Account',
       'This action cannot be undone. All your data will be deleted.',
       [
@@ -131,7 +132,7 @@ export default function SettingsScreen({ navigation }) {
                 routes: [{ name: 'Login' }],
               });
             } catch (error) {
-              Alert.alert('Error', error.response?.data?.message || 'Failed to delete account');
+              crossAlert('Error', error.response?.data?.message || 'Failed to delete account');
             } finally {
               setSaving(false);
             }
@@ -298,7 +299,7 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => Linking.openURL('https://edutalk.app/privacy')}
           >
             <Text style={styles.linkText}>Privacy Policy</Text>
-            <Text style={styles.linkArrow}>›</Text>
+            <Text style={styles.linkArrow}>â€º</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -306,7 +307,7 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => Linking.openURL('https://edutalk.app/terms')}
           >
             <Text style={styles.linkText}>Terms of Service</Text>
-            <Text style={styles.linkArrow}>›</Text>
+            <Text style={styles.linkArrow}>â€º</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -314,7 +315,7 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => Linking.openURL('https://edutalk.app/contact')}
           >
             <Text style={styles.linkText}>Contact Support</Text>
-            <Text style={styles.linkArrow}>›</Text>
+            <Text style={styles.linkArrow}>â€º</Text>
           </TouchableOpacity>
         </View>
 
@@ -342,7 +343,7 @@ export default function SettingsScreen({ navigation }) {
         {/* Version Info */}
         <View style={styles.footer}>
           <Text style={styles.version}>EduTalk v1.0.0</Text>
-          <Text style={styles.copyright}>© 2026 EduTalk. All rights reserved.</Text>
+          <Text style={styles.copyright}>Â© 2026 EduTalk. All rights reserved.</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -497,3 +498,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'http://localhost:5001/api';
 
 // Mock token for testing
 const mockToken = 'mock-jwt-token-for-testing';

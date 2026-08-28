@@ -58,7 +58,7 @@ import {
   getAuditLogs,
   exportAuditLogs,
 } from '../controllers/adminController.js';
-import { runBadgeEngine, listEmailJobs, retryEmailJob, retryAllFailedEmailJobs, getEmailJobDetails, sendEmailJobNow } from '../controllers/adminController_additions.js';
+import { runBadgeEngine, listEmailJobs, retryEmailJob, retryAllFailedEmailJobs, getEmailJobDetails, sendEmailJobNow, createTestSubscription } from '../controllers/adminController_additions.js';
 import { adminAuth, superAdminAuth } from '../middleware/adminAuth.js';
 import { exportModerationLogs } from '../controllers/moderationController.js';
 import bulkEmailService from '../services/bulkEmailService.js';
@@ -181,5 +181,10 @@ router.get('/utilities/email-jobs/:jobId', adminAuth, getEmailJobDetails);
 router.post('/utilities/email-jobs/:jobId/retry', superAdminAuth, retryEmailJob);
 router.post('/utilities/email-jobs/:jobId/send', superAdminAuth, sendEmailJobNow);
 router.post('/utilities/email-jobs/retry-all', superAdminAuth, retryAllFailedEmailJobs);
+
+// Dev/testing helpers (non-production)
+if (process.env.NODE_ENV !== 'production') {
+  router.post('/testing/create-subscription', adminAuth, createTestSubscription);
+}
 
 export default router;

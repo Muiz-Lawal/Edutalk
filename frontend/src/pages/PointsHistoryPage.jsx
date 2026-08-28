@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
+import LoadingSpinner from '../components/LoadingSpinner';
+import MessageBanner from '../components/MessageBanner';
 import '../styles/Points.css';
 
 export default function PointsHistoryPage() {
@@ -8,35 +10,61 @@ export default function PointsHistoryPage() {
   const [balance, setBalance] = useState(0);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!user) return;
+    const userId = user?._id || user?.id || user?.userId;
+    if (!user || !userId || user.isAdmin) {
+      setLoading(false);
+      setBalance(0);
+      setHistory([]);
+      return;
+    }
     fetchPoints();
   }, [user]);
 
   const fetchPoints = async () => {
+    const userId = user?._id || user?.id || user?.userId;
+    if (!userId || user?.isAdmin) {
+      setBalance(0);
+      setHistory([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     try {
-      const bRes = await api.get(`/points/balance/${user._id}`);
-      setBalance(bRes.data.balance || 0);
+      const bRes = await api.get(`/points/balance/${userId}`);
+      setBalance(bRes.data.balance ?? bRes.data.data?.balance ?? 0);
     } catch (err) {
       console.error('Failed to fetch points balance', err);
+      setError('Failed to load your points balance. Please try again.');
     }
 
     try {
-      const hRes = await api.get(`/points/history/${user._id}`);
-      setHistory(hRes.data.history || []);
+      const hRes = await api.get(`/points/history/${userId}`);
+      setHistory(hRes.data.history || hRes.data.data?.history || []);
     } catch (err) {
       console.error('Failed to fetch points history', err);
+      setError('Failed to load points history. Please refresh the page.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <div className="loading">Loading points...</div>;
+  if (loading) return <LoadingSpinner fullPage={true} message="Loading points..." />;
 
   return (
     <div className="points-page container">
+      {error && (
+        <MessageBanner
+          type="error"
+          title="Points failed to load"
+          message={error}
+          onClose={() => setError(null)}
+        />
+      )}
       <h1>Points</h1>
       <div className="points-summary">
         <div className="points-card">

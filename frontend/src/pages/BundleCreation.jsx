@@ -32,6 +32,23 @@ export default function BundleCreation() {
     ]
   });
 
+  // Local UI state
+  const [availableClasses, setAvailableClasses] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSettingsChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        [name]: type === 'checkbox' ? checked : value
+      }
+    }));
+  };
+
   useEffect(() => {
     fetchHostClasses();
   }, []);

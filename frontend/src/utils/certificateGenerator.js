@@ -138,7 +138,7 @@ export const generateCertificatePDF = async (certificate) => {
 export const generateCertificateServerSide = async (certificateId, token) => {
   try {
     const response = await fetch(
-      `http://localhost:5000/api/certificates/${certificateId}/download`,
+      `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/certificates/${certificateId}/download`,
       {
         headers: {
           'Authorization': `Bearer ${token}`
