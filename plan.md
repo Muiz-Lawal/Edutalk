@@ -1,6 +1,6 @@
 # Project plan and progress
 
-Latest: 2026-08-19T09:20:18+01:00 — Sequential stabilization tasks executed and validated locally (compact smoke, admin smoke, end-to-end certificate run). Key outcomes: smoke scripts added and run, payment mock behavior hardened for deterministic local runs, server-side certificate PDF generation validated and saved to uploads/, and WebRTC signalling server extended to serve ICE/TURN config to clients.
+Latest: 2026-08-28T17:19:39+01:00 — Phase-2 / release-readiness follow-through completed on the feature branch: compact smoke, admin smoke, and end-to-end certificate generation/download all passed locally with FORCE_MOCK_PAYMENTS=true; Puppeteer-based PDF rendering is available behind USE_PUPPETEER=true and the certificate creation endpoint now returns a canonical _id and pdfUrl immediately; the signalling server exposes /webrtc/config for ICE/TURN config discovery; and a GitHub Actions smoke workflow has been added to run the end-to-end smoke automatically.
 
 Updated: 2026-08-19T02:34:12+01:00 — Release-readiness completed locally; runtime stabilization applied and host/admin flows validated. Key fixes: frontend auth header formatting, disabled dev service worker to avoid stale bundles, fixed HostDashboard hook imports, normalized frontend user identity (id/_id/userId), hardened PointsLedger ObjectId handling, removed duplicate default export in badge engine, seeded admin account for smoke tests, and validated create-class and admin moderation flows. Frontend production build passed.
 
