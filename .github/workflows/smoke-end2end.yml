@@ -1,0 +1,55 @@
+name: Smoke tests (end-to-end)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/webrtc-poc
+
+jobs:
+  smoke-end-to-end:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Start backend (dev)
+        working-directory: backend
+        run: |
+          npm run dev &
+          sleep 3
+
+      - name: Wait for backend
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -sSf http://localhost:5001/api/health >/dev/null; then
+              echo 'backend ready'; break
+            fi
+            sleep 2
+          done
+
+      - name: Run end-to-end smoke
+        env:
+          FORCE_MOCK_PAYMENTS: 'true'
+          USE_PUPPETEER: 'false'
+          BACKEND_URL: 'http://localhost:5001/api'
+        run: |
+          node smoke/end-to-end-run2.mjs
+
+      - name: Collect artifacts (logs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-logs
+          path: |
+            backend/*.log
+            backend/logs/**

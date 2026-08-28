@@ -91,10 +91,30 @@ export const generateCertificate = async (req, res) => {
       await progress.save();
     }
 
+    // Return the created certificate with canonical _id and pdfUrl so clients can download immediately
+    const fresh = await Certificate.findById(certificate._id).lean();
+
     res.json({
       success: true,
       message: 'Certificate generated successfully',
-      data: certificate.getCertificateDetails()
+      data: {
+        _id: fresh._id,
+        pdfUrl: fresh.pdfUrl,
+        pdfSize: fresh.pdfSize || 0,
+        certificateNumber: fresh.certificateNumber,
+        studentId: fresh.studentId,
+        classId: fresh.classId,
+        issuedDate: fresh.issuedDate,
+        completionDate: fresh.completionDate,
+        courseTitle: fresh.certificateData?.courseTitle,
+        hoursCompleted: fresh.certificateData?.hoursCompleted,
+        finalScore: fresh.certificateData?.finalScore,
+        instructorName: fresh.certificateData?.instructorName,
+        verificationCode: fresh.verificationCode,
+        downloadCount: fresh.downloadCount,
+        sharedCount: fresh.sharedCount,
+        status: fresh.status
+      }
     });
   } catch (error) {
     console.error('Error generating certificate:', error);

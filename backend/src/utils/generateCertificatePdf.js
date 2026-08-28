@@ -2,8 +2,19 @@ import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 
-// certificate: { _id, studentName, className, issuedAt, certificateData }
-export default function generateCertificatePdf(certificate, outputFilePath){
+// Wrapper: choose Puppeteer-based HTML->PDF generator when USE_PUPPETEER=true
+export default async function generateCertificatePdf(certificate, outputFilePath){
+  const usePuppeteer = process.env.USE_PUPPETEER === 'true';
+  if (usePuppeteer) {
+    try {
+      const mod = await import('./generateCertificatePdfPuppeteer.js');
+      return await mod.default(certificate, outputFilePath);
+    } catch (err) {
+      console.warn('Puppeteer PDF generator requested but failed to load, falling back to PDFKit:', err.message);
+      // fall through to PDFKit fallback
+    }
+  }
+
   return new Promise((resolve, reject) => {
     try{
       const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 48 });
