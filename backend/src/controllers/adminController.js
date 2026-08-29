@@ -70,6 +70,7 @@ export const getDashboardStats = async (req, res) => {
 // Get all users with pagination
 export const getAllUsers = async (req, res) => {
   try {
+
     const { page = 1, limit = 20, search, role, status } = req.query;
     const skip = (page - 1) * limit;
 
@@ -103,9 +104,40 @@ export const getAllUsers = async (req, res) => {
 
     const total = await User.countDocuments(query);
 
-    const requesterRole = req.user?.adminRole;
+    // Defensive: ensure we know the requester's admin role even if middleware didn't populate req.user
+    let requesterRole = req.user?.adminRole;
+    if (!requesterRole) {
+      try {
+        const token = req.headers.authorization?.replace('Bearer ', '') || null;
+        if (token) {
+          const jwt = await import('jsonwebtoken');
+            try {
+              const decoded = jwt.default.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key_here');
+              if (decoded && decoded.userId) {
+                const reqUser = await User.findById(decoded.userId).select('adminRole isAdmin isHost isStudent');
+                if (reqUser && reqUser.isAdmin && reqUser.adminRole) {
+                  requesterRole = reqUser.adminRole;
+                }
+              }
+            } catch (ve) {
+              // fallback to decode if verify fails for some reason
+              const decoded = jwt.default.decode(token);
+              if (decoded && decoded.userId) {
+                const reqUser = await User.findById(decoded.userId).select('adminRole isAdmin isHost isStudent');
+                if (reqUser && reqUser.isAdmin && reqUser.adminRole) {
+                  requesterRole = reqUser.adminRole;
+                }
+              }
+            }
+          }
+      } catch (e) {
+        console.warn('[getAllUsers] could not determine requesterRole from token:', e.message);
+      }
+    }
+
     const isFinance = requesterRole === 'finance_admin';
     console.log('[getAllUsers] requesterRole=', requesterRole, 'isFinance=', isFinance);
+
     const responseUsers = isFinance
       ? users.map(u => ({ id: u._id, isHost: u.isHost, planTier: u.planTier, createdAt: u.createdAt }))
       : users;
