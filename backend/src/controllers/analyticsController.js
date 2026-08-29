@@ -83,9 +83,17 @@ export const getRevenueAnalytics = async (req, res) => {
       status: 'completed',
     }).populate('classId', 'hostId');
 
+    // Normalize payments to remove sensitive fields (stripe ids, raw metadata)
+    const safePayments = payments.map(p => ({
+      amount: p.amount,
+      hostEarnings: p.hostEarnings,
+      createdAt: p.createdAt,
+      classId: p.classId,
+    }));
+
     // Group by date
     const grouped = {};
-    payments.forEach(payment => {
+    safePayments.forEach(payment => {
       const date = new Date(payment.createdAt);
       const key = period === 'monthly' 
         ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`

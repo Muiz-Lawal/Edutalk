@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAdmin } from '../context/AdminContext';
 import { useAuth } from '../context/AuthContext';
+import { useAdminPermissions } from '../hooks/useAdminPermissions';
 import { AdminLayout } from '../components/AdminLayout';
 import UserGrowthChart from '../components/UserGrowthChart';
 import RevenueTrendChart from '../components/RevenueTrendChart';
@@ -27,6 +28,12 @@ export const AdminDashboard = () => {
       </AdminLayout>
     );
   }
+
+  const { hasPermission, adminRole } = useAdminPermissions();
+  const isFinanceAdmin = adminRole === 'finance_admin';
+  const canViewPayments = hasPermission('view_payments');
+  const canViewAudit = hasPermission('view_audit_logs');
+  const canModerate = hasPermission('moderate_content') && !isFinanceAdmin;
 
   return (
     <AdminLayout>
@@ -85,15 +92,23 @@ export const AdminDashboard = () => {
                 <a href="/admin/users" className="btn btn-primary">
                   Manage Users
                 </a>
-                <a href="/admin/moderation" className="btn btn-primary">
-                  Moderation Queue
-                </a>
-                <a href="/admin/payments" className="btn btn-primary">
-                  Payment Reports
-                </a>
-                <a href="/admin/logs" className="btn btn-primary">
-                  View Audit Logs
-                </a>
+                {canModerate && (
+                  <a href="/admin/moderation" className="btn btn-primary">
+                    Moderation Queue
+                  </a>
+                )}
+                {canViewPayments && (
+                  <a href="/admin/payments" className="btn btn-primary">
+                    Payment Reports
+                  </a>
+                )}
+
+                {canViewAudit && (
+                  <a href="/admin/logs" className="btn btn-primary">
+                    View Audit Logs
+                  </a>
+                )}
+
                 {user?.isSuperAdmin && (
                   <a href="/admin/management" className="btn btn-danger">
                     🔑 Manage Admins

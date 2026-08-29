@@ -208,6 +208,7 @@ export const confirmPayment = async (req, res) => {
 export const getPaymentHistory = async (req, res) => {
   try {
     const payments = await Payment.find({ userId: req.user.userId })
+      .select('-stripePaymentIntentId -stripeChargeId')
       .populate('classId', 'title')
       .sort({ createdAt: -1 });
     

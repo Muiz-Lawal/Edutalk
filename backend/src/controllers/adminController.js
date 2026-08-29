@@ -103,8 +103,15 @@ export const getAllUsers = async (req, res) => {
 
     const total = await User.countDocuments(query);
 
+    const requesterRole = req.user?.adminRole;
+    const isFinance = requesterRole === 'finance_admin';
+    console.log('[getAllUsers] requesterRole=', requesterRole, 'isFinance=', isFinance);
+    const responseUsers = isFinance
+      ? users.map(u => ({ id: u._id, isHost: u.isHost, planTier: u.planTier, createdAt: u.createdAt }))
+      : users;
+
     res.json({
-      users,
+      users: responseUsers,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -121,12 +128,36 @@ export const getAllUsers = async (req, res) => {
 export const getUserDetails = async (req, res) => {
   try {
     const { userId } = req.params;
-    const user = await User.findById(userId).select('-password').populate('createdAt');
+    const user = await User.findById(userId).select('-password');
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    const requesterRole = req.user?.adminRole;
+    const isFinance = requesterRole === 'finance_admin';
+
+    // Finance admin should only receive payment/payout related info, not full PII
+    if (isFinance) {
+      // Fetch payment history for this user
+      const payments = await Payment.find({ userId: user._id }).select('-stripeChargeId -stripePaymentIntentId -updatedAt');
+
+      // Fetch payout records for this user if present (assume Payment contains payouts/refunds info)
+      const refunds = await Payment.find({ userId: user._id, refundAmount: { $exists: true, $ne: null } }).select('amount refundAmount refundReason refundedAt status createdAt');
+
+      return res.json({
+        user: {
+          id: user._id,
+          isHost: user.isHost,
+          planTier: user.planTier,
+          createdAt: user.createdAt,
+        },
+        payments,
+        refunds,
+      });
+    }
+
+    // Non-finance admins get full view (subject to existing permissions elsewhere)
     // Get user's classes if host
     let classes = [];
     if (user.isHost) {
@@ -159,7 +190,7 @@ export const suspendUser = async (req, res) => {
         suspendReason: reason,
       },
       { new: true }
-    );
+    ).select('-password');
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -175,7 +206,20 @@ export const suspendUser = async (req, res) => {
       { reason }
     );
 
-    res.json({ message: 'User suspended', user });
+    // Return a sanitized user object to avoid leaking hashed passwords or sensitive fields
+    const sanitized = {
+      id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      isHost: user.isHost,
+      isStudent: user.isStudent,
+      suspendedAt: user.suspendedAt,
+      suspendReason: user.suspendReason,
+      createdAt: user.createdAt,
+    };
+
+    res.json({ message: 'User suspended', user: sanitized });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -192,7 +236,7 @@ export const unsuspendUser = async (req, res) => {
         $unset: { suspendedAt: 1, suspendReason: 1 },
       },
       { new: true }
-    );
+    ).select('-password');
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -207,7 +251,17 @@ export const unsuspendUser = async (req, res) => {
       user.email
     );
 
-    res.json({ message: 'User unsuspended', user });
+    const sanitized = {
+      id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      isHost: user.isHost,
+      isStudent: user.isStudent,
+      createdAt: user.createdAt,
+    };
+
+    res.json({ message: 'User unsuspended', user: sanitized });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -254,7 +308,8 @@ export const deleteUser = async (req, res) => {
       { reason, isSuperAdmin: user.isSuperAdmin, adminRole: user.adminRole }
     );
 
-    res.json({ message: 'User deleted', user });
+    // Return minimal confirmation to avoid leaking deleted user's full record
+    res.json({ message: 'User deleted', id: user._id, email: user.email });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -268,6 +323,10 @@ export const getAdminLogs = async (req, res) => {
 
     let query = {};
 
+    // If a non-superadmin with finance_admin role requests logs, limit to financial actions
+    const role = req.user?.adminRole;
+    const isFinance = role === 'finance_admin';
+
     if (action) query.action = action;
     if (adminId) query.adminId = adminId;
 
@@ -277,6 +336,12 @@ export const getAdminLogs = async (req, res) => {
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
+    // For finance admins, restrict to financial-related actions only
+    if (isFinance) {
+      const financialActionRegex = /(payment|refund|payout|commission|billing|stripe)/i;
+      query.action = query.action ? query.action : { $regex: financialActionRegex };
+    }
+
     const logs = await AdminLog.find(query)
       .limit(limit)
       .skip(skip)
@@ -284,8 +349,26 @@ export const getAdminLogs = async (req, res) => {
 
     const total = await AdminLog.countDocuments(query);
 
+    // Mask sensitive information for finance admins (e.g., emails, user identifiers)
+    const maskedLogs = logs.map((l) => {
+      if (!isFinance) return l;
+      const masked = l.toObject();
+      if (masked.targetEmail) masked.targetEmail = masked.targetEmail.replace(/(.{2}).+@/, '$1***@');
+      if (masked.adminEmail) masked.adminEmail = masked.adminEmail.replace(/(.{2}).+@/, '$1***@');
+      // remove sensitive detail fields if present
+      if (masked.details) {
+        const details = { ...masked.details };
+        // remove any email or personal identifiers inside details
+        Object.keys(details).forEach((k) => {
+          if (/email|ssn|id|phone|card|account/i.test(k)) delete details[k];
+        });
+        masked.details = details;
+      }
+      return masked;
+    });
+
     res.json({
-      logs,
+      logs: maskedLogs,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -399,7 +482,7 @@ export const createAdminUser = async (req, res) => {
     }
 
     // Validate role
-    const validRoles = ['moderator', 'support', 'admin', 'superadmin'];
+    const validRoles = ['moderator', 'support', 'admin', 'finance_admin', 'superadmin'];
     if (!validRoles.includes(adminRole)) {
       return res.status(400).json({ 
         error: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
@@ -478,7 +561,7 @@ export const updateAdminUser = async (req, res) => {
 
     // Validate role if provided
     if (adminRole) {
-      const validRoles = ['moderator', 'support', 'admin', 'superadmin'];
+      const validRoles = ['moderator', 'support', 'admin', 'finance_admin', 'superadmin'];
       if (!validRoles.includes(adminRole)) {
         return res.status(400).json({ 
           error: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
@@ -768,7 +851,23 @@ export const getTopHosts = async (req, res) => {
       { $limit: parseInt(limit) }
     ]);
 
-    res.json(topHosts);
+    const requesterRole = req.user?.adminRole;
+    const isFinance = requesterRole === 'finance_admin';
+
+    const maskedTopHosts = topHosts.map(h => {
+      if (!isFinance) return h;
+      return {
+        _id: h._id,
+        hostName: h.hostName ? h.hostName.split(' ').map(n => n[0] + '.').join(' ') : undefined,
+        hostEmail: h.hostEmail ? h.hostEmail.replace(/(.{2}).+@/, '$1***@') : undefined,
+        classCount: h.classCount,
+        studentCount: h.studentCount,
+        revenue: h.revenue,
+        rating: h.rating
+      };
+    });
+
+    res.json(maskedTopHosts);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

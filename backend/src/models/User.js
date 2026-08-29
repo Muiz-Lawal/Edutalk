@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema({
   },
   firstName: String,
   lastName: String,
+  dateOfBirth: Date,
   profileImage: String,
   bio: String,
   
@@ -33,10 +34,15 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  activeRole: {
+    type: String,
+    enum: ['student', 'host', 'admin'],
+    default: 'student',
+  },
   adminRole: {
     type: String,
     enum: {
-      values: [null, 'moderator', 'support', 'admin', 'superadmin'],
+      values: [null, 'support', 'moderator', 'admin', 'finance_admin', 'superadmin'],
       message: '{VALUE} is not a valid admin role',
     },
     default: null,
@@ -147,5 +153,29 @@ const userSchema = new mongoose.Schema({
     default: Date.now,
   },
 }, { timestamps: true });
+
+userSchema.pre('save', function(next) {
+  if (this.isAdmin) {
+    this.isStudent = false;
+    this.isHost = false;
+    this.isSuperAdmin = this.adminRole === 'superadmin' || this.isSuperAdmin;
+
+    if (!this.adminRole) {
+      this.adminRole = 'admin';
+    }
+  }
+
+  if (this.isHost && !this.dateOfBirth) {
+    const error = new Error('Date of birth is required for host registration.');
+    return next(error);
+  }
+
+  if (this.isAdmin && (this.isStudent || this.isHost)) {
+    const error = new Error('Admin accounts cannot also be student or host accounts.');
+    return next(error);
+  }
+
+  next();
+});
 
 export default mongoose.model('User', userSchema);

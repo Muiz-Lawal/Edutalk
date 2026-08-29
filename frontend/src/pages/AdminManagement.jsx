@@ -244,6 +244,7 @@ const AdminManagement = () => {
               >
                 <option value="moderator">🎯 Moderator - Content moderation & reviews</option>
                 <option value="support">🛡️ Support - User support & refunds</option>
+                <option value="finance_admin">💼 Finance Admin - Financial ops & reports</option>
                 <option value="admin">👤 Admin - Full admin access</option>
                 <option value="superadmin">🔑 SuperAdmin - Full system access</option>
               </select>
@@ -318,6 +319,7 @@ const AdminManagement = () => {
                           >
                             <option value="moderator">Moderator</option>
                             <option value="support">Support</option>
+                            <option value="finance_admin">Finance Admin</option>
                             <option value="admin">Admin</option>
                             <option value="superadmin">SuperAdmin</option>
                           </select>

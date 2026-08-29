@@ -23,8 +23,21 @@ export const getModerationQueue = async (req, res) => {
 
     const total = await ModerationLog.countDocuments(query);
 
+    const isFinance = req.user?.adminRole === 'finance_admin';
+    const maskedLogs = logs.map(l => {
+      if (!isFinance) return l;
+      const obj = l.toObject ? l.toObject() : JSON.parse(JSON.stringify(l));
+      if (obj.userId) {
+        if (obj.userId.email) obj.userId.email = obj.userId.email.replace(/(.{2}).+@/, '$1***@');
+        if (obj.userId.firstName) obj.userId.firstName = obj.userId.firstName[0] + '.';
+        if (obj.userId.lastName) obj.userId.lastName = obj.userId.lastName[0] + '.';
+        if (obj.userId.profileImage) delete obj.userId.profileImage;
+      }
+      return obj;
+    });
+
     res.json({
-      logs,
+      logs: maskedLogs,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -580,8 +593,21 @@ export const getModerationQueueAdvanced = async (req, res) => {
 
     const total = await ModerationLog.countDocuments(query);
 
+    const isFinance = req.user?.adminRole === 'finance_admin';
+    const maskedLogs = logs.map(l => {
+      if (!isFinance) return l;
+      const obj = l.toObject ? l.toObject() : JSON.parse(JSON.stringify(l));
+      if (obj.userId) {
+        if (obj.userId.email) obj.userId.email = obj.userId.email.replace(/(.{2}).+@/, '$1***@');
+        if (obj.userId.firstName) obj.userId.firstName = obj.userId.firstName[0] + '.';
+        if (obj.userId.lastName) obj.userId.lastName = obj.userId.lastName[0] + '.';
+        if (obj.userId.profileImage) delete obj.userId.profileImage;
+      }
+      return obj;
+    });
+
     res.json({
-      logs,
+      logs: maskedLogs,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),

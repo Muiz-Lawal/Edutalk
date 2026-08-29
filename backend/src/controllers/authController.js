@@ -10,33 +10,82 @@ import {
 } from '../utils/emailNotifications.js';
 import { createAdminSession, checkSuspiciousLogin } from '../utils/sessionManager.js';
 
+const getAgeFromDateOfBirth = (dateOfBirth) => {
+  if (!dateOfBirth) return null;
+
+  const birthDate = new Date(dateOfBirth);
+  if (Number.isNaN(birthDate.getTime())) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const hasBirthdayPassed =
+    today.getMonth() > birthDate.getMonth() ||
+    (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+
+  if (!hasBirthdayPassed) {
+    age -= 1;
+  }
+
+  return age;
+};
+
+const validateHostRegistration = (isHost, dateOfBirth) => {
+  if (!isHost) {
+    return null;
+  }
+
+  if (!dateOfBirth) {
+    return 'Date of birth is required to register as a host.';
+  }
+
+  const age = getAgeFromDateOfBirth(dateOfBirth);
+  if (age === null || age < 18) {
+    return 'Only users aged 18 or older can register as a host.';
+  }
+
+  return null;
+};
+
 export const register = async (req, res) => {
   try {
-    const { email, password, firstName, lastName, isHost } = req.body;
-    
-    // Check if user already exists
-    let user = await User.findOne({ email });
-    if (user) {
+    const { email, password, firstName, lastName, isHost, dateOfBirth, isAdmin, adminRole } = req.body;
+
+    if (isAdmin || adminRole) {
+      return res.status(400).json({ message: 'Admin accounts must use the separate admin registration flow.' });
+    }
+
+    let existingUser = await User.findOne({ email });
+    if (existingUser) {
+      if (existingUser.isAdmin) {
+        return res.status(400).json({ message: 'This email is already linked to an admin account. Use the admin login flow.' });
+      }
       return res.status(400).json({ message: 'User already exists' });
     }
-    
-    // Hash password
+
+    const hostValidationError = validateHostRegistration(Boolean(isHost), dateOfBirth);
+    if (hostValidationError) {
+      return res.status(400).json({ message: hostValidationError });
+    }
+
     const hashedPassword = await hashPassword(password);
-    
-    // Create new user
-    user = new User({
+
+    const user = new User({
       email,
       password: hashedPassword,
       firstName,
       lastName,
+      dateOfBirth: dateOfBirth || undefined,
       isStudent: true,
-      isHost: isHost || false,
+      isHost: Boolean(isHost),
+      isAdmin: false,
+      isSuperAdmin: false,
+      adminRole: null,
     });
-    
+
     await user.save();
-    
+
     const token = generateToken(user._id, user.email);
-    
+
     res.status(201).json({
       message: 'User registered successfully',
       token,
@@ -66,6 +115,10 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    if (user.isAdmin) {
+      return res.status(403).json({ message: 'Admin accounts must use the admin login flow.' });
     }
     
     // Compare password
@@ -97,6 +150,8 @@ export const login = async (req, res) => {
   }
 };
 
+import { sanitizeUserForRequester } from '../utils/sanitize.js';
+
 export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');
@@ -104,7 +159,11 @@ export const getProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    res.json(user);
+    // If an admin requests this user's profile, ensure we sanitize according to their admin role
+    const requesterRole = req.user?.adminRole || null;
+    const sanitized = sanitizeUserForRequester(user, requesterRole);
+
+    res.json(sanitized);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -120,7 +179,10 @@ export const updateProfile = async (req, res) => {
       { new: true }
     ).select('-password');
     
-    res.json(user);
+    const requesterRole = req.user?.adminRole || null;
+    const sanitized = sanitizeUserForRequester(user, requesterRole);
+
+    res.json(sanitized);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -128,21 +190,39 @@ export const updateProfile = async (req, res) => {
 
 export const upgradeToHost = async (req, res) => {
   try {
-    const { hostBio, stripeConnectId } = req.body;
-    
-    const user = await User.findByIdAndUpdate(
-      req.user.userId,
-      { 
+    const userId = req.user.userId;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isAdmin) {
+      return res.status(403).json({ message: 'Admin accounts cannot be upgraded to host accounts.' });
+    }
+
+    const { hostBio, stripeConnectId, dateOfBirth } = req.body;
+    const effectiveDateOfBirth = dateOfBirth || user.dateOfBirth;
+    const hostValidationError = validateHostRegistration(true, effectiveDateOfBirth);
+
+    if (hostValidationError) {
+      return res.status(400).json({ message: hostValidationError });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
         isHost: true,
+        dateOfBirth: effectiveDateOfBirth,
         hostBio,
         stripeConnectId,
       },
       { new: true }
     ).select('-password');
-    
+
     res.json({
       message: 'Upgraded to host',
-      user,
+      user: updatedUser,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

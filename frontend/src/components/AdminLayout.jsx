@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import '../styles/admin.css';
+import { useAuth } from '../context/AuthContext';
+import { useAdminPermissions } from '../hooks/useAdminPermissions';
 
 export const AdminLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const isActive = (path) => location.pathname === path;
 
@@ -14,6 +17,14 @@ export const AdminLayout = ({ children }) => {
     localStorage.removeItem('user');
     navigate('/login');
   };
+
+  const role = user?.adminRole || 'support';
+  const isFinanceAdmin = role === 'finance_admin';
+  const { hasPermission } = useAdminPermissions();
+  const canModerate = hasPermission('moderate_content') && !isFinanceAdmin;
+  const canViewPayments = hasPermission('view_payments');
+  const canViewAudit = hasPermission('view_audit_logs');
+  const canManageSettings = hasPermission('manage_admins') && !isFinanceAdmin;
 
   return (
     <div className="admin-container">
@@ -34,15 +45,19 @@ export const AdminLayout = ({ children }) => {
             <span className="label">Users</span>
           </Link>
 
-          <Link to="/admin/moderation" className={`nav-item ${isActive('/admin/moderation') ? 'active' : ''}`}>
-            <span className="icon">🛡️</span>
-            <span className="label">Moderation</span>
-          </Link>
+          {canModerate && (
+            <Link to="/admin/moderation" className={`nav-item ${isActive('/admin/moderation') ? 'active' : ''}`}>
+              <span className="icon">🛡️</span>
+              <span className="label">Moderation</span>
+            </Link>
+          )}
 
-          <Link to="/admin/payments" className={`nav-item ${isActive('/admin/payments') ? 'active' : ''}`}>
-            <span className="icon">💰</span>
-            <span className="label">Payments</span>
-          </Link>
+          {canViewPayments && (
+            <Link to="/admin/payments" className={`nav-item ${isActive('/admin/payments') ? 'active' : ''}`}>
+              <span className="icon">💰</span>
+              <span className="label">Payments</span>
+            </Link>
+          )}
 
           <Link to="/admin/hosts" className={`nav-item ${isActive('/admin/hosts') ? 'active' : ''}`}>
             <span className="icon">🎓</span>
@@ -54,15 +69,19 @@ export const AdminLayout = ({ children }) => {
             <span className="label">Analytics</span>
           </Link>
 
-          <Link to="/admin/logs" className={`nav-item ${isActive('/admin/logs') ? 'active' : ''}`}>
-            <span className="icon">📋</span>
-            <span className="label">Audit Logs</span>
-          </Link>
+          {canViewAudit && (
+            <Link to="/admin/logs" className={`nav-item ${isActive('/admin/logs') ? 'active' : ''}`}>
+              <span className="icon">📋</span>
+              <span className="label">Audit Logs</span>
+            </Link>
+          )}
 
-          <Link to="/admin/settings" className={`nav-item ${isActive('/admin/settings') ? 'active' : ''}`}>
-            <span className="icon">⚙️</span>
-            <span className="label">Settings</span>
-          </Link>
+          {canManageSettings && (
+            <Link to="/admin/settings" className={`nav-item ${isActive('/admin/settings') ? 'active' : ''}`}>
+              <span className="icon">⚙️</span>
+              <span className="label">Settings</span>
+            </Link>
+          )}
         </nav>
 
         <div className="admin-footer">

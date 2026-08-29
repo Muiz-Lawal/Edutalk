@@ -59,7 +59,7 @@ import {
   exportAuditLogs,
 } from '../controllers/adminController.js';
 import { runBadgeEngine, listEmailJobs, retryEmailJob, retryAllFailedEmailJobs, getEmailJobDetails, sendEmailJobNow } from '../controllers/adminController_additions.js';
-import { adminAuth, superAdminAuth } from '../middleware/adminAuth.js';
+import { adminAuth, superAdminAuth, requirePermission } from '../middleware/adminAuth.js';
 import { exportModerationLogs } from '../controllers/moderationController.js';
 import bulkEmailService from '../services/bulkEmailService.js';
 import User from '../models/User.js';
@@ -117,14 +117,14 @@ router.get('/moderation/stats', getModerationStats);
 router.get('/moderation/export', superAdminAuth, exportModerationLogs);
 
 // Payment & Payouts endpoints (Phase 5E)
-router.get('/payments/transactions', getTransactions);
-router.get('/payments/transactions/:transactionId', getTransactionDetails);
-router.get('/payments/revenue-by-host', getRevenueByHost);
-router.get('/payments/revenue-trends', getRevenueTrends);
-router.get('/payments/summary', getPaymentSummary);
-router.get('/payments/commission-settings', getCommissionSettings);
-router.put('/payments/commission-settings', updateCommissionSettings);
-router.get('/payments/export', exportTransactions);
+router.get('/payments/transactions', requirePermission('view_payments'), getTransactions);
+router.get('/payments/transactions/:transactionId', requirePermission('view_payments'), getTransactionDetails);
+router.get('/payments/revenue-by-host', requirePermission('view_payments'), getRevenueByHost);
+router.get('/payments/revenue-trends', requirePermission('view_payments'), getRevenueTrends);
+router.get('/payments/summary', requirePermission('view_payments'), getPaymentSummary);
+router.get('/payments/commission-settings', requirePermission('view_payments'), getCommissionSettings);
+router.put('/payments/commission-settings', requirePermission('change_commission'), updateCommissionSettings);
+router.get('/payments/export', requirePermission('export_financial_reports'), exportTransactions);
 
 // Host Management endpoints (Phase 5F)
 router.get('/hosts', getAllHosts);
@@ -165,14 +165,14 @@ router.post('/bulk-email/all', async (req, res) => {
 });
 
 // Settings & Configuration endpoints (Phase 5G)
-router.get('/settings/commission', getCommissionSettings);
-router.put('/settings/commission', updateCommissionRate);
-router.get('/settings/email-templates', getEmailTemplates);
-router.put('/settings/email-templates/:templateId', updateEmailTemplate);
-router.get('/settings/feature-flags', getFeatureFlags);
-router.put('/settings/feature-flags/:featureId', toggleFeatureFlag);
-router.get('/settings/audit-logs', getAuditLogs);
-router.post('/settings/audit-logs/export', exportAuditLogs);
+router.get('/settings/commission', requirePermission('view_payments'), getCommissionSettings);
+router.put('/settings/commission', requirePermission('change_commission'), updateCommissionRate);
+router.get('/settings/email-templates', requirePermission('moderate_content'), getEmailTemplates);
+router.put('/settings/email-templates/:templateId', requirePermission('moderate_content'), updateEmailTemplate);
+router.get('/settings/feature-flags', requirePermission('manage_admins'), getFeatureFlags);
+router.put('/settings/feature-flags/:featureId', requirePermission('manage_admins'), toggleFeatureFlag);
+router.get('/settings/audit-logs', requirePermission('view_audit_logs'), getAuditLogs);
+router.post('/settings/audit-logs/export', requirePermission('export_audit_logs'), exportAuditLogs);
 
 // Utilities
 router.post('/utilities/run-badges', superAdminAuth, runBadgeEngine);

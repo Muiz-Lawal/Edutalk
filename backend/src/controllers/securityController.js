@@ -17,7 +17,7 @@ import {
   getActiveSessions as getSessionsForUser,
   logoutAllSessions as logoutAllUserSessions,
 } from '../utils/sessionManager.js';
-import { logActivity, getActivityTrends, getFlaggedActivities, exportActivityLogs as exportLogs } from '../utils/activityLogger.js';
+// activityLogger functions are dynamically imported within handlers so test mocks can replace them
 
 // ==================== 2FA SETUP ====================
 
@@ -68,20 +68,23 @@ export const enable2FA = async (req, res) => {
     user.twoFAVerifiedAt = new Date();
     await user.save();
 
-    // Log activity
-    await logActivity(
-      user._id,
-      user.email,
-      user.adminRole,
-      '2fa_enabled',
-      'User',
-      user._id,
-      user.email,
-      '2FA enabled',
-      'high',
-      req.ip,
-      req.headers['user-agent']
-    );
+    // Log activity (dynamically import logger so tests can mock it)
+    {
+      const logger = await import('../utils/activityLogger.js');
+      await logger.logActivity(
+        user._id,
+        user.email,
+        user.adminRole,
+        '2fa_enabled',
+        'User',
+        user._id,
+        user.email,
+        '2FA enabled',
+        'high',
+        req.ip,
+        req.headers['user-agent']
+      );
+    }
 
     // Send email with backup codes
     await send2FASetupEmail(user.email, backupCodes);
@@ -120,20 +123,23 @@ export const disable2FA = async (req, res) => {
     user.twoFABackupCodes = [];
     await user.save();
 
-    // Log activity
-    await logActivity(
-      user._id,
-      user.email,
-      user.adminRole,
-      '2fa_disabled',
-      'User',
-      user._id,
-      user.email,
-      '2FA disabled',
-      'high',
-      req.ip,
-      req.headers['user-agent']
-    );
+    // Log activity (dynamically import logger so tests can mock it)
+    {
+      const logger = await import('../utils/activityLogger.js');
+      await logger.logActivity(
+        user._id,
+        user.email,
+        user.adminRole,
+        '2fa_disabled',
+        'User',
+        user._id,
+        user.email,
+        '2FA disabled',
+        'high',
+        req.ip,
+        req.headers['user-agent']
+      );
+    }
 
     res.json({ message: '2FA disabled successfully' });
   } catch (error) {
@@ -175,20 +181,23 @@ export const logoutSession = async (req, res) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    // Log activity
-    await logActivity(
-      req.user._id,
-      req.user.email,
-      req.user.adminRole,
-      'session_logout',
-      'AdminSession',
-      sessionId,
-      null,
-      'Session logged out by user',
-      'low',
-      req.ip,
-      req.headers['user-agent']
-    );
+    // Log activity (dynamically import logger so tests can mock it)
+    {
+      const logger = await import('../utils/activityLogger.js');
+      await logger.logActivity(
+        req.user._id,
+        req.user.email,
+        req.user.adminRole,
+        'session_logout',
+        'AdminSession',
+        sessionId,
+        null,
+        'Session logged out by user',
+        'low',
+        req.ip,
+        req.headers['user-agent']
+      );
+    }
 
     res.json({ message: 'Session logged out successfully' });
   } catch (error) {
@@ -210,20 +219,23 @@ export const logoutAllAdminSessions = async (req, res) => {
       }
     );
 
-    // Log activity
-    await logActivity(
-      req.user._id,
-      req.user.email,
-      req.user.adminRole,
-      'logout',
-      'User',
-      req.user._id,
-      req.user.email,
-      'Logged out from all sessions',
-      'medium',
-      req.ip,
-      req.headers['user-agent']
-    );
+    // Log activity (dynamically import logger so tests can mock it)
+    {
+      const logger = await import('../utils/activityLogger.js');
+      await logger.logActivity(
+        req.user._id,
+        req.user.email,
+        req.user.adminRole,
+        'logout',
+        'User',
+        req.user._id,
+        req.user.email,
+        'Logged out from all sessions',
+        'medium',
+        req.ip,
+        req.headers['user-agent']
+      );
+    }
 
     res.json({ message: 'All sessions logged out successfully' });
   } catch (error) {
@@ -252,8 +264,25 @@ export const getActivityLogs = async (req, res) => {
 
     const total = await AdminActivity.countDocuments(query);
 
+    // Mask PII for finance_admin
+    const isFinance = req.user?.adminRole === 'finance_admin';
+    const masked = activities.map(a => {
+      if (!isFinance) return a;
+      const obj = a.toObject ? a.toObject() : JSON.parse(JSON.stringify(a));
+      if (obj.adminId && obj.adminId.email) obj.adminId.email = obj.adminId.email.replace(/(.{2}).+@/, '$1***@');
+      if (obj.adminId && obj.adminId.firstName) obj.adminId.firstName = obj.adminId.firstName[0] + '.';
+      if (obj.adminId && obj.adminId.lastName) obj.adminId.lastName = obj.adminId.lastName[0] + '.';
+      // remove any stack traces or detailed info
+      if (obj.details) {
+        Object.keys(obj.details).forEach(k => {
+          if (/email|ssn|card|account|token|secret/i.test(k)) delete obj.details[k];
+        });
+      }
+      return obj;
+    });
+
     res.json({
-      activities,
+      activities: masked,
       total,
       pages: Math.ceil(total / limit),
       currentPage: parseInt(page),
@@ -303,19 +332,52 @@ export const exportAdminActivityLogs = async (req, res) => {
       if (endDate) filters.createdAt.$lte = new Date(endDate);
     }
 
-    const logs = await exportLogs(filters);
+    const { exportActivityLogs: dynamicExportLogs } = await import('../utils/activityLogger.js');
+    let logs = await dynamicExportLogs(filters);
+
+    const isFinance = req.user?.adminRole === 'finance_admin';
+    if (isFinance) {
+      // Restrict finance admins to financial-related actions only
+      const financialActionRegex = /(payment|refund|payout|commission|billing|stripe)/i;
+      logs = logs.filter(l => financialActionRegex.test(l.action));
+    }
+
+    // Mask sensitive fields for finance_admin
+    const maskedLogs = logs.map(l => {
+      if (!isFinance) return l;
+      const obj = typeof l.toObject === 'function' ? l.toObject() : JSON.parse(JSON.stringify(l));
+      if (obj.adminEmail) obj.adminEmail = obj.adminEmail.replace(/(.{2}).+@/, '$1***@');
+      if (obj.targetEmail) obj.targetEmail = obj.targetEmail.replace(/(.{2}).+@/, '$1***@');
+      if (obj.details) {
+        Object.keys(obj.details).forEach(k => {
+          if (/email|ssn|card|account|token|secret/i.test(k)) delete obj.details[k];
+        });
+      }
+      return obj;
+    });
 
     if (format === 'csv') {
       // Convert to CSV format
-      const csv = convertToCSV(logs);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename="activity-logs.csv"');
-      res.send(csv);
-    } else {
-      res.json(logs);
+      const csv = convertToCSV(maskedLogs);
+      if (res.setHeader) {
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="activity-logs.csv"');
+      }
+      if (typeof res.send === 'function') {
+        res.send(csv);
+      } else if (typeof res.json === 'function') {
+        res.json(maskedLogs);
+      }
+    } else if (typeof res.json === 'function') {
+      res.json(maskedLogs);
     }
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const message = error?.message || 'Failed to export activity logs';
+    if (res && typeof res.status === 'function') {
+      res.status(500).json({ error: message });
+    } else if (res && typeof res.json === 'function') {
+      res.json({ error: message });
+    }
   }
 };
 
@@ -377,19 +439,22 @@ export const changeAdminPassword = async (req, res) => {
     // Log the activity
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    await logActivity(
-      user._id,
-      user.email,
-      user.adminRole,
-      'password_changed',
-      'User',
-      user._id,
-      user.email,
-      'Admin changed their password',
-      'medium',
-      ipAddress,
-      userAgent
-    );
+    {
+      const logger = await import('../utils/activityLogger.js');
+      await logger.logActivity(
+        user._id,
+        user.email,
+        user.adminRole,
+        'password_changed',
+        'User',
+        user._id,
+        user.email,
+        'Admin changed their password',
+        'medium',
+        ipAddress,
+        userAgent
+      );
+    }
 
     // Send email notification
     try {

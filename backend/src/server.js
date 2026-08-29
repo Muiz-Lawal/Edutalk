@@ -71,7 +71,7 @@ io.use(async (socket, next) => {
 
     // Verify JWT token
     const jwt = await import('jsonwebtoken');
-    const decoded = jwt.default.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.default.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key_here');
     socket.userId = decoded.userId;
     socket.email = decoded.email;
     next();

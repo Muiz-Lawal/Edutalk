@@ -10,6 +10,7 @@ export default function SignupPage() {
     confirmPassword: '',
     firstName: '',
     lastName: '',
+    dateOfBirth: '',
     isHost: false,
   });
   const [error, setError] = useState('');
@@ -34,6 +35,29 @@ export default function SignupPage() {
       return;
     }
 
+    if (formData.isHost && !formData.dateOfBirth) {
+      setError('Date of birth is required to register as a host.');
+      return;
+    }
+
+    if (formData.isHost) {
+      const birthDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const hasBirthdayPassed =
+        today.getMonth() > birthDate.getMonth() ||
+        (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+
+      if (!hasBirthdayPassed) {
+        age -= 1;
+      }
+
+      if (age < 18) {
+        setError('Only users aged 18 or older can register as a host.');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -42,7 +66,8 @@ export default function SignupPage() {
         formData.password,
         formData.firstName,
         formData.lastName,
-        formData.isHost
+        formData.isHost,
+        formData.dateOfBirth
       );
       navigate('/dashboard');
     } catch (err) {
@@ -122,6 +147,19 @@ export default function SignupPage() {
             />
           </div>
 
+          {formData.isHost && (
+            <div className="form-group">
+              <label>Date of Birth</label>
+              <input
+                type="date"
+                name="dateOfBirth"
+                value={formData.dateOfBirth}
+                onChange={handleChange}
+                required={formData.isHost}
+              />
+            </div>
+          )}
+
           <div className="form-group checkbox">
             <input
               type="checkbox"
@@ -130,7 +168,7 @@ export default function SignupPage() {
               checked={formData.isHost}
               onChange={handleChange}
             />
-            <label htmlFor="isHost">I want to teach classes</label>
+            <label htmlFor="isHost">I want to teach classes (18+ only)</label>
           </div>
 
           <button type="submit" disabled={loading} className="submit-button">

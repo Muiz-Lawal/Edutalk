@@ -48,10 +48,23 @@ export const grantAchievement = async (req, res) => {
     await achievement.populate('studentId', 'firstName lastName email');
     await achievement.populate('classId', 'title');
 
+    const isFinance = req.user?.adminRole === 'finance_admin';
+    const details = achievement.getDetails();
+    if (isFinance) {
+      // Mask student PII for finance admins
+      if (details.student) {
+        details.student = {
+          id: details.student.id || details.student._id,
+          isHost: details.student.isHost || false,
+          awardedAt: details.awardedAt || new Date(),
+        };
+      }
+    }
+
     res.json({
       success: true,
       message: 'Achievement granted successfully',
-      data: achievement.getDetails()
+      data: details
     });
   } catch (error) {
     console.error('Error granting achievement:', error);
@@ -181,6 +194,8 @@ export const getLeaderboard = async (req, res) => {
     });
 
     // Combine and sort
+    const isFinance = req.user?.adminRole === 'finance_admin';
+
     const leaderboard = Object.values(studentAchievements)
       .map(student => ({
         ...student,
@@ -208,10 +223,23 @@ export const getLeaderboard = async (req, res) => {
         rank: idx + 1
       }));
 
-    res.json({
-      success: true,
-      data: leaderboard
-    });
+          // Mask PII for finance_admin
+          const isFinanceMask = req.user?.adminRole === 'finance_admin';
+          const response = isFinanceMask
+            ? leaderboard.map(l => ({
+                studentId: l.studentId,
+                rank: l.rank,
+                achievements: l.achievements?.length || 0,
+                points: l.points,
+                score: l.score,
+                completion: l.completion,
+              }))
+            : leaderboard;
+
+          res.json({
+            success: true,
+            data: response
+          });
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
     res.status(500).json({ message: 'Error fetching leaderboard', error: error.message });

@@ -150,7 +150,7 @@ function App() {
             <Route
               path="/recordings"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <RecordingsPage />
                 </ProtectedRoute>
               }
@@ -232,7 +232,7 @@ function App() {
             <Route
               path="/student-progress"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <StudentProgressPage />
                 </ProtectedRoute>
               }
@@ -240,7 +240,7 @@ function App() {
             <Route
               path="/achievements"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <AchievementsPage />
                 </ProtectedRoute>
               }
@@ -248,7 +248,7 @@ function App() {
             <Route
               path="/points"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <PointsHistoryPage />
                 </ProtectedRoute>
               }
@@ -256,7 +256,7 @@ function App() {
             <Route
               path="/class/:classId/progress"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <ClassProgressPage />
                 </ProtectedRoute>
               }
@@ -272,7 +272,7 @@ function App() {
             <Route
               path="/certificates"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <CertificateGalleryPage />
                 </ProtectedRoute>
               }
@@ -280,7 +280,7 @@ function App() {
             <Route
               path="/class/:classId/leaderboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <LeaderboardPage />
                 </ProtectedRoute>
               }
@@ -301,7 +301,7 @@ function App() {
             <Route
               path="/admin/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <AdminDashboard />
                 </ProtectedRoute>
               }
@@ -309,7 +309,7 @@ function App() {
             <Route
               path="/admin/users"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <AdminUsers />
                 </ProtectedRoute>
               }
@@ -317,7 +317,7 @@ function App() {
             <Route
               path="/admin/moderation"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission="moderate_content">
                   <AdminModeration />
                 </ProtectedRoute>
               }
@@ -325,7 +325,7 @@ function App() {
             <Route
               path="/admin/email-jobs"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission="manage_admins">
                   <AdminEmailJobs />
                 </ProtectedRoute>
               }
@@ -333,7 +333,7 @@ function App() {
             <Route
               path="/admin/payments"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission="view_payments">
                   <AdminPayments />
                 </ProtectedRoute>
               }
@@ -341,7 +341,7 @@ function App() {
             <Route
               path="/admin/hosts"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <AdminHosts />
                 </ProtectedRoute>
               }
@@ -349,7 +349,7 @@ function App() {
             <Route
               path="/admin/analytics"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission="view_audit_logs">
                   <AdminAnalyticsDashboard />
                 </ProtectedRoute>
               }
@@ -357,7 +357,7 @@ function App() {
             <Route
               path="/admin/logs"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission="view_audit_logs">
                   <AdminLogs />
                 </ProtectedRoute>
               }
@@ -365,7 +365,7 @@ function App() {
             <Route
               path="/admin/settings"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission="manage_admins">
                   <AdminSettings />
                 </ProtectedRoute>
               }
@@ -373,7 +373,7 @@ function App() {
             <Route
               path="/admin/management"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requireSuperAdmin>
                   <AdminManagement />
                 </ProtectedRoute>
               }
