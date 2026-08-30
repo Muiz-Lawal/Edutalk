@@ -9,10 +9,11 @@ const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 const INACTIVITY_WARNING = 25 * 60 * 1000; // 25 minutes
 
 const ADMIN_ROLE_HIERARCHY = {
+  // Treat admin roles as discrete capabilities except superadmin which includes all
   support: ['support'],
-  moderator: ['support', 'moderator'],
-  admin: ['support', 'moderator', 'admin'],
-  finance_admin: ['support', 'moderator', 'admin', 'finance_admin'],
+  moderator: ['moderator'],
+  admin: ['admin'],
+  finance_admin: ['finance_admin'],
   superadmin: ['support', 'moderator', 'admin', 'finance_admin', 'superadmin'],
 };
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import TwoFAVerification from '../components/TwoFAVerification';
@@ -17,7 +17,11 @@ export default function AdminLoginPage() {
   const [requiresPasswordChange, setRequiresPasswordChange] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const navigate = useNavigate();
-  const { setAuthSession } = useAuth();
+  const { setAuthSession, isAuthenticated, user } = useAuth();
+
+  if (isAuthenticated && user?.isAdmin) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

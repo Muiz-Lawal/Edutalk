@@ -1,18 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAdminPermissions } from '../hooks/useAdminPermissions';
 import '../styles/MobileNav.css';
 
-const MobileNav = () => {
+const MobileNav = ({ onLogout, onClose }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { isAuthenticated, user, activeRole, setActiveRole } = useAuth();
   const { isAdmin: isAdminPerm, adminRole } = useAdminPermissions();
   const location = useLocation();
   const showFinancialControlOnly = adminRole === 'finance_admin';
-  // Track window width to ensure consistent rendering across device sizes (debounced)
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAdminSession = Boolean(user?.isAdmin);
+  const hideRegularNavigation = isAdminRoute || isAdminSession;
+
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const resizeTimeoutRef = useRef(null);
+
   useEffect(() => {
     const onResize = () => {
       if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
@@ -28,6 +32,7 @@ const MobileNav = () => {
       if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
     };
   }, []);
+
   const currentRole = isAdminPerm ? 'admin' : activeRole || 'student';
 
   const toggleMenu = () => {
@@ -36,13 +41,74 @@ const MobileNav = () => {
 
   const closeMenu = () => {
     setIsOpen(false);
+    if (onClose) onClose();
   };
 
   const isActive = (path) => location.pathname === path;
 
+  if (hideRegularNavigation) {
+    return (
+      <>
+        <button
+          className="mobile-menu-button"
+          onClick={toggleMenu}
+          aria-label="Toggle navigation menu"
+          aria-expanded={isOpen}
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
+        {isOpen && <div className="mobile-menu-overlay" onClick={closeMenu}></div>}
+
+        <nav className={`mobile-nav ${isOpen ? 'open' : ''}`}>
+          <div className="mobile-nav-header">
+            <h2>Admin</h2>
+            <button className="mobile-nav-close" onClick={closeMenu} aria-label="Close navigation menu">
+              ✕
+            </button>
+          </div>
+
+          <div className="mobile-nav-content">
+            <div className="mobile-nav-section">
+              <div className="mobile-nav-user">
+                <div className="user-avatar">{user?.email?.[0]?.toUpperCase() || 'A'}</div>
+                <div className="user-info">
+                  <p className="user-email">{user?.email || 'Admin'}</p>
+                  <p className="user-role">🛡️ {adminRole ? adminRole.replace('_', ' ') : 'Administrator'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mobile-nav-section">
+              <Link
+                to="/admin/dashboard"
+                className={`mobile-nav-link ${isActive('/admin/dashboard') ? 'active' : ''}`}
+                onClick={closeMenu}
+              >
+                📊 Admin Dashboard
+              </Link>
+              <button
+                type="button"
+                className="mobile-nav-link"
+                onClick={() => {
+                  closeMenu();
+                  if (onLogout) onLogout();
+                }}
+                style={{ width: '100%', textAlign: 'left', border: 'none', background: 'transparent' }}
+              >
+                🚪 Logout
+              </button>
+            </div>
+          </div>
+        </nav>
+      </>
+    );
+  }
+
   return (
     <>
-      {/* Mobile Menu Button */}
       <button
         className="mobile-menu-button"
         onClick={toggleMenu}
@@ -54,12 +120,8 @@ const MobileNav = () => {
         <span></span>
       </button>
 
-      {/* Mobile Menu Overlay */}
-      {isOpen && (
-        <div className="mobile-menu-overlay" onClick={closeMenu}></div>
-      )}
+      {isOpen && <div className="mobile-menu-overlay" onClick={closeMenu}></div>}
 
-      {/* Mobile Menu */}
       <nav className={`mobile-nav ${isOpen ? 'open' : ''}`}>
         <div className="mobile-nav-header">
           <h2>Menu</h2>
@@ -73,7 +135,6 @@ const MobileNav = () => {
         </div>
 
         <div className="mobile-nav-content">
-          {/* Guest Links */}
           {!isAuthenticated && (
             <div className="mobile-nav-section">
               <Link
@@ -100,7 +161,6 @@ const MobileNav = () => {
             </div>
           )}
 
-          {/* Authenticated User Links */}
           {isAuthenticated && (
             <>
               <div className="mobile-nav-section">
@@ -138,13 +198,6 @@ const MobileNav = () => {
                   >
                     {currentRole === 'host' ? '📊 Host Dashboard' : '📊 My Dashboard'}
                   </Link>
-                  <Link
-                    to="/progress"
-                    className={`mobile-nav-link ${isActive('/progress') ? 'active' : ''}`}
-                    onClick={closeMenu}
-                  >
-                    📈 My Progress
-                  </Link>
                   {currentRole === 'student' && (
                     <Link
                       to="/points"
@@ -167,32 +220,11 @@ const MobileNav = () => {
                   >
                     🎓 Host Dashboard
                   </Link>
-                  <Link
-                    to="/live-stream"
-                    className={`mobile-nav-link ${isActive('/live-stream') ? 'active' : ''}`}
-                    onClick={closeMenu}
-                  >
-                    🔴 Go Live
-                  </Link>
                 </div>
               )}
 
               <div className="mobile-nav-section">
                 <h3 className="mobile-nav-section-title">Account</h3>
-                <Link
-                  to="/profile"
-                  className={`mobile-nav-link ${isActive('/profile') ? 'active' : ''}`}
-                  onClick={closeMenu}
-                >
-                  👤 Profile
-                </Link>
-                <Link
-                  to="/settings"
-                  className={`mobile-nav-link ${isActive('/settings') ? 'active' : ''}`}
-                  onClick={closeMenu}
-                >
-                  ⚙️ Settings
-                </Link>
                 <Link
                   to="/notifications"
                   className={`mobile-nav-link ${isActive('/notifications') ? 'active' : ''}`}
@@ -200,18 +232,20 @@ const MobileNav = () => {
                 >
                   🔔 Notifications
                 </Link>
+                <button
+                  type="button"
+                  className="mobile-nav-link"
+                  onClick={() => {
+                    closeMenu();
+                    if (onLogout) onLogout();
+                  }}
+                  style={{ width: '100%', textAlign: 'left', border: 'none', background: 'transparent' }}
+                >
+                  🚪 Logout
+                </button>
               </div>
             </>
           )}
-
-          <div className="mobile-nav-section mobile-nav-footer">
-            <a href="https://edutalk.com/help" className="mobile-nav-link">
-              ❓ Help & Support
-            </a>
-            <a href="https://edutalk.com/privacy" className="mobile-nav-link">
-              🔒 Privacy Policy
-            </a>
-          </div>
         </div>
       </nav>
     </>

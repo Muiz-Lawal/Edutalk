@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { useAdmin } from '../context/AdminContext';
 import { useAuth } from '../context/AuthContext';
 import { useAdminPermissions } from '../hooks/useAdminPermissions';
@@ -16,7 +16,17 @@ export const AdminDashboard = () => {
 
   useEffect(() => {
     fetchDashboardStats();
-  }, []);
+  }, [fetchDashboardStats]);
+
+  const { hasPermission, adminRole } = useAdminPermissions();
+  const isFinanceAdmin = adminRole === 'finance_admin';
+  const isModerator = adminRole === 'moderator';
+  const isSupport = adminRole === 'support';
+  const isSuperAdmin = adminRole === 'superadmin';
+  const canViewPayments = hasPermission('view_payments');
+  const canViewAudit = hasPermission('view_audit_logs');
+  const canModerate = hasPermission('moderate_content') && !isFinanceAdmin;
+  const canManageUsers = !isFinanceAdmin && !isSupport;
 
   if (loading) {
     return (
@@ -29,12 +39,6 @@ export const AdminDashboard = () => {
     );
   }
 
-  const { hasPermission, adminRole } = useAdminPermissions();
-  const isFinanceAdmin = adminRole === 'finance_admin';
-  const canViewPayments = hasPermission('view_payments');
-  const canViewAudit = hasPermission('view_audit_logs');
-  const canModerate = hasPermission('moderate_content') && !isFinanceAdmin;
-
   return (
     <AdminLayout>
       <div className="admin-page">
@@ -44,7 +48,6 @@ export const AdminDashboard = () => {
 
         {dashboardStats && (
           <>
-            {/* KPI Cards */}
             <div className="admin-grid">
               <div className="stat-card">
                 <div className="stat-label">Total Users</div>
@@ -85,13 +88,14 @@ export const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* Quick Actions */}
             <div className="admin-section">
               <h2>Quick Actions</h2>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <a href="/admin/users" className="btn btn-primary">
-                  Manage Users
-                </a>
+                {!isSupport && canManageUsers && (
+                  <a href="/admin/users" className="btn btn-primary">
+                    Manage Users
+                  </a>
+                )}
                 {canModerate && (
                   <a href="/admin/moderation" className="btn btn-primary">
                     Moderation Queue
@@ -102,14 +106,12 @@ export const AdminDashboard = () => {
                     Payment Reports
                   </a>
                 )}
-
                 {canViewAudit && (
                   <a href="/admin/logs" className="btn btn-primary">
                     View Audit Logs
                   </a>
                 )}
-
-                {user?.isSuperAdmin && (
+                {isSuperAdmin && (
                   <a href="/admin/management" className="btn btn-danger">
                     🔑 Manage Admins
                   </a>
@@ -117,7 +119,6 @@ export const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* Analytics Charts */}
             <div className="admin-section">
               <h2>Analytics & Trends</h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: '20px' }}>
@@ -126,13 +127,11 @@ export const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* Engagement Metrics */}
             <div className="admin-section">
               <h2>Platform Engagement</h2>
               <PlatformEngagementMetrics />
             </div>
 
-            {/* Top Performers */}
             <div className="admin-section">
               <h2>Top Performers</h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(600px, 1fr))', gap: '20px', marginTop: '20px' }}>
@@ -141,7 +140,6 @@ export const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* System Information */}
             <div className="admin-section">
               <h2>System Information</h2>
               <div className="admin-table">

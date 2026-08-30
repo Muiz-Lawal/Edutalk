@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAdminPermissions } from '../hooks/useAdminPermissions';
 
@@ -13,6 +13,7 @@ export default function ProtectedRoute({
 }) {
   const { isAuthenticated, loading, isHost, activeRole, user } = useAuth();
   const { isAdmin, hasPermission } = useAdminPermissions();
+  const location = useLocation();
 
   if (loading) {
     return <div className="loading">Loading...</div>;
@@ -20,6 +21,10 @@ export default function ProtectedRoute({
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user?.isAdmin && !location.pathname.startsWith('/admin')) {
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   if (requireHost && !isHost) {
@@ -39,7 +44,7 @@ export default function ProtectedRoute({
   }
 
   if (requirePermission && !hasPermission(requirePermission)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   return children;

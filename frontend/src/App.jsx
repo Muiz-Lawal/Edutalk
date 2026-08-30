@@ -383,7 +383,7 @@ function App() {
             <Route
               path="/admin/security/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <SecurityDashboard />
                 </ProtectedRoute>
               }
@@ -391,7 +391,7 @@ function App() {
             <Route
               path="/admin/security/settings"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <AdminSecuritySettings />
                 </ProtectedRoute>
               }
@@ -399,7 +399,7 @@ function App() {
             <Route
               path="/admin/security/2fa-setup"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <TwoFASetup />
                 </ProtectedRoute>
               }
@@ -407,7 +407,7 @@ function App() {
             <Route
               path="/admin/security/change-password"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <ChangePassword />
                 </ProtectedRoute>
               }

@@ -4,9 +4,9 @@ import { useAuth } from '../context/AuthContext';
 // Mirror of backend PERMISSIONS and role hierarchy for client-side gating
 const ADMIN_ROLE_HIERARCHY = {
   support: ['support'],
-  moderator: ['support', 'moderator'],
-  admin: ['support', 'moderator', 'admin'],
-  finance_admin: ['support', 'moderator', 'admin', 'finance_admin'],
+  moderator: ['moderator'],
+  admin: ['admin'],
+  finance_admin: ['finance_admin'],
   superadmin: ['support', 'moderator', 'admin', 'finance_admin', 'superadmin'],
 };
 

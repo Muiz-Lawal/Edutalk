@@ -14,6 +14,8 @@ async function seed() {
   const users = [
     { email: 'finance@test.local', password: 'Password123!', firstName: 'Finance', lastName: 'Admin', isAdmin: true, adminRole: 'finance_admin', isSuperAdmin: false },
     { email: 'moderator@test.local', password: 'Password123!', firstName: 'Mod', lastName: 'User', isAdmin: true, adminRole: 'moderator', isSuperAdmin: false },
+    { email: 'support@test.local', password: 'Password123!', firstName: 'Support', lastName: 'Agent', isAdmin: true, adminRole: 'support', isSuperAdmin: false },
+    { email: 'admin@test.local', password: 'Password123!', firstName: 'General', lastName: 'Admin', isAdmin: true, adminRole: 'admin', isSuperAdmin: false },
     { email: 'super@test.local', password: 'Password123!', firstName: 'Super', lastName: 'Admin', isAdmin: true, adminRole: 'superadmin', isSuperAdmin: true },
     { email: 'student@test.local', password: 'Password123!', firstName: 'Student', lastName: 'User', isStudent: true, isAdmin: false },
     { email: 'host@test.local', password: 'Password123!', firstName: 'Host', lastName: 'User', isHost: true, dateOfBirth: '1990-01-01', isAdmin: false },
