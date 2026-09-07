@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  tokenVersion: { type: Number, default: 0 },
   firstName: String,
   lastName: String,
   dateOfBirth: Date,
@@ -121,9 +122,8 @@ const userSchema = new mongoose.Schema({
     adminActivityAlerts: { type: Boolean, default: true },
     suspiciousActivityAlerts: { type: Boolean, default: true },
     emailVerified: { type: Boolean, default: false },
-    emailVerificationToken: String,
-    emailVerificationExpires: Date,
   },
+  welcomeEmailSentAt: Date,
   
   // Two-Factor Authentication (2FA)
   twoFAEnabled: {

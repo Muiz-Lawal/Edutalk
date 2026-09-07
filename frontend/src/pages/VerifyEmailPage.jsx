@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, LoaderCircle } from 'lucide-react';
 import api from '../utils/api';
 import { showToast } from '../utils/toastManager';
+import { useAuth } from '../hooks/useAuth';
 import '../styles/Auth.css';
 
 const emptyCode = ['', '', '', '', '', ''];
@@ -10,7 +11,9 @@ const emptyCode = ['', '', '', '', '', ''];
 export default function VerifyEmailPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { setAuthSession } = useAuth();
   const email = params.get('email') || '';
+  const queryCode = params.get('code') || '';
   const [code, setCode] = useState(emptyCode);
   const [status, setStatus] = useState('');
   const [message, setMessage] = useState('');
@@ -25,6 +28,15 @@ export default function VerifyEmailPage() {
     const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000);
     return () => window.clearInterval(timer);
   }, [cooldown]);
+
+  useEffect(() => {
+    const digits = queryCode.replace(/\D/g, '').slice(0, 6).split('');
+    if (digits.length !== 6) return;
+    const next = [...emptyCode];
+    digits.forEach((digit, index) => { next[index] = digit; });
+    setCode(next);
+    verify(next);
+  }, [queryCode]);
 
   const request = async (method, url, data) => {
     const controller = new AbortController();
@@ -43,9 +55,9 @@ export default function VerifyEmailPage() {
     setStatus('');
     setMessage('');
     try {
-      const { data } = await request('post', '/users/verify-email-code', { code: nextCode.join('') });
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const isHost = data?.isHost ?? storedUser?.isHost;
+      const { data } = await request('post', '/auth/verify-email', { email, code: nextCode.join('') });
+      setAuthSession(data.user, data.token);
+      const isHost = data.user?.isHost;
       setStatus('success');
       setMessage('Code accepted');
       showToast({ title: 'Email verified', type: 'success' });
@@ -53,8 +65,9 @@ export default function VerifyEmailPage() {
     } catch (error) {
       console.error('Email verification failed', error);
       setCode(emptyCode);
-      setStatus(error?.cause?.response?.status === 410 ? 'expired' : error?.cause?.response?.status === 400 ? 'invalid' : 'error');
-      setMessage(error?.cause?.response?.status === 410 ? 'This code expired. Send a new one.' : error?.cause?.response?.status === 400 ? "That code didn't match. Try again." : 'We couldn’t verify your email. Please try again.');
+      const errorCode = error?.cause?.response?.data?.error;
+      setStatus(errorCode === 'expired_code' ? 'expired' : errorCode === 'too_many_attempts' ? 'locked' : errorCode === 'invalid_code' ? 'invalid' : 'error');
+      setMessage(errorCode === 'expired_code' ? 'This code expired. Send a new one.' : errorCode === 'too_many_attempts' ? 'Too many attempts. Send a new code.' : errorCode === 'invalid_code' ? "That code didn't match. Try again." : 'We couldn’t verify your email. Please try again.');
       window.setTimeout(() => inputRefs.current[0]?.focus(), 0);
     } finally {
       setSubmitting(false);
@@ -93,7 +106,7 @@ export default function VerifyEmailPage() {
     setResending(true);
     setStatus('');
     try {
-      await request('post', '/users/send-verification');
+      await request('post', '/auth/resend-code', { email });
       setCooldown(30);
       showToast({ title: `New code sent to ${email}`, type: 'success' });
     } catch (error) {

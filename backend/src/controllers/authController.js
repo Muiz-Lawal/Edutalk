@@ -9,6 +9,8 @@ import {
   sendSuspiciousActivityEmail,
 } from '../utils/emailNotifications.js';
 import { createAdminSession, checkSuspiciousLogin } from '../utils/sessionManager.js';
+import { issueVerificationCode, CODE_PURPOSES } from '../utils/verificationCodes.js';
+import { sendMail, verificationEmail } from '../utils/mailer.js';
 
 const getAgeFromDateOfBirth = (dateOfBirth) => {
   if (!dateOfBirth) return null;
@@ -80,27 +82,18 @@ export const register = async (req, res) => {
       isAdmin: false,
       isSuperAdmin: false,
       adminRole: null,
-      emailVerificationToken: String(Math.floor(100000 + Math.random() * 900000)),
-      emailVerificationExpires: Date.now() + 10 * 60 * 1000,
     });
 
     await user.save();
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('Email verification code:', user.emailVerificationToken);
-    }
     try {
-      const { sendEmail } = await import('../utils/email.js');
-      await sendEmail({
-        to: user.email,
-        subject: 'Your EduTalk verification code',
-        template: 'email-verification',
-        data: { firstName: user.firstName, verificationCode: user.emailVerificationToken },
-      });
+      const issued = await issueVerificationCode({ email: user.email, purpose: CODE_PURPOSES.EMAIL_VERIFICATION });
+      const template = verificationEmail({ firstName: user.firstName, code: issued.code, email: user.email });
+      await sendMail({ to: user.email, ...template, code: issued.code });
     } catch (emailError) {
       console.error('Unable to send verification email:', emailError);
     }
 
-    const token = generateToken(user._id, user.email);
+    const token = generateToken(user._id, user.email, user.tokenVersion);
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -143,7 +136,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
     
-    const token = generateToken(user._id, user.email);
+    const token = generateToken(user._id, user.email, user.tokenVersion);
     
     res.json({
       message: 'Login successful',
