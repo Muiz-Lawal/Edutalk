@@ -80,9 +80,25 @@ export const register = async (req, res) => {
       isAdmin: false,
       isSuperAdmin: false,
       adminRole: null,
+      emailVerificationToken: String(Math.floor(100000 + Math.random() * 900000)),
+      emailVerificationExpires: Date.now() + 10 * 60 * 1000,
     });
 
     await user.save();
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Email verification code:', user.emailVerificationToken);
+    }
+    try {
+      const { sendEmail } = await import('../utils/email.js');
+      await sendEmail({
+        to: user.email,
+        subject: 'Your EduTalk verification code',
+        template: 'email-verification',
+        data: { firstName: user.firstName, verificationCode: user.emailVerificationToken },
+      });
+    } catch (emailError) {
+      console.error('Unable to send verification email:', emailError);
+    }
 
     const token = generateToken(user._id, user.email);
 
