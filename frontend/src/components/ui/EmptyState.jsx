@@ -9,7 +9,7 @@ export default function EmptyState({ title, description, action, icon: Icon = In
       <Icon size={40} strokeWidth={2} aria-hidden="true" />
       <h2>{title}</h2>
       {description && <p>{description}</p>}
-      {action && <Button onClick={action.onClick}>{action.label}</Button>}
+      {action && <Button variant={action.variant || 'primary'} onClick={action.onClick}>{action.label}</Button>}
     </div>
   );
 }

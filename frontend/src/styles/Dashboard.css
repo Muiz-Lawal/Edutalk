@@ -4,6 +4,67 @@
   padding: 3rem 2rem;
 }
 
+.dashboard-page .page-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.dashboard-page .dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.dashboard-page .dashboard-stats .ui-stat-card {
+  min-width: 0;
+  padding: 20px 24px;
+  border-radius: 12px;
+}
+
+.dashboard-page .dashboard-stats .ui-stat-card__label {
+  display: block;
+  color: #64748B;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+}
+
+.dashboard-page .dashboard-stats .ui-stat-card strong {
+  margin-top: 4px;
+  color: #0F172A;
+}
+
+.dashboard-page .dashboard-enrollments {
+  margin-top: 0;
+}
+
+.dashboard-page .dashboard-enrollments .ui-empty-state {
+  padding: 32px 24px;
+}
+
+.dashboard-page .dashboard-enrollments .ui-empty-state > svg {
+  display: block;
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+  background: #EEF2FF;
+  color: #4F46E5;
+}
+
+.dashboard-page .dashboard-enrollments .ui-empty-state h2 {
+  color: #0F172A;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.dashboard-page .dashboard-enrollments .ui-empty-state p {
+  color: #475569;
+  font-size: 14px;
+}
+
 .dashboard-page .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -409,9 +470,9 @@
   .dashboard-enrollment-main small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
   .dashboard-enrollment-code { display: flex; align-items: center; gap: 5px; color: var(--muted); font: 600 12px/1 ui-monospace, monospace; white-space: nowrap; }
   .dashboard-enrollment-code button { display: inline-flex; padding: 4px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
-  @media (max-width: 900px) { .dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dashboard-quick-links { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 900px) { .dashboard-page .dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dashboard-quick-links { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 600px) { .dashboard-quick-links { grid-template-columns: 1fr; } .dashboard-enrollment-row { grid-template-columns: 40px minmax(0, 1fr); } .dashboard-enrollment-thumb { width: 40px; height: 40px; } .dashboard-enrollment-code, .dashboard-enrollment-row > .ui-button { grid-column: 2; justify-self: start; } }
-  @media (max-width: 480px) { .dashboard-stats { grid-template-columns: 1fr; } }
+  @media (max-width: 480px) { .dashboard-page .dashboard-stats { grid-template-columns: 1fr; } }
 
   .host-stats {
     grid-template-columns: repeat(2, 1fr);
