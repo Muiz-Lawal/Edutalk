@@ -14,6 +14,8 @@ const LoadingSpinner = () => (
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
 const SignupPage = React.lazy(() => import('./pages/SignupPage'));
+const VerifyEmailPage = React.lazy(() => import('./pages/VerifyEmailPage'));
+const LegalPage = React.lazy(() => import('./pages/LegalPage'));
 const BrowseClassesPage = React.lazy(() => import('./pages/BrowseClassesPage'));
 const ClassDetailPage = React.lazy(() => import('./pages/ClassDetailPage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
@@ -104,6 +106,10 @@ function App() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
+                <Route path="/register" element={<SignupPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/terms" element={<LegalPage />} />
+                <Route path="/privacy" element={<LegalPage />} />
                 <Route path="/browse" element={<BrowseClassesPage />} />
 
                 {/* Bundle Routes */}

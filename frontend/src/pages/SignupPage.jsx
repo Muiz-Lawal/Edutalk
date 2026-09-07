@@ -1,136 +1,72 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { CalendarClock, Check, Eye, EyeOff, GraduationCap, Presentation, ShieldCheck, Video, UserPlus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import '../styles/Auth.css';
-import { ArrowLeft, ArrowRight, Eye, EyeOff, UserPlus } from 'lucide-react';
 import Button from '../components/ui/Button';
+import '../styles/Auth.css';
 
-const initialForm = {
-  email: '',
-  password: '',
-  confirmPassword: '',
-  firstName: '',
-  lastName: '',
-  dateOfBirth: '',
-  isHost: false,
-};
+const initialForm = { firstName: '', lastName: '', email: '', password: '', isHost: false, termsAccepted: false, referralCode: '', dateOfBirth: '' };
 
 export default function SignupPage() {
-  const [formData, setFormData] = useState(initialForm);
-  const [step, setStep] = useState(1);
+  const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const checks = useMemo(() => ({ length: form.password.length >= 8, letter: /[A-Za-z]/.test(form.password), number: /\d/.test(form.password) }), [form.password]);
+  const strength = Object.values(checks).filter(Boolean).length;
 
-  const updateField = (event) => {
-    const { name, value, type, checked } = event.target;
-    setFormData((current) => ({ ...current, [name]: type === 'checkbox' ? checked : value }));
+  const update = (event) => {
+    const { name, type, value, checked } = event.target;
+    setForm((current) => ({ ...current, [name]: type === 'checkbox' ? checked : name === 'email' ? value.toLowerCase() : value }));
     if (errors[name]) setErrors((current) => ({ ...current, [name]: '' }));
-    if (serverError) setServerError('');
-  };
-
-  const validateStep = (currentStep) => {
-    const nextErrors = {};
-    if (currentStep === 1) {
-      if (!formData.email.trim()) nextErrors.email = 'Enter your email address.';
-      if (formData.password.length < 8) nextErrors.password = 'Use at least 8 characters.';
-      if (!formData.confirmPassword) nextErrors.confirmPassword = 'Confirm your password.';
-      else if (formData.password !== formData.confirmPassword) nextErrors.confirmPassword = 'Passwords do not match.';
-    } else {
-      if (!formData.firstName.trim()) nextErrors.firstName = 'Enter your first name.';
-      if (!formData.lastName.trim()) nextErrors.lastName = 'Enter your last name.';
-      if (formData.isHost && !formData.dateOfBirth) nextErrors.dateOfBirth = 'Enter your date of birth to continue.';
-    }
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  };
-
-  const handleBlur = (event) => {
-    const { name } = event.target;
-    const fieldErrors = {};
-    if (name === 'email' && !formData.email.trim()) fieldErrors.email = 'Enter your email address.';
-    if (name === 'password' && formData.password.length < 8) fieldErrors.password = 'Use at least 8 characters.';
-    if (name === 'confirmPassword' && formData.password !== formData.confirmPassword) fieldErrors.confirmPassword = 'Passwords do not match.';
-    if (name === 'firstName' && !formData.firstName.trim()) fieldErrors.firstName = 'Enter your first name.';
-    if (name === 'lastName' && !formData.lastName.trim()) fieldErrors.lastName = 'Enter your last name.';
-    setErrors((current) => ({ ...current, ...fieldErrors, [name]: fieldErrors[name] || '' }));
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (step === 1) {
-      if (validateStep(1)) setStep(2);
-      return;
-    }
-    if (!validateStep(2)) return;
-    if (formData.isHost) {
-      const birthDate = new Date(formData.dateOfBirth);
-      const today = new Date();
-      let age = today.getFullYear() - birthDate.getFullYear();
-      if (today.getMonth() < birthDate.getMonth() || (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate())) age -= 1;
-      if (age < 18) {
-        setErrors({ dateOfBirth: 'You must be 18 or older to teach on EduTalk.' });
-        return;
-      }
-    }
-    setLoading(true);
     setServerError('');
+  };
+  const blur = (name) => {
+    const next = {};
+    if (['firstName', 'lastName'].includes(name) && !form[name].trim()) next[name] = `Enter your ${name === 'firstName' ? 'first' : 'last'} name.`;
+    if (name === 'email' && !form.email.trim()) next.email = 'Enter your email address.';
+    if (name === 'password' && (!checks.length || !checks.letter || !checks.number)) next.password = 'Use at least 8 characters with a letter and a number.';
+    if (name === 'termsAccepted' && !form.termsAccepted) next.termsAccepted = 'Please accept the terms to continue.';
+    setErrors((current) => ({ ...current, [name]: next[name] || '' }));
+  };
+  const submit = async (event) => {
+    event.preventDefault();
+    const next = {};
+    if (!form.firstName.trim() || form.firstName.trim().length > 50) next.firstName = 'Enter a first name of 50 characters or fewer.';
+    if (!form.lastName.trim() || form.lastName.trim().length > 50) next.lastName = 'Enter a last name of 50 characters or fewer.';
+    if (!form.email.trim()) next.email = 'Enter your email address.';
+    if (!checks.length || !checks.letter || !checks.number) next.password = 'Use at least 8 characters with a letter and a number.';
+    if (!form.termsAccepted) next.termsAccepted = 'Please accept the terms to continue.';
+    setErrors(next);
+    if (Object.keys(next).length) return;
+    setLoading(true);
     try {
-      await register(formData.email, formData.password, formData.firstName, formData.lastName, formData.isHost, formData.dateOfBirth);
-      navigate('/dashboard');
+      await register(form.email.trim(), form.password, form.firstName.trim(), form.lastName.trim(), form.isHost, form.dateOfBirth, form.referralCode.trim().toUpperCase());
+      navigate(`/verify-email?email=${encodeURIComponent(form.email.trim())}`, { replace: true });
     } catch (requestError) {
       console.error('Signup failed', requestError);
-      setServerError('We couldn’t create your account. Check your details and try again.');
+      setServerError(requestError?.cause?.response?.status === 409 ? 'An account with this email already exists.' : 'We couldn’t create your account. Check your details and try again.');
     } finally {
       setLoading(false);
     }
   };
-
-  const fieldClass = (name) => `auth-field${errors[name] ? ' has-error' : ''}`;
-
-  return (
-    <main className="auth-page auth-page--split">
-      <section className="auth-panel auth-panel--intro">
-        <Link to="/" className="auth-brand"><span className="logo-mark" aria-hidden="true" />EduTalk</Link>
-        <div className="auth-intro-copy">
-          <p className="auth-eyebrow">Learn and teach together</p>
-          <h1>Build momentum with every lesson.</h1>
-          <p>Join a focused learning community where expert hosts and curious students grow together.</p>
-        </div>
-        <p className="auth-intro-footer">Secure, flexible learning for every stage.</p>
-      </section>
-      <section className="auth-panel auth-panel--form">
-        <div className="auth-container">
-          <div className="auth-form-heading">
-            <p className="auth-step">Step {step} of 2</p>
-            <h2>{step === 1 ? 'Create your account' : 'Tell us about you'}</h2>
-            <p>{step === 1 ? 'Use your email to get started.' : 'Set up your profile so EduTalk can personalize your experience.'}</p>
-          </div>
-          <div className="auth-progress" aria-label={`Signup step ${step} of 2`}><span style={{ width: `${step === 1 ? 50 : 100}%` }} /></div>
-          <form onSubmit={handleSubmit} className="auth-form" noValidate>
-            {step === 1 ? (
-              <>
-                <div className={fieldClass('email')}><label htmlFor="signup-email">Email address</label><input id="signup-email" type="email" name="email" autoComplete="email" value={formData.email} onChange={updateField} onBlur={handleBlur} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? 'signup-email-error' : 'signup-email-help'} /><small id="signup-email-help">We’ll use this to secure your account.</small>{errors.email && <em id="signup-email-error">{errors.email}</em>}</div>
-                <div className={fieldClass('password')}><label htmlFor="signup-password">Password</label><div className="password-input-wrapper"><input id="signup-password" type={showPassword ? 'text' : 'password'} name="password" autoComplete="new-password" value={formData.password} onChange={updateField} onBlur={handleBlur} aria-invalid={Boolean(errors.password)} /><button type="button" className="password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div><small>At least 8 characters.</small>{errors.password && <em>{errors.password}</em>}</div>
-                <div className={fieldClass('confirmPassword')}><label htmlFor="signup-confirm-password">Confirm password</label><div className="password-input-wrapper"><input id="signup-confirm-password" type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" autoComplete="new-password" value={formData.confirmPassword} onChange={updateField} onBlur={handleBlur} aria-invalid={Boolean(errors.confirmPassword)} /><button type="button" className="password-toggle" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'}>{showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div>{errors.confirmPassword && <em>{errors.confirmPassword}</em>}</div>
-              </>
-            ) : (
-              <>
-                <div className="form-row"><div className={fieldClass('firstName')}><label htmlFor="signup-first-name">First name</label><input id="signup-first-name" type="text" name="firstName" autoComplete="given-name" value={formData.firstName} onChange={updateField} onBlur={handleBlur} aria-invalid={Boolean(errors.firstName)} />{errors.firstName && <em>{errors.firstName}</em>}</div><div className={fieldClass('lastName')}><label htmlFor="signup-last-name">Last name</label><input id="signup-last-name" type="text" name="lastName" autoComplete="family-name" value={formData.lastName} onChange={updateField} onBlur={handleBlur} aria-invalid={Boolean(errors.lastName)} />{errors.lastName && <em>{errors.lastName}</em>}</div></div>
-                <div className={fieldClass('dateOfBirth')}><label htmlFor="signup-dob">Date of birth <span>(optional)</span></label><input id="signup-dob" type="date" name="dateOfBirth" autoComplete="bday" value={formData.dateOfBirth} onChange={updateField} onBlur={handleBlur} aria-invalid={Boolean(errors.dateOfBirth)} /><small>Required only if you choose to teach classes.</small>{errors.dateOfBirth && <em>{errors.dateOfBirth}</em>}</div>
-                <label className="auth-check-row" htmlFor="signup-host"><input id="signup-host" type="checkbox" name="isHost" checked={formData.isHost} onChange={updateField} /><span><strong>I want to teach classes</strong><small>Hosts must be 18 or older.</small></span></label>
-              </>
-            )}
-            {serverError && <div className="error-message" role="alert">{serverError}</div>}
-            <div className="auth-form-actions">{step === 2 && <Button type="button" variant="secondary" onClick={() => { setStep(1); setServerError(''); }}><ArrowLeft size={16} /> Back</Button>}<Button type="submit" disabled={loading} loading={loading}>{loading ? 'Creating account…' : step === 1 ? <>Continue <ArrowRight size={16} /></> : <><UserPlus size={16} /> Create account</>}</Button></div>
-          </form>
-          <p className="auth-footer">Already have an account? <Link to="/login">Sign in</Link></p>
-        </div>
-      </section>
-    </main>
-  );
+  const valueRows = [[Video, 'Live classes with real hosts, not pre-recorded playlists'], [CalendarClock, 'Pay only for the days you need — from $4.17/day'], [ShieldCheck, 'Secure payments via Stripe and Paystack']];
+  return <main className="auth-page auth-page--split">
+    <section className="auth-panel auth-panel--intro"><Link to="/" className="auth-brand"><span className="logo-mark" />EduTalk</Link><div className="auth-intro-copy"><h2>Learn on Your Terms. Pay for the Time You Need.</h2><div className="auth-value-list">{valueRows.map(([Icon, text]) => <div key={text}><span><Icon size={20} /></span><p>{text}</p></div>)}</div></div><p className="auth-intro-footer">© 2026 EduTalk</p><i className="auth-orb auth-orb--one" /><i className="auth-orb auth-orb--two" /></section>
+    <section className="auth-panel auth-panel--form"><div className="auth-container"><div className="auth-form-heading"><h1>Create your account</h1><p>Start learning or teaching in under two minutes.</p></div><form className="auth-form" onSubmit={submit} noValidate>
+      <div className="form-row"><div className="auth-field"><label htmlFor="signup-first-name">First name</label><input id="signup-first-name" name="firstName" maxLength={50} autoComplete="given-name" placeholder="Aisha" value={form.firstName} onChange={update} onBlur={() => blur('firstName')} aria-invalid={Boolean(errors.firstName)} />{errors.firstName && <em>{errors.firstName}</em>}</div><div className="auth-field"><label htmlFor="signup-last-name">Last name</label><input id="signup-last-name" name="lastName" maxLength={50} autoComplete="family-name" placeholder="Okafor" value={form.lastName} onChange={update} onBlur={() => blur('lastName')} aria-invalid={Boolean(errors.lastName)} />{errors.lastName && <em>{errors.lastName}</em>}</div></div>
+      <div className="auth-field"><label htmlFor="signup-email">Email address</label><input id="signup-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={form.email} onChange={update} onBlur={() => blur('email')} aria-invalid={Boolean(errors.email)} />{errors.email && <em>{errors.email}</em>}</div>
+      <div className="auth-field"><label htmlFor="signup-password">Password</label><div className="password-input-wrapper"><input id="signup-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="At least 8 characters" value={form.password} onChange={update} onBlur={() => blur('password')} aria-invalid={Boolean(errors.password)} /><button type="button" className="password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div><div className="password-meter">{[1, 2, 3, 4].map((item) => <i key={item} className={strength >= item ? `strength-${strength}` : ''} />)}</div><div className="password-checklist">{[['length', '8+ characters'], ['letter', 'Contains a letter'], ['number', 'Contains a number']].map(([key, label]) => <span key={key} className={checks[key] ? 'is-met' : ''}>{checks[key] ? <Check size={14} /> : <i />}{label}</span>)}</div>{errors.password && <em>{errors.password}</em>}</div>
+      <fieldset className="role-field"><legend>I want to join as</legend><div className="role-cards">{[[false, GraduationCap, 'Student', 'Learn live classes and pay only for the days you need'], [true, Presentation, 'Host', 'Teach live classes and earn from every enrollment']].map(([host, Icon, title, caption]) => <label key={title} className={`role-card${form.isHost === host ? ' is-selected' : ''}`}><input type="radio" name="role" checked={form.isHost === host} onChange={() => setForm((current) => ({ ...current, isHost: host }))} /><Icon size={20} /><strong>{title}</strong><small>{caption}</small>{form.isHost === host && <Check className="role-check" size={16} />}</label>)}</div></fieldset>
+      {form.isHost && <div className="auth-field"><label htmlFor="signup-dob">Date of birth <span>(optional)</span></label><input id="signup-dob" type="date" name="dateOfBirth" autoComplete="bday" value={form.dateOfBirth} onChange={update} /><small>Hosts must be 18 or older.</small></div>}
+      <div className="terms-field"><label><input type="checkbox" name="termsAccepted" checked={form.termsAccepted} onChange={update} onBlur={() => blur('termsAccepted')} /> <span>I agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</span></label>{errors.termsAccepted && <em>{errors.termsAccepted}</em>}</div>
+      <button type="button" className="referral-toggle" onClick={() => setShowReferral((value) => !value)}>Have a referral code?</button>{showReferral && <div className="auth-field"><label htmlFor="signup-referral">Referral code <span>(optional)</span></label><input id="signup-referral" name="referralCode" autoComplete="off" minLength={6} maxLength={12} pattern="[A-Za-z0-9]{6,12}" value={form.referralCode} onChange={update} /></div>}
+      {serverError && <div className="error-message" role="alert">{serverError} {serverError.includes('already exists') && <Link to="/login">Sign in instead</Link>}</div>}
+      <Button type="submit" disabled={loading} loading={loading}>{loading ? 'Creating account…' : <><UserPlus size={16} /> Create account</>}</Button>
+    </form><p className="auth-footer">Already have an account? <Link to="/login">Sign in</Link></p></div></section>
+  </main>;
 }

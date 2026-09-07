@@ -27,6 +27,7 @@ export default function Header() {
   const resizeTimeoutRef = useRef(null);
   const isCompactLayout = windowWidth < 768;
   const isAdminSession = Boolean(user?.isAdmin || user?.adminRole || isAdminPerm);
+  const isAuthPage = ['/login', '/signup', '/register', '/verify-email'].includes(location.pathname);
 
   const currentRole = isAdminPerm ? 'admin' : activeRole || 'student';
   const showHostLinks = Boolean(user?.isHost && currentRole === 'host' && !isAdminPerm);
@@ -43,6 +44,8 @@ export default function Header() {
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
   };
+
+  if (isAuthPage) return null;
 
   useEffect(() => {
     if (isAuthenticated && token) {

@@ -104,7 +104,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (email, password, firstName, lastName, isHost, dateOfBirth) => {
+  const register = async (email, password, firstName, lastName, isHost, dateOfBirth, referralCode) => {
     try {
       const response = await api.post('/auth/register', {
         email,
@@ -113,6 +113,7 @@ export const AuthProvider = ({ children }) => {
         lastName,
         isHost,
         dateOfBirth,
+        referralCode,
       });
 
       const { token: receivedToken, user: userData } = response.data;

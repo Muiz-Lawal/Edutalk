@@ -40,14 +40,14 @@ export default function LoginPage() {
       </section>
       <section className="auth-panel auth-panel--form">
         <div className="auth-container">
-          <div className="auth-form-heading"><h2>Sign in to EduTalk</h2><p>Enter your details to continue.</p></div>
+          <div className="auth-form-heading"><h1>Welcome back</h1><p>Sign in to continue learning.</p></div>
           <form onSubmit={handleSubmit} className="auth-form" noValidate>
             <div className={`auth-field${error ? '' : ''}`}><label htmlFor="login-email">Email address</label><input id="login-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></div>
             <div className="auth-field"><div className="auth-label-row"><label htmlFor="login-password">Password</label><Link to="/forgot-password">Forgot password?</Link></div><div className="password-input-wrapper"><input id="login-password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /><button type="button" className="password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></div>
             {error && <div className="error-message" role="alert">{error}</div>}
             <Button type="submit" disabled={loading} loading={loading}>{loading ? 'Verifying…' : <><LogIn size={16} /> Sign in</>}</Button>
           </form>
-          <p className="auth-footer">Don’t have an account? <Link to="/signup">Create one</Link></p>
+          <p className="auth-footer">New to EduTalk? <Link to="/signup">Create an account</Link></p>
         </div>
       </section>
     </main>
