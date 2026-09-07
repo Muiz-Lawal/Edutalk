@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import io from 'socket.io-client';
+import api from '../utils/api';
 import StreamSettings from '../components/StreamSettings';
 import StreamControls from '../components/StreamControls';
 import ViewerStats from '../components/ViewerStats';
@@ -43,7 +43,9 @@ export default function LiveStreamHost() {
       return;
     }
 
-    socketRef.current = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const socketUrl = apiBaseUrl.replace(/\/api\/?$/, '');
+    socketRef.current = io(socketUrl, {
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
@@ -82,8 +84,8 @@ export default function LiveStreamHost() {
 
     const interval = setInterval(async () => {
       try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${stream._id}/stats`,
+        const res = await api.get(
+          `/live/${stream._id}/stats`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setViewers(res.data.stats.currentViewers);
@@ -132,8 +134,8 @@ export default function LiveStreamHost() {
       setLoading(true);
       setError(null);
 
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live`,
+      const res = await api.post(
+        '/live',
         {
           classId,
           title,
@@ -172,8 +174,8 @@ export default function LiveStreamHost() {
         enableAdaptive: true,
       };
 
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${stream._id}/start`,
+      const res = await api.post(
+        `/live/${stream._id}/start`,
         { quality: qualityConfig },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -208,8 +210,8 @@ export default function LiveStreamHost() {
       setLoading(true);
       setError(null);
 
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${stream._id}/stop`,
+      const res = await api.post(
+        `/live/${stream._id}/stop`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

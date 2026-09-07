@@ -25,6 +25,17 @@
   font-size: 1.1rem;
 }
 
+.enrollment-secure-note {
+  display: inline-flex;
+  margin-top: .75rem;
+  padding: .45rem .75rem;
+  border-radius: 999px;
+  background: #e8f3ff;
+  color: #1d5f91;
+  font-size: .875rem !important;
+  font-weight: 700;
+}
+
 .enrollment-content {
   display: grid;
   grid-template-columns: 1fr 1fr;

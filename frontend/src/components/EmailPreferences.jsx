@@ -56,7 +56,7 @@ const EmailPreferences = () => {
   };
 
   if (loading) {
-    return <div className="email-preferences-loading">Loading preferences...</div>;
+    return <div className="async-skeleton async-skeleton--form" aria-hidden="true" />;
   }
 
   return (

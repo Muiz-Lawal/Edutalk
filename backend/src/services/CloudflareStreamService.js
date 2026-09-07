@@ -191,7 +191,6 @@ class CloudflareStreamService {
   async getPlaybackUrl(videoId) {
     return {
       m3u8: `https://videodelivery.net/${videoId}/manifest/video.m3u8`,
-      mp4: `https://videodelivery.net/${videoId}/downloads/default.mp4`,
     };
   }
 

@@ -159,8 +159,11 @@ export const getProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    // If an admin requests this user's profile, ensure we sanitize according to their admin role
-    const requesterRole = req.user?.adminRole || null;
+    // Preserve role fields when a user loads their own profile so admin sessions
+    // remain admin sessions after the initial login response.
+    const requesterRole = user._id.toString() === req.user.userId.toString()
+      ? user.adminRole
+      : req.user?.adminRole || null;
     const sanitized = sanitizeUserForRequester(user, requesterRole);
 
     res.json(sanitized);
@@ -171,11 +174,11 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { firstName, lastName, bio, timezone, preferredLanguage, preferredCurrency } = req.body;
+    const { firstName, lastName, bio, timezone, preferredLanguage, preferredCurrency, interests, profileImage, theme } = req.body;
     
     const user = await User.findByIdAndUpdate(
       req.user.userId,
-      { firstName, lastName, bio, timezone, preferredLanguage, preferredCurrency },
+      { firstName, lastName, bio, timezone, preferredLanguage, preferredCurrency, interests, profileImage, theme },
       { new: true }
     ).select('-password');
     
@@ -183,6 +186,30 @@ export const updateProfile = async (req, res) => {
     const sanitized = sanitizeUserForRequester(user, requesterRole);
 
     res.json(sanitized);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current and new passwords are required' });
+    }
+    const validation = validatePassword(newPassword);
+    if (!validation.isValid) {
+      return res.status(400).json({ message: validation.errors.join('. ') });
+    }
+    const user = await User.findById(req.user.userId);
+    if (!user || !(await comparePassword(currentPassword, user.password))) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+    user.password = await hashPassword(newPassword);
+    user.passwordChangedAt = new Date();
+    user.passwordExpiresAt = undefined;
+    await user.save();
+    res.json({ message: 'Password changed successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

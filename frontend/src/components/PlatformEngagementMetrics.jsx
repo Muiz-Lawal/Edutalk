@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
+import { Skeleton } from './AsyncBoundary';
 
 const PlatformEngagementMetrics = () => {
   const [metrics, setMetrics] = useState(null);
@@ -26,8 +27,8 @@ const PlatformEngagementMetrics = () => {
     fetchData();
   }, [fetchEngagementMetrics]);
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '20px' }}>Loading...</div>;
-  if (error) return <div style={{ color: 'red', padding: '20px' }}>Error: {error}</div>;
+  if (loading) return <Skeleton variant="block" />;
+  if (error) return <div className="async-state async-state--error" role="alert"><strong>We couldn’t load engagement metrics</strong><p>Please try again.</p></div>;
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '20px' }}>

@@ -18,7 +18,7 @@ export default function DemographicsPanel({ data }) {
   if (!data) {
     return (
       <div className="demographics-panel">
-        <p className="chart-empty">Loading demographics...</p>
+        <div className="async-skeleton async-skeleton--block" aria-hidden="true" />
       </div>
     );
   }

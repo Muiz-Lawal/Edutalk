@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { resolveHostPlanTier } from '../utils/hostPlans.js';
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -16,6 +17,9 @@ const userSchema = new mongoose.Schema({
   dateOfBirth: Date,
   profileImage: String,
   bio: String,
+  interests: { type: [String], default: [] },
+  phoneVerified: { type: Boolean, default: false },
+  theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
   
   // Role flags
   isStudent: {
@@ -88,6 +92,10 @@ const userSchema = new mongoose.Schema({
     default: 'en',
   },
   timezone: String,
+  recordingTranscriptionUsage: {
+    date: String,
+    minutes: { type: Number, default: 0 },
+  },
   // Email preferences
   emailPreferences: {
     paymentConfirmations: { type: Boolean, default: true },
@@ -155,27 +163,47 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 userSchema.pre('save', function(next) {
-  if (this.isAdmin) {
-    this.isStudent = false;
-    this.isHost = false;
-    this.isSuperAdmin = this.adminRole === 'superadmin' || this.isSuperAdmin;
+if (this.adminRole && !this.isAdmin) {
+  this.isAdmin = true;
+}
 
-    if (!this.adminRole) {
-      this.adminRole = 'admin';
-    }
-  }
+if (this.isAdmin && !this.adminRole) {
+  this.adminRole = 'admin';
+}
+
+this.isSuperAdmin = this.adminRole === 'superadmin' || this.isSuperAdmin;
 
   if (this.isHost && !this.dateOfBirth) {
     const error = new Error('Date of birth is required for host registration.');
     return next(error);
   }
 
-  if (this.isAdmin && (this.isStudent || this.isHost)) {
-    const error = new Error('Admin accounts cannot also be student or host accounts.');
-    return next(error);
-  }
+if (!this.isStudent && !this.isHost && !this.isAdmin) {
+  this.isStudent = true;
+}
 
-  next();
+if (this.isHost) {
+  this.planTier = resolveHostPlanTier({
+    totalActiveStudents: this.totalActiveStudents || 0,
+    averageRating: this.averageRating || 0,
+    currentTier: this.planTier || 'starter',
+  });
+}
+
+if (this.activeRole) {
+  const allowedRoles = ['student', 'host', 'admin'];
+  if (!allowedRoles.includes(this.activeRole)) {
+    this.activeRole = 'student';
+  }
+} else if (this.isAdmin) {
+  this.activeRole = 'admin';
+} else if (this.isHost) {
+  this.activeRole = 'host';
+} else {
+  this.activeRole = 'student';
+}
+
+next();
 });
 
 export default mongoose.model('User', userSchema);

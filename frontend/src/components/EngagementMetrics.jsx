@@ -12,10 +12,11 @@ import {
   Bar,
 } from 'recharts';
 import '../styles/AnalyticsCharts.css';
+import { Skeleton } from './AsyncBoundary';
 
 export default function EngagementMetrics({ data }) {
   if (!data) {
-    return <div className="chart-container"><p className="chart-empty">Loading...</p></div>;
+    return <Skeleton variant="block" />;
   }
 
   const engagement = data.engagement || {};
@@ -44,6 +45,10 @@ export default function EngagementMetrics({ data }) {
     engagement: Math.round(item.engagement || 0),
     chatMessages: item.chatMessages || 0,
   }));
+
+  if (chartData.length === 0) {
+    return <div className="chart-container"><p className="chart-empty">Engagement data will appear after a session.</p></div>;
+  }
 
   return (
     <div className="engagement-metrics">

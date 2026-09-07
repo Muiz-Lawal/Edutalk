@@ -51,7 +51,7 @@ export default function PushPermissionRequest() {
   return (
     <div className="push-permission-request">
       <div className="push-permission-content">
-        <div className="push-permission-icon">🔔</div>
+        <div className="push-permission-icon" aria-hidden="true" />
         <div className="push-permission-text">
           <h3>Never miss an update</h3>
           <p>Enable notifications to stay informed about classes, messages, and important announcements</p>

@@ -8,6 +8,7 @@ import {
   generateAnalyticsReport,
   getEngagement,
   getAnalyticsDocuments,
+  getAnalyticsSummary,
 } from '../controllers/analyticsController.js';
 import { authenticateToken } from '../middleware/auth.js';
 
@@ -17,6 +18,7 @@ router.get('/host', authenticateToken, getHostAnalytics);
 router.get('/class/:classId', authenticateToken, getClassAnalytics);
 router.get('/revenue', authenticateToken, getRevenueAnalytics);
 router.get('/student', authenticateToken, getStudentAnalytics);
+router.get('/summary', authenticateToken, getAnalyticsSummary);
 router.get('/recommendations', authenticateToken, getRecommendationMetrics);
 router.get('/report/:classId', authenticateToken, generateAnalyticsReport);
 router.get('/engagement', getEngagement);

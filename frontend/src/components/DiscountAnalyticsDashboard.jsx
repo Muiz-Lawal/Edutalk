@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import '../styles/DiscountAnalytics.css';
+import { formatPrice } from '../lib/currency';
 
 export default function DiscountAnalyticsDashboard({ discountId, overall = false }) {
   const [analytics, setAnalytics] = useState(null);
@@ -28,14 +29,14 @@ export default function DiscountAnalyticsDashboard({ discountId, overall = false
   };
 
   if (loading) {
-    return <div className="loading">Loading discount analytics...</div>;
+    return <div className="async-skeleton async-skeleton--block" aria-hidden="true" />;
   }
 
   if (!analytics) {
     return <div className="error">No analytics data available</div>;
   }
 
-  const formatCurrency = (amount = 0) => `$${(amount || 0).toFixed(2)}`;
+  const formatCurrency = (amount = 0) => formatPrice((Number(amount) || 0) * 100);
   const formatPercent = (value = 0) => `${(value || 0).toFixed(1)}%`;
   const isOverall = overall;
   const title = isOverall

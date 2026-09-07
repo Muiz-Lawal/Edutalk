@@ -1,9 +1,16 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '../utils/api';
+import { useCartStore } from '../stores/cartStore';
 
 const resolveActiveRole = (userData) => {
   if (!userData) return 'student';
-  if (userData.isAdmin) return 'admin';
+  if (userData.isAdmin || userData.adminRole) return 'admin';
+
+  const persistedRole = localStorage.getItem('activeRole');
+  if (userData.isHost && userData.isStudent) {
+    return persistedRole === 'host' || persistedRole === 'student' ? persistedRole : 'host';
+  }
+
   if (userData.isHost) return 'host';
   return 'student';
 };
@@ -20,11 +27,14 @@ export const AuthProvider = ({ children }) => {
 
   const setAuthSession = (userData, authToken) => {
     const nextRole = resolveActiveRole(userData);
+    const safeUser = userData && typeof userData === 'object' ? userData : null;
     localStorage.setItem('token', authToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+    if (safeUser) {
+      localStorage.setItem('user', JSON.stringify(safeUser));
+    }
     localStorage.setItem('activeRole', nextRole);
     setToken(authToken);
-    setUser(userData);
+    setUser(safeUser);
     setActiveRoleState(nextRole);
   };
 
@@ -47,7 +57,7 @@ export const AuthProvider = ({ children }) => {
 
     const nextRole = resolveActiveRole(user);
     const persistedRole = localStorage.getItem('activeRole');
-    const safeRole = user.isAdmin ? 'admin' : user.isHost && (persistedRole === 'host' || persistedRole === 'student') ? persistedRole : nextRole;
+    const safeRole = user.isAdmin || user.adminRole ? 'admin' : user.isHost && (persistedRole === 'host' || persistedRole === 'student') ? persistedRole : nextRole;
     localStorage.setItem('activeRole', safeRole);
     setActiveRoleState(safeRole);
   }, [user]);
@@ -74,10 +84,19 @@ export const AuthProvider = ({ children }) => {
       const nextRole = resolveActiveRole(userData);
 
       localStorage.setItem('token', receivedToken);
+      if (userData) {
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
       localStorage.setItem('activeRole', nextRole);
       setToken(receivedToken);
-      setUser(userData);
+      setUser(userData || null);
       setActiveRoleState(nextRole);
+      try {
+        const merged = await api.post('/payments/cart/merge', { lines: useCartStore.getState().lines });
+        useCartStore.getState().replaceLines(merged.data.lines);
+      } catch (mergeError) {
+        console.warn('Cart merge unavailable:', mergeError.message);
+      }
 
       return userData;
     } catch (error) {
@@ -100,9 +119,12 @@ export const AuthProvider = ({ children }) => {
       const nextRole = resolveActiveRole(userData);
 
       localStorage.setItem('token', receivedToken);
+      if (userData) {
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
       localStorage.setItem('activeRole', nextRole);
       setToken(receivedToken);
-      setUser(userData);
+      setUser(userData || null);
       setActiveRoleState(nextRole);
 
       return userData;
@@ -130,7 +152,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const setActiveRole = (nextRole) => {
-    const permittedRole = !user || user.isAdmin ? 'admin' : user.isHost ? (nextRole === 'host' || nextRole === 'student' ? nextRole : 'student') : 'student';
+    const isAdminUser = Boolean(user?.isAdmin || user?.adminRole);
+    const permittedRole = isAdminUser ? 'admin' : user?.isHost ? (nextRole === 'host' || nextRole === 'student' ? nextRole : 'student') : 'student';
     localStorage.setItem('activeRole', permittedRole);
     setActiveRoleState(permittedRole);
   };
@@ -145,7 +168,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     setActiveRole,
-    activeRole: user && typeof user === 'object' ? (user.isAdmin ? 'admin' : user.isHost ? activeRole : 'student') : 'student',
+    activeRole: user && typeof user === 'object' ? (user.isAdmin || user.adminRole ? 'admin' : user.isHost ? activeRole : 'student') : 'student',
     isAuthenticated: Boolean(token),
     isHost: user && typeof user === 'object' ? Boolean(user.isHost) : false,
   };

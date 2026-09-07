@@ -74,7 +74,7 @@ const MyClassesScreen = ({ navigation }) => {
         </View>
         {item.rating && (
           <View style={styles.ratingBadge}>
-            <Text style={styles.ratingText}>⭐ {item.rating.toFixed(1)}</Text>
+            <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
           </View>
         )}
       </View>
@@ -115,7 +115,7 @@ const MyClassesScreen = ({ navigation }) => {
               👥 {item.enrolledCount || 0} students
             </Text>
             <Text style={styles.stat}>
-              💰 ${item.earnings || 0} earned
+              ${item.earnings || 0} earned
             </Text>
           </View>
         )}
@@ -152,7 +152,7 @@ const MyClassesScreen = ({ navigation }) => {
               style={[styles.actionBtn, styles.analyticsBtn]}
               onPress={() => navigation.navigate('ClassAnalytics', { classId: item.id })}
             >
-              <Text style={styles.analyticsBtnText}>📊 Analytics</Text>
+              <Text style={styles.analyticsBtnText}>Analytics</Text>
             </TouchableOpacity>
           </>
         )}

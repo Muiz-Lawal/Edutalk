@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import '../styles/DynamicPriceDisplay.css';
+import { formatPrice as formatCurrency } from '../lib/currency';
+import { CircleDollarSign, Clock3, Gift, TrendingUp, Zap } from 'lucide-react';
 
 export default function DynamicPriceDisplay({ bundleId, basePrice, onPriceUpdate }) {
   const [currentPrice, setCurrentPrice] = useState(basePrice);
@@ -31,20 +33,15 @@ export default function DynamicPriceDisplay({ bundleId, basePrice, onPriceUpdate
     }
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(price);
-  };
+  const formatPrice = (price) => formatCurrency((Number(price) || 0) * 100);
 
   const getFactorIcon = (type) => {
     switch (type) {
-      case 'demand': return '📈';
-      case 'seasonal': return '🎄';
-      case 'flash_sale': return '⚡';
-      case 'time_discount': return '⏰';
-      default: return '💰';
+      case 'demand': return <TrendingUp size={16} strokeWidth={2} />;
+      case 'seasonal': return <Gift size={16} strokeWidth={2} />;
+      case 'flash_sale': return <Zap size={16} strokeWidth={2} />;
+      case 'time_discount': return <Clock3 size={16} strokeWidth={2} />;
+      default: return <CircleDollarSign size={16} strokeWidth={2} />;
     }
   };
 

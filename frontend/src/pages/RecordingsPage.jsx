@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import RecordingPlayer from '../components/RecordingPlayer';
-import 'C:/Users/abdul/Desktop/class/frontend/src/styles/RecordingsPage.css';
+import '../styles/RecordingsPage.css';
 
 export default function RecordingsPage() {
   const [recordings, setRecordings] = useState([]);
@@ -15,8 +15,8 @@ export default function RecordingsPage() {
 
   const fetchRecordings = async () => {
     try {
-      const response = await api.get('/recordings/list/all');
-      setRecordings(response.data);
+      const response = await api.get('/recordings/library');
+      setRecordings(response.data.recordings || []);
     } catch (error) {
       console.error('Failed to fetch recordings:', error);
     } finally {
@@ -47,7 +47,7 @@ export default function RecordingsPage() {
   }
 
   if (loading) {
-    return <div className="loading">Loading recordings...</div>;
+    return <div className="async-skeleton async-skeleton--list" aria-hidden="true" />;
   }
 
   const filteredRecordings = filter === 'all' 
@@ -58,7 +58,7 @@ export default function RecordingsPage() {
     <div className="recordings-page">
       <div className="container">
         <div className="page-header">
-          <h1>My Recordings</h1>
+          <h1>Session recordings</h1>
           <div className="filter-buttons">
             <button
               className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
@@ -98,32 +98,26 @@ export default function RecordingsPage() {
 
                 <div className="recording-info">
                   <h3>{recording.title}</h3>
-                  <p className="class-name">{recording.className}</p>
+                  <p className="class-name">{recording.classId?.title || 'Class session'}</p>
                   <div className="recording-meta">
-                    <span>⏱ {Math.floor(recording.duration / 60)} min</span>
-                    <span>📅 {new Date(recording.createdAt).toLocaleDateString()}</span>
+                    <span>{Math.floor((recording.durationSeconds || 0) / 60)} min</span>
+                    <span>{recording.status === 'processing' ? 'Recording processing — usually ready within an hour' : recording.releaseAt && new Date(recording.releaseAt) > new Date() ? 'Pending host release' : 'Available'}</span>
                   </div>
 
                   <div className="ai-features">
-                    {recording.transcript && <span className="feature-badge">📝 Transcript</span>}
-                    {recording.summary && <span className="feature-badge">📋 Summary</span>}
-                    {recording.chapters && recording.chapters.length > 0 && (
-                      <span className="feature-badge">📑 {recording.chapters.length} Chapters</span>
+                    {recording.transcript && <span className="feature-badge">Transcript</span>}
+                    {recording.aiSummary && <span className="feature-badge">Summary</span>}
+                    {recording.aiTimestamps && recording.aiTimestamps.length > 0 && (
+                      <span className="feature-badge">{recording.aiTimestamps.length} chapters</span>
                     )}
                   </div>
 
                   <div className="recording-actions">
                     <button
-                      onClick={() => setSelectedRecording(recording._id)}
+                      disabled={recording.subscriptionStatus === 'expired' || recording.status !== 'ready' || !recording.isVisible}
                       className="btn btn-primary"
                     >
-                      Watch
-                    </button>
-                    <button
-                      onClick={() => deleteRecording(recording._id)}
-                      className="btn btn-danger"
-                    >
-                      Delete
+                      {recording.subscriptionStatus === 'expired' ? 'Renew to watch' : recording.status === 'ready' && recording.isVisible ? 'Watch' : 'Processing'}
                     </button>
                   </div>
                 </div>

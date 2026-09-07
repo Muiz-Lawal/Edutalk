@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import '../styles/NotificationBadge.css';
 import { Link } from 'react-router-dom';
+import { Bell, Check, CircleAlert, CircleCheck, Clock3, Gift, Megaphone, Mail, RefreshCw, ShieldAlert, Star, Target, Trophy, Video, X } from 'lucide-react';
 
 export default function NotificationBadge() {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -36,23 +37,24 @@ export default function NotificationBadge() {
 
   const getNotificationIcon = (type) => {
     const icons = {
-      payment_confirmation: '✅',
-      session_reminder: '⏰',
-      subscription_expiry: '⚠️',
-      auto_renewal: '🔄',
-      renewal_failed: '❌',
-      host_no_show: '😞',
-      refund_confirmation: '💰',
-      class_cancellation: '🚫',
-      plan_upgrade: '⭐',
-      referral_reward: '🎁',
-      waitlist_available: '🎯',
-      new_review: '⭐',
-      class_announcement: '📢',
-      recording_ready: '🎥',
-      achievement_unlocked: '🏅',
+      payment_confirmation: CircleCheck,
+      session_reminder: Clock3,
+      subscription_expiry: CircleAlert,
+      auto_renewal: RefreshCw,
+      renewal_failed: X,
+      host_no_show: CircleAlert,
+      refund_confirmation: CircleCheck,
+      class_cancellation: ShieldAlert,
+      plan_upgrade: Star,
+      referral_reward: Gift,
+      waitlist_available: Target,
+      new_review: Star,
+      class_announcement: Megaphone,
+      recording_ready: Video,
+      achievement_unlocked: Trophy,
     };
-    return icons[type] || '📬';
+    const Icon = icons[type] || Mail;
+    return <Icon size={16} strokeWidth={2} aria-hidden="true" />;
   };
 
   return (
@@ -61,7 +63,7 @@ export default function NotificationBadge() {
         className="bell-btn"
         onClick={() => setShowDropdown(!showDropdown)}
       >
-        🔔
+        <Bell size={18} strokeWidth={2} aria-hidden="true" />
         {unreadCount > 0 && (
           <span className="badge-count">{unreadCount > 9 ? '9+' : unreadCount}</span>
         )}
@@ -102,14 +104,14 @@ export default function NotificationBadge() {
                       className="mark-read-btn"
                       title="Mark as read"
                     >
-                      ✓
+                      <Check size={16} strokeWidth={2} aria-hidden="true" />
                     </button>
                   )}
                 </div>
               ))
             ) : (
               <div className="no-notifications">
-                <p>📭 All caught up!</p>
+                <p>All caught up!</p>
               </div>
             )}
           </div>

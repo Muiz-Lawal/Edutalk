@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import '../styles/ModerationQueue.css';
+import { Skeleton } from './AsyncBoundary';
 
 const ModerationQueue = () => {
   const [queue, setQueue] = useState([]);
@@ -109,7 +110,7 @@ const ModerationQueue = () => {
   };
 
   if (loading && queue.length === 0) {
-    return <div className="moderation-queue-loading">Loading...</div>;
+    return <Skeleton variant="list" />;
   }
 
   const exportLogs = async (format = 'csv') => {

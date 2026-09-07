@@ -6,6 +6,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import useEventLogger from '../hooks/useEventLogger';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import '../styles/Enrollment.css';
+import { getEnrollmentDayLimits } from '../lib/sessions';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_example');
 
@@ -16,6 +17,7 @@ function EnrollmentForm({ classData, selectedDays, onSuccess }) {
   const [discountValidation, setDiscountValidation] = useState(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [provider, setProvider] = useState('stripe');
   const [error, setError] = useState('');
 
   const calculatePrice = () => {
@@ -65,7 +67,7 @@ function EnrollmentForm({ classData, selectedDays, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!stripe || !elements) {
+    if (provider === 'stripe' && (!stripe || !elements)) {
       setError('Stripe not loaded');
       return;
     }
@@ -78,8 +80,14 @@ function EnrollmentForm({ classData, selectedDays, onSuccess }) {
       const paymentResponse = await api.post('/payments/create-intent', {
         classId: classData._id,
         numberOfDays: selectedDays,
-        discountCode: discountValidation?.valid ? discountCode : null
+        discountCode: discountValidation?.valid ? discountCode : null,
+        provider,
       });
+
+      if (paymentResponse.data.provider === 'paystack' && paymentResponse.data.paymentUrl) {
+        window.location.href = paymentResponse.data.paymentUrl;
+        return;
+      }
 
       const { clientSecret } = paymentResponse.data;
 
@@ -97,14 +105,15 @@ function EnrollmentForm({ classData, selectedDays, onSuccess }) {
 
       // Confirm payment on backend
       await api.post('/payments/confirm', {
-        paymentIntentId: paymentResponse.data.clientSecret.split('_secret_')[0],
+        paymentIntentId: paymentResponse.data.paymentIntentId,
         classId: classData._id,
-        numberOfDays: selectedDays
+        numberOfDays: selectedDays,
+        provider,
       });
 
       onSuccess();
     } catch (err) {
-      setError(err.response?.data?.message || 'Payment failed');
+      setError('Payment could not be completed. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -174,35 +183,54 @@ function EnrollmentForm({ classData, selectedDays, onSuccess }) {
         </div>
 
         <div className="form-group">
-          <label>Payment Information</label>
-          <div className="card-element-wrapper">
-            <CardElement
-              options={{
-                style: {
-                  base: {
-                    fontSize: '16px',
-                    color: '#424770',
-                    '::placeholder': {
-                      color: '#aab7c4',
-                    },
-                  },
-                  invalid: {
-                    color: '#9e2146',
-                  },
-                },
-              }}
-            />
+          <label>Payment Method</label>
+          <div className="payment-provider-toggle" style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+            {['stripe', 'paystack'].map((option) => (
+              <label key={option} style={{ display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'capitalize' }}>
+                <input
+                  type="radio"
+                  name="payment-provider"
+                  checked={provider === option}
+                  onChange={() => setProvider(option)}
+                />
+                {option}
+              </label>
+            ))}
           </div>
         </div>
+
+        {provider === 'stripe' && (
+          <div className="form-group">
+            <label>Payment Information</label>
+            <div className="card-element-wrapper">
+              <CardElement
+                options={{
+                  style: {
+                    base: {
+                      fontSize: '16px',
+                      color: '#424770',
+                      '::placeholder': {
+                        color: '#aab7c4',
+                      },
+                    },
+                    invalid: {
+                      color: '#9e2146',
+                    },
+                  },
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         {error && <div className="error-message">{error}</div>}
 
         <button
           type="submit"
-          disabled={!stripe || isProcessing}
+          disabled={(provider === 'stripe' && !stripe) || isProcessing}
           className="btn btn-primary full-width"
         >
-          {isProcessing ? 'Processing...' : `Pay $${finalPrice.toFixed(2)}`}
+          {isProcessing ? 'Processing...' : `Pay $${finalPrice.toFixed(2)} via ${provider === 'stripe' ? 'Stripe' : 'Paystack'}`}
         </button>
       </form>
     </div>
@@ -244,6 +272,9 @@ export default function EnrollmentPage() {
     try {
       const response = await api.get(`/classes/${classId}`);
       setClassData(response.data);
+      const limits = getEnrollmentDayLimits(response.data);
+      const requestedDays = parseInt(searchParams.get('days'), 10) || limits.min;
+      setSelectedDays(Math.min(Math.max(limits.min, requestedDays), limits.max));
     } catch (error) {
       console.error('Failed to fetch class:', error);
       navigate('/browse');
@@ -260,11 +291,16 @@ export default function EnrollmentPage() {
   };
 
   if (loading) {
-    return <div className="loading">Loading enrollment...</div>;
+    return <div className="async-skeleton async-skeleton--form" aria-hidden="true" />;
   }
 
   if (!classData) {
     return <div className="error">Class not found</div>;
+  }
+
+  const limits = getEnrollmentDayLimits(classData);
+  if (limits.endingSoon) {
+    return <div className="enrollment-page"><div className="container"><div className="enrollment-header"><h1>{classData.title}</h1><p>This class is ending soon</p></div><button type="button" className="btn btn-secondary" disabled>Notify me if a spot opens</button></div></div>;
   }
 
   if (enrolled) {
@@ -286,8 +322,9 @@ export default function EnrollmentPage() {
     <div className="enrollment-page">
       <div className="container">
         <div className="enrollment-header">
-          <h1>Enroll in {classData.title}</h1>
+          <h1>Payment for {classData.title}</h1>
           <p>by {classData.hostId?.firstName} {classData.hostId?.lastName}</p>
+          <p className="enrollment-secure-note">Secure checkout for calendar-day access</p>
         </div>
 
         <div className="enrollment-content">

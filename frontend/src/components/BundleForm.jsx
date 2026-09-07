@@ -186,7 +186,7 @@ const BundleForm = ({ bundle = null, onSubmit, onCancel }) => {
   };
 
   if (loadingCourses) {
-    return <div className="bundle-form__loading">Loading courses...</div>;
+    return <div className="async-skeleton async-skeleton--list" aria-hidden="true" />;
   }
 
   if (courses.length === 0) {

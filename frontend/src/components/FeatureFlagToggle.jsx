@@ -127,7 +127,7 @@ const FeatureFlagToggle = ({ flags, onSuccess }) => {
       </div>
 
       <div className="flag-guidelines">
-        <h4>📋 Best Practices</h4>
+        <h4>Best Practices</h4>
         <ul>
           <li>Always enable in staging environment first</li>
           <li>Start with 1-10% rollout for critical features</li>

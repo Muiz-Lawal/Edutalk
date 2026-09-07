@@ -10,14 +10,11 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import '../styles/AnalyticsCharts.css';
+import { Skeleton } from './AsyncBoundary';
 
 export default function RetentionCurve({ data }) {
   if (!data) {
-    return (
-      <div className="chart-container">
-        <p className="chart-empty">Loading...</p>
-      </div>
-    );
+    return <Skeleton variant="block" />;
   }
 
   const retention = data.retention || {};
@@ -30,6 +27,10 @@ export default function RetentionCurve({ data }) {
     { label: '30 min', viewers: retention['30min'] || 0, percentage: true },
     { label: '60 min', viewers: retention['60min'] || 0, percentage: true },
   ].filter((item) => item.viewers > 0 || retention.total > 0);
+
+  if (chartData.length === 0) {
+    return <div className="chart-container"><p className="chart-empty">Retention data will appear after a session.</p></div>;
+  }
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {

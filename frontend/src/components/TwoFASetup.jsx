@@ -125,7 +125,7 @@ export default function TwoFASetup() {
                   className="copy-btn"
                   onClick={() => copyToClipboard(secret)}
                 >
-                  {copied ? '✓ Copied!' : '📋 Copy'}
+                  {copied ? 'Copied!' : 'Copy'}
                 </button>
               </div>
             </div>
@@ -178,9 +178,7 @@ export default function TwoFASetup() {
                       className="copy-icon"
                       onClick={() => copyToClipboard(code)}
                       title="Copy code"
-                    >
-                      📋
-                    </button>
+                    ></button>
                   </div>
                 ))}
               </div>
@@ -207,7 +205,7 @@ export default function TwoFASetup() {
                   className="action-btn"
                   onClick={() => copyToClipboard(backupCodes.join('\n'))}
                 >
-                  📋 Copy All Codes
+                  Copy All Codes
                 </button>
               </div>
             </div>

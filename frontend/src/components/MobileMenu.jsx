@@ -15,8 +15,8 @@ export default function MobileMenu() {
     { path: '/', icon: '🏠', label: 'Home' },
     { path: '/browse', icon: '🎓', label: 'Browse Classes' },
     { path: '/my-classes', icon: '📚', label: 'My Classes' },
-    { path: '/dashboard', icon: '📊', label: 'Dashboard' },
-    { path: '/settings', icon: '⚙️', label: 'Settings' },
+    { path: '/dashboard', icon: null, label: 'Dashboard' },
+    { path: '/settings', icon: null, label: 'Settings' },
     { path: '/profile', icon: '👤', label: 'Profile' },
   ];
 

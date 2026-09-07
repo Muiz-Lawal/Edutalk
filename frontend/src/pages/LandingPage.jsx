@@ -30,7 +30,7 @@ export default function LandingPage() {
           <h2>Why EduTalk?</h2>
           <div className="features-grid">
             <div className="feature">
-              <div className="feature-icon">💰</div>
+              <div className="feature-icon" aria-hidden="true" />
               <h3>Flexible Pricing</h3>
               <p>Pay for only the days you want. Start with 1-3 days, upgrade anytime.</p>
             </div>
@@ -54,7 +54,7 @@ export default function LandingPage() {
             </div>
 
             <div className="feature">
-              <div className="feature-icon">📊</div>
+              <div className="feature-icon" aria-hidden="true" />
               <h3>Track Progress</h3>
               <p>Monitor attendance, completion percentage, and earn certificates of completion.</p>
             </div>

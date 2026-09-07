@@ -39,12 +39,20 @@ const pointsLedgerSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 pointsLedgerSchema.statics.getBalance = async function (userId) {
-  const result = await this.aggregate([
-    { $match: { userId: mongoose.Types.ObjectId(userId) } },
-    { $group: { _id: '$userId', balance: { $sum: '$amount' } } },
-  ]);
+  try {
+    if (!userId) return 0;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
 
-  return result.length > 0 ? result[0].balance : 0;
+    const result = await this.aggregate([
+      { $match: { userId: mongoose.Types.ObjectId(userId) } },
+      { $group: { _id: '$userId', balance: { $sum: '$amount' } } },
+    ]);
+
+    return result.length > 0 ? result[0].balance : 0;
+  } catch (err) {
+    console.error('PointsLedger.getBalance error:', err);
+    return 0;
+  }
 };
 
 pointsLedgerSchema.statics.record = async function ({ userId, type = 'achievement', amount, classId, referenceId, description, metadata, session = null }) {

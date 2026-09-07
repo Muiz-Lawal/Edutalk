@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import '../styles/AdminManagement.css';
+import { formatDate } from '../lib/date';
 
 const AdminManagement = () => {
   const { user } = useAuth();
@@ -132,7 +133,8 @@ const AdminManagement = () => {
   };
 
   // Check if user is superadmin
-  if (!user?.isSuperAdmin) {
+  const isSuperAdmin = Boolean(user?.isSuperAdmin || user?.adminRole === 'superadmin');
+  if (!isSuperAdmin) {
     return (
       <div className="admin-management-container">
         <div className="alert alert-error">
@@ -149,7 +151,7 @@ const AdminManagement = () => {
         <p>Create and manage admin accounts with different roles and privileges</p>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="alert alert-error">We couldn’t update admin management. Please try again.</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
       {/* Create Admin Button */}
@@ -243,7 +245,7 @@ const AdminManagement = () => {
                 }
               >
                 <option value="moderator">🎯 Moderator - Content moderation & reviews</option>
-                <option value="support">🛡️ Support - User support & refunds</option>
+                <option value="support">Support - User support & refunds</option>
                 <option value="finance_admin">💼 Finance Admin - Financial ops & reports</option>
                 <option value="admin">👤 Admin - Full admin access</option>
                 <option value="superadmin">🔑 SuperAdmin - Full system access</option>
@@ -259,10 +261,10 @@ const AdminManagement = () => {
 
       {/* Admin List */}
       <div className="admin-list-card">
-        <h2>📋 Admin Accounts ({admins.length})</h2>
+        <h2>Admin Accounts ({admins.length})</h2>
 
         {loading ? (
-          <div className="loading">⏳ Loading admins...</div>
+          <div className="async-skeleton async-skeleton--list" aria-hidden="true" />
         ) : admins.length === 0 ? (
           <div className="no-data">No admin accounts found</div>
         ) : (
@@ -336,7 +338,7 @@ const AdminManagement = () => {
                           <span className="type-badge admin">👤 Admin</span>
                         )}
                       </td>
-                      <td>{new Date(admin.createdAt).toLocaleDateString()}</td>
+                      <td>{formatDate(admin.createdAt)}</td>
                       <td className="actions-cell">
                         {editingAdmin === admin._id ? (
                           <>

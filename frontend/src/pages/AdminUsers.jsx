@@ -4,8 +4,10 @@ import { AdminLayout } from '../components/AdminLayout';
 import UserDetailsModal from '../components/UserDetailsModal';
 import AdminMessageModal from '../components/AdminMessageModal';
 import '../styles/admin.css';
+import { Skeleton } from '../components/AsyncBoundary';
+import { formatDate } from '../lib/date';
 
-export const AdminUsers = () => {
+const AdminUsers = () => {
   const { fetchUsers, suspendUser, unsuspendUser, deleteUser, loading, error } = useAdmin();
   
   const [users, setUsers] = useState([]);
@@ -124,8 +126,7 @@ export const AdminUsers = () => {
     return (
       <AdminLayout>
         <div className="loading">
-          <div className="loading-spinner"></div>
-          <p>Loading users...</p>
+          <Skeleton variant="list" />
         </div>
       </AdminLayout>
     );
@@ -136,7 +137,7 @@ export const AdminUsers = () => {
       <div className="admin-page">
         <h1>User Management</h1>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="async-state async-state--error" role="alert">We couldn’t load users. Please try again.</div>}
         {successMessage && <div className="success-message">{successMessage}</div>}
 
         {/* Filters */}
@@ -192,7 +193,7 @@ export const AdminUsers = () => {
                       <span className="status-badge active">Active</span>
                     )}
                   </td>
-                  <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                  <td>{formatDate(user.createdAt)}</td>
                   <td>
                     <button
                       className="btn btn-info btn-sm"
@@ -317,3 +318,5 @@ export const AdminUsers = () => {
     </AdminLayout>
   );
 };
+
+export default AdminUsers;

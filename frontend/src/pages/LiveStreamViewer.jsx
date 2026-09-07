@@ -237,7 +237,7 @@ export default function LiveStreamViewer() {
       <div className="livestream-viewer-loading">
         <div className="loading-spinner">
           <div className="spinner"></div>
-          <p>Loading stream...</p>
+          <div className="async-skeleton async-skeleton--block" aria-hidden="true" />
         </div>
       </div>
     );
@@ -248,7 +248,7 @@ export default function LiveStreamViewer() {
       <div className="livestream-viewer-error">
         <div className="error-message">
           <h2>⚠️ Unable to Load Stream</h2>
-          <p>{error}</p>
+          <p>We couldn’t load this stream. Please try again.</p>
           <p style={{ fontSize: '0.9rem', color: '#999' }}>Redirecting to home...</p>
         </div>
       </div>

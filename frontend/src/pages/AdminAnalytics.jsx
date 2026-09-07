@@ -2,7 +2,7 @@ import React from 'react';
 import { AdminLayout } from '../components/AdminLayout';
 import '../styles/admin.css';
 
-export const AdminAnalytics = () => {
+const AdminAnalytics = () => {
   return (
     <AdminLayout>
       <div className="admin-page">
@@ -23,3 +23,5 @@ export const AdminAnalytics = () => {
     </AdminLayout>
   );
 };
+
+export default AdminAnalytics;

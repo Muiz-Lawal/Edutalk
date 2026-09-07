@@ -20,22 +20,38 @@ const ADMIN_ROLE_HIERARCHY = {
 
 // Permission to admin role mapping (principle of least privilege)
 export const PERMISSIONS = {
+  // Support / operations
+  view_support_dashboard: ['support', 'admin', 'superadmin'],
+  view_user_profiles: ['support', 'admin', 'superadmin'],
+  view_user_profiles_readonly: ['support', 'admin', 'superadmin'],
+  respond_support_ticket: ['support', 'admin', 'superadmin'],
+  process_limited_refund: ['support', 'admin', 'superadmin'],
+  issue_goodwill_credits: ['support', 'admin', 'superadmin'],
+
+  // Moderation & content
+  moderate_content: ['moderator', 'admin', 'superadmin'],
+  hide_class: ['moderator', 'admin', 'superadmin'],
+  review_content_reports: ['moderator', 'admin', 'superadmin'],
+
+  // Users & host management
+  manage_users: ['admin', 'superadmin'],
+  manage_hosts: ['admin', 'superadmin'],
+  approve_host_verification: ['admin', 'superadmin'],
+  suspend_user: ['admin', 'superadmin'],
+  ban_user: ['admin', 'superadmin'],
+
   // Financial operations
   view_payments: ['admin', 'finance_admin', 'superadmin'],
   export_financial_reports: ['admin', 'finance_admin', 'superadmin'],
   process_refund: ['admin', 'finance_admin', 'superadmin'],
   approve_high_value_refund: ['superadmin'],
   change_commission: ['superadmin'],
-  // Moderation & content
-  moderate_content: ['moderator', 'admin', 'superadmin'],
-  hide_class: ['moderator', 'admin', 'superadmin'],
+
   // Audit & security
   view_audit_logs: ['admin', 'finance_admin', 'superadmin'],
   export_audit_logs: ['superadmin'],
   manage_admins: ['superadmin'],
-  // Support
-  respond_support_ticket: ['support', 'admin', 'superadmin'],
-  issue_goodwill_credits: ['admin', 'superadmin'],
+  view_security_alerts: ['admin', 'superadmin'],
 };
 
 export const canAccessAdminRole = (user, ...requiredRoles) => {
@@ -104,9 +120,8 @@ export const adminAuth = async (req, res, next) => {
       return res.status(403).json({ error: 'Access denied. Valid admin role required.' });
     }
 
-    if (user.isHost || user.isStudent) {
-      return res.status(403).json({ error: 'Admin accounts cannot also be student or host accounts.' });
-    }
+    // Dual-role users are allowed: an admin may also be a student or host.
+    // Admin routing is enforced at the route layer; this middleware only checks admin access.
 
     // Check if user is locked (failed login attempts)
     if (user.isLockedUntil && new Date(user.isLockedUntil) > new Date()) {

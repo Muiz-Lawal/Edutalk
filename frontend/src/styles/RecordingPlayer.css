@@ -39,6 +39,19 @@
   text-align: center;
 }
 
+.watermark--email {
+  user-select: none;
+  pointer-events: none;
+  font-size: clamp(16px, 2vw, 28px);
+  letter-spacing: .04em;
+  transition: inset 400ms ease, transform 400ms ease;
+}
+
+.watermark-position-0 { inset: 12% auto auto 8%; }
+.watermark-position-1 { inset: auto 8% 14% auto; }
+.watermark-position-2 { inset: auto auto 16% 12%; }
+.watermark-position-3 { inset: 14% 10% auto auto; }
+
 .video-info h2 {
   color: #333;
   margin-bottom: 0.5rem;

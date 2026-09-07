@@ -119,7 +119,7 @@ export default function SecurityDashboard() {
   if (loading) {
     return (
       <div className="security-dashboard">
-        <div className="loading">⏳ Loading security dashboard...</div>
+        <div className="async-skeleton async-skeleton--block" aria-hidden="true" />
       </div>
     );
   }
@@ -139,7 +139,7 @@ export default function SecurityDashboard() {
           className={`tab-btn ${tab === 'overview' ? 'active' : ''}`}
           onClick={() => setTab('overview')}
         >
-          📊 Overview
+          Overview
         </button>
         <button
           className={`tab-btn ${tab === 'sessions' ? 'active' : ''}`}
@@ -151,7 +151,7 @@ export default function SecurityDashboard() {
           className={`tab-btn ${tab === 'activity' ? 'active' : ''}`}
           onClick={() => setTab('activity')}
         >
-          📋 Activity Logs
+          Activity Logs
         </button>
         <button
           className={`tab-btn ${tab === 'flagged' ? 'active' : ''}`}
@@ -190,7 +190,7 @@ export default function SecurityDashboard() {
             </div>
 
             <div className="overview-card">
-              <div className="card-icon">📈</div>
+              <div className="card-icon" aria-hidden="true" />
               <div className="card-info">
                 <h3>30-Day Trends</h3>
                 <p className="card-value">{trends.length} events</p>
@@ -227,7 +227,7 @@ export default function SecurityDashboard() {
               onClick={handleLogoutAll}
               disabled={activeSessions.length === 0}
             >
-              🚪 Logout All Sessions
+              Logout All Sessions
             </button>
           </div>
 
@@ -250,7 +250,7 @@ export default function SecurityDashboard() {
                     className="btn btn-small btn-danger"
                     onClick={() => handleLogoutSession(session._id)}
                   >
-                    🚪 Logout
+                    Logout
                   </button>
                 </div>
               ))}

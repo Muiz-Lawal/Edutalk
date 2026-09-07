@@ -122,7 +122,7 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
             setCurrentPage(1);
           }}
         >
-          📅 Upcoming ({stats.upcoming})
+          Upcoming ({stats.upcoming})
         </button>
         <button
           className={`tab-button ${activeTab === 'active' ? 'active' : ''}`}
@@ -173,7 +173,7 @@ export default function ScheduledStreamsDashboard({ hostId, onRefresh }) {
       {loading && (
         <div className="loading-state">
           <div className="spinner"></div>
-          <p>Loading schedules...</p>
+          <div className="async-skeleton async-skeleton--list" aria-hidden="true" />
         </div>
       )}
 

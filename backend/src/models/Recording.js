@@ -36,12 +36,16 @@ const recordingSchema = new mongoose.Schema({
   thumbnail: String, // Thumbnail URL
   
   // Storage
-  videoUrl: String,   // HLS manifest URL
-  storageUrl: String, // Cloud storage URL
-  hlsUrl: String,     // HLS stream URL
-  dashUrl: String,    // DASH stream URL
-  duration: Number,   // in seconds
-  fileSize: Number,   // in bytes
+  // These provider/storage identifiers are server-only. Never serialize them to clients.
+  streamUid: String,
+  storageUrl: String,
+  videoUrl: String,
+  hlsUrl: String,
+  dashUrl: String,
+  duration: Number,
+  durationSeconds: Number,
+  fileSize: Number,
+  fileSizeBytes: Number,
   
   // Video quality
   resolution: String, // e.g., "1920x1080"
@@ -50,7 +54,7 @@ const recordingSchema = new mongoose.Schema({
   // Processing
   status: {
     type: String,
-    enum: ['recording', 'processing', 'ready', 'failed'],
+    enum: ['recording', 'processing', 'ready', 'failed', 'expired'],
     default: 'recording',
   },
   processingProgress: {
@@ -68,6 +72,12 @@ const recordingSchema = new mongoose.Schema({
     summary: String,
   }],
   detectedLanguages: [String],
+  transcriptSegments: [{ start: Number, end: Number, text: String }],
+  aiSummary: String,
+  aiTimestamps: [{ t: Number, label: String }],
+  aiKeyTakeaways: [String],
+  aiModel: String,
+  aiPromptVersion: String,
   
   // Access control
   accessLevel: {
@@ -82,10 +92,22 @@ const recordingSchema = new mongoose.Schema({
   allowDownload: {
     type: Boolean,
     default: false,
+    immutable: true,
   },
   
   // Watermark
   watermarkText: String,
+  watermarkOverlayEnabled: {
+    type: Boolean,
+    default: true,
+  },
+  isVisible: {
+    type: Boolean,
+    default: false,
+  },
+  releaseAt: Date,
+  processingError: String,
+  retryCount: { type: Number, default: 0 },
   
   // Engagement metrics
   viewCount: {

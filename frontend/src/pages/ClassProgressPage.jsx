@@ -5,6 +5,7 @@ import api from '../utils/api';
 import ProgressChart from '../components/ProgressChart';
 import AtRiskStudentsList from '../components/AtRiskStudentsList';
 import '../styles/ClassProgressPage.css';
+import { Skeleton } from '../components/AsyncBoundary';
 
 const ClassProgressPage = () => {
   const { classId } = useParams();
@@ -64,7 +65,8 @@ const ClassProgressPage = () => {
       setProgressChart(chartData);
     } catch (err) {
       console.error('Class progress fetch error:', err);
-      setError(err.message || 'An unexpected error occurred. Please try again.');
+      console.error('Class progress fetch error:', err);
+      setError(true);
     } finally {
       setLoading(false);
       setRetrying(false);
@@ -83,14 +85,7 @@ const ClassProgressPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="class-progress-page">
-        <div className="class-progress-page__loading">
-          <div className="class-progress-page__spinner"></div>
-          <p>Loading class progress...</p>
-        </div>
-      </div>
-    );
+    return <div className="class-progress-page"><Skeleton variant="block" /></div>;
   }
 
   if (error) {
@@ -99,7 +94,7 @@ const ClassProgressPage = () => {
         <div className="class-progress-page__error">
           <div className="class-progress-page__error-icon">⚠️</div>
           <div className="class-progress-page__error-content">
-            <p className="class-progress-page__error-message">{error}</p>
+            <p className="class-progress-page__error-message">We couldn’t load class progress. Please try again.</p>
             <button 
               className="class-progress-page__error-button"
               onClick={handleRetry}

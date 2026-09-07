@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
+import { useAdminPermissions } from '../hooks/useAdminPermissions';
 
 const CommissionRateCard = ({ settings, onSuccess }) => {
-  const { updateCommissionRatePhase5G, loading } = useAdmin();
+  const { updateCommissionSettings, loading } = useAdmin();
+  const { hasPermission } = useAdminPermissions();
+  const canChangeCommission = hasPermission('change_commission');
   const [editingTier, setEditingTier] = useState(null);
   const [newRate, setNewRate] = useState('');
+
+  const formatRateValue = (value) => {
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) return 0;
+    return numericValue > 1 ? numericValue : numericValue * 100;
+  };
 
   const tiers = ['starter', 'growth', 'pro', 'elite'];
   const tierDescriptions = {
@@ -26,7 +35,15 @@ const CommissionRateCard = ({ settings, onSuccess }) => {
       return;
     }
 
-    const result = await updateCommissionRatePhase5G(tier, rate);
+    const currentRates = Object.fromEntries(
+      tiers.map((tierName) => [
+        tierName,
+        formatRateValue(settings.commissionRates?.[tierName] ?? settings?.[tierName] ?? 0) / 100,
+      ])
+    );
+    const result = await updateCommissionSettings({
+      commissionRates: { ...currentRates, [tier]: rate / 100 },
+    });
     if (result) {
       onSuccess(`${tier} commission rate updated to ${rate}%`);
       setEditingTier(null);
@@ -43,7 +60,7 @@ const CommissionRateCard = ({ settings, onSuccess }) => {
 
       <div className="tier-grid">
         {tiers.map((tier) => {
-          const currentRate = settings.commissionRates?.[tier] || 0;
+          const currentRate = formatRateValue(settings.commissionRates?.[tier] ?? settings?.[tier] ?? 0);
           const isEditing = editingTier === tier;
 
           return (
@@ -79,13 +96,13 @@ const CommissionRateCard = ({ settings, onSuccess }) => {
 
               {isEditing ? (
                 <div className="tier-actions">
-                  <button
+                  {canChangeCommission && <button
                     className="btn btn-success btn-sm"
                     onClick={() => handleSave(tier)}
                     disabled={loading}
                   >
                     {loading ? 'Saving...' : 'Save'}
-                  </button>
+                  </button>}
                   <button
                     className="btn btn-secondary btn-sm"
                     onClick={() => setEditingTier(null)}
@@ -94,7 +111,7 @@ const CommissionRateCard = ({ settings, onSuccess }) => {
                     Cancel
                   </button>
                 </div>
-              ) : (
+              ) : canChangeCommission ? (
                 <button
                   className="btn btn-primary btn-sm"
                   onClick={() => handleEditClick(tier, currentRate)}
@@ -102,6 +119,8 @@ const CommissionRateCard = ({ settings, onSuccess }) => {
                 >
                   Edit
                 </button>
+              ) : (
+                <span className="info-note">SuperAdmin only</span>
               )}
             </div>
           );

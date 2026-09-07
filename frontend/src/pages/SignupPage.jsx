@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import '../styles/Auth.css';
+import { Eye, EyeOff, UserPlus } from 'lucide-react';
+import Button from '../components/ui/Button';
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -15,6 +17,8 @@ export default function SignupPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -71,7 +75,7 @@ export default function SignupPage() {
       );
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Signup failed');
+      setError('We couldn’t create your account. Please check your details and try again.');
     } finally {
       setLoading(false);
     }
@@ -80,6 +84,7 @@ export default function SignupPage() {
   return (
     <div className="auth-page">
       <div className="auth-container">
+        <div className="auth-brand"><span className="logo-mark" aria-hidden="true" />EduTalk</div>
         <h2>Sign Up</h2>
 
         {error && <div className="error-message">{error}</div>}
@@ -125,26 +130,48 @@ export default function SignupPage() {
 
           <div className="form-group">
             <label>Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              placeholder="Enter password"
-            />
+            <div className="password-input-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                placeholder="Enter password"
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
           </div>
 
           <div className="form-group">
             <label>Confirm Password</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              placeholder="Confirm password"
-            />
+            <div className="password-input-wrapper">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                placeholder="Confirm password"
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowConfirmPassword((visible) => !visible)}
+                aria-label={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'}
+                aria-pressed={showConfirmPassword}
+              >
+                {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
           </div>
 
           {formData.isHost && (
@@ -171,9 +198,7 @@ export default function SignupPage() {
             <label htmlFor="isHost">I want to teach classes (18+ only)</label>
           </div>
 
-          <button type="submit" disabled={loading} className="submit-button">
-            {loading ? 'Creating account...' : 'Sign Up'}
-          </button>
+          <Button type="submit" disabled={loading} loading={loading} className="submit-button"><UserPlus size={16} /> Sign up</Button>
         </form>
 
         <p className="auth-footer">

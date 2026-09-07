@@ -28,7 +28,7 @@ const BundleManagement = () => {
       setBundles(response.data || []);
       setError(null);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch bundles');
+      setError('Unable to load bundles. Please try again.');
       setBundles([]);
     } finally {
       setLoading(false);
@@ -78,7 +78,7 @@ const BundleManagement = () => {
       await api.delete(`/api/bundles/${bundleId}`);
       setBundles(bundles.filter((b) => b._id !== bundleId));
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete bundle');
+      setError('Unable to delete this bundle. Please try again.');
     }
   };
 
@@ -97,7 +97,7 @@ const BundleManagement = () => {
       setEditingBundle(null);
       setError(null);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save bundle');
+      setError('Unable to save this bundle. Please try again.');
     }
   };
 
@@ -205,7 +205,7 @@ const BundleManagement = () => {
       {loading ? (
         <div className="bundle-management__loading">
           <div className="bundle-management__spinner"></div>
-          <p>Loading bundles...</p>
+          <div className="async-skeleton async-skeleton--list" aria-hidden="true" />
         </div>
       ) : filteredBundles.length === 0 ? (
         <div className="bundle-management__empty">

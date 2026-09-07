@@ -19,6 +19,12 @@ const sessionSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
+  timezone: String,
+  localDate: String,
+  scheduleId: String,
+  cancellationReason: String,
+  meetingUrl: String,
+  runningLateNotifiedAt: Date,
   
   // Live session info
   actualStartTime: Date,

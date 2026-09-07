@@ -557,7 +557,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
                     className="video-element"
                   />
                 ) : (
-                  <div className="video-placeholder">Loading...</div>
+                  <div className="video-placeholder">Connecting to video...</div>
                 )}
                 <span className="video-label">👤 {participant.email.split('@')[0]}</span>
                 {stats[participant.socketId] && (

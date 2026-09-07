@@ -16,7 +16,7 @@ import recordingRoutes from './routes/recordingRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
-// Port 5001 for Phase 6F admin analytics
+// Keep the backend port aligned with the frontend API fallback.
 
 import bundleRoutes from './routes/bundleRoutes.js';
 import discountRoutes from './routes/discountRoutes.js';
@@ -32,6 +32,8 @@ import certificateRoutes from './routes/certificateRoutes.js';
 import achievementRoutes from './routes/achievementRoutes.js';
 import pointsRoutes from './routes/pointsRoutes.js';
 import emailScheduler from './services/emailScheduler.js';
+import cron from 'node-cron';
+import { purgeExpiredRecordings } from './services/recordingRetention.js';
 import aiModerationService from './services/aiModerationService.js';
 
 dotenv.config();
@@ -53,6 +55,7 @@ const io = new Server(server, {
 
 // Export io through socketInstance for other modules to emit events
 import { setIO } from './utils/socketInstance.js';
+import { handleStripeWebhook } from './controllers/paymentController.js';
 setIO(io);
 
 // Connect to MongoDB
@@ -60,6 +63,7 @@ await connectDB();
 
 // Initialize email scheduler
 emailScheduler;
+cron.schedule('15 2 * * *', () => purgeExpiredRecordings().catch((error) => console.error('[recordings] retention job failed', error)));
 
 // Socket.io middleware for authentication
 io.use(async (socket, next) => {
@@ -434,6 +438,7 @@ app.use(cors({
   },
   credentials: true,
 }));
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -442,6 +447,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/classes/mvp', classMVPRoutes); // MVP class management (must come first)
 app.use('/api/classes', classRoutes); // Full-featured class routes
 app.use('/api/payments', paymentRoutes);
+app.use('/api/pricing', paymentRoutes);
+app.use('/api/checkout', paymentRoutes);
 app.use('/api/video', videoRoutes);
 app.use('/api/recordings', recordingRoutes);
 app.use('/api/notifications', notificationRoutes);
@@ -501,7 +508,14 @@ if (process.env.NODE_ENV !== 'production') {
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Stop the existing EduTalk backend process or set PORT to another value.`);
+    process.exit(1);
+  }
+  throw error;
+});
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

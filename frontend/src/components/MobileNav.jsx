@@ -6,12 +6,12 @@ import '../styles/MobileNav.css';
 
 const MobileNav = ({ onLogout, onClose }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { isAuthenticated, user, activeRole, setActiveRole } = useAuth();
+  const { isAuthenticated, user, activeRole } = useAuth();
   const { isAdmin: isAdminPerm, adminRole } = useAdminPermissions();
   const location = useLocation();
   const showFinancialControlOnly = adminRole === 'finance_admin';
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const isAdminSession = Boolean(user?.isAdmin);
+  const isAdminSession = Boolean(user?.isAdmin || user?.adminRole || isAdminPerm);
   const hideRegularNavigation = isAdminRoute || isAdminSession;
 
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
@@ -34,6 +34,8 @@ const MobileNav = ({ onLogout, onClose }) => {
   }, []);
 
   const currentRole = isAdminPerm ? 'admin' : activeRole || 'student';
+  const showHostLinks = Boolean(user?.isHost && currentRole === 'host' && !isAdminPerm);
+  const showStudentLinks = Boolean(!isAdminPerm && (currentRole === 'student' || !user?.isHost) && !(user?.isAdmin || user?.adminRole));
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -66,7 +68,7 @@ const MobileNav = ({ onLogout, onClose }) => {
           <div className="mobile-nav-header">
             <h2>Admin</h2>
             <button className="mobile-nav-close" onClick={closeMenu} aria-label="Close navigation menu">
-              ✕
+              Close
             </button>
           </div>
 
@@ -76,7 +78,7 @@ const MobileNav = ({ onLogout, onClose }) => {
                 <div className="user-avatar">{user?.email?.[0]?.toUpperCase() || 'A'}</div>
                 <div className="user-info">
                   <p className="user-email">{user?.email || 'Admin'}</p>
-                  <p className="user-role">🛡️ {adminRole ? adminRole.replace('_', ' ') : 'Administrator'}</p>
+                  <p className="user-role">{adminRole ? adminRole.replace('_', ' ') : 'Administrator'}</p>
                 </div>
               </div>
             </div>
@@ -87,7 +89,7 @@ const MobileNav = ({ onLogout, onClose }) => {
                 className={`mobile-nav-link ${isActive('/admin/dashboard') ? 'active' : ''}`}
                 onClick={closeMenu}
               >
-                📊 Admin Dashboard
+                Admin Dashboard
               </Link>
               <button
                 type="button"
@@ -98,7 +100,7 @@ const MobileNav = ({ onLogout, onClose }) => {
                 }}
                 style={{ width: '100%', textAlign: 'left', border: 'none', background: 'transparent' }}
               >
-                🚪 Logout
+                Logout
               </button>
             </div>
           </div>
@@ -130,7 +132,7 @@ const MobileNav = ({ onLogout, onClose }) => {
             onClick={closeMenu}
             aria-label="Close navigation menu"
           >
-            ✕
+            Close
           </button>
         </div>
 
@@ -142,21 +144,21 @@ const MobileNav = ({ onLogout, onClose }) => {
                 className={`mobile-nav-link ${isActive('/browse') ? 'active' : ''}`}
                 onClick={closeMenu}
               >
-                📚 Browse Classes
+                Browse Classes
               </Link>
               <Link
                 to="/login"
                 className={`mobile-nav-link ${isActive('/login') ? 'active' : ''}`}
                 onClick={closeMenu}
               >
-                🔐 Login
+                Login
               </Link>
               <Link
                 to="/signup"
                 className={`mobile-nav-link ${isActive('/signup') ? 'active' : ''}`}
                 onClick={closeMenu}
               >
-                ✏️ Sign Up
+                Sign Up
               </Link>
             </div>
           )}
@@ -169,16 +171,10 @@ const MobileNav = ({ onLogout, onClose }) => {
                   <div className="user-info">
                     <p className="user-email">{user?.email}</p>
                     <p className="user-role">
-                      {isAdminPerm ? '🛡️ Admin' : currentRole === 'host' ? '👨‍🏫 Instructor' : '👤 Student'}
+                      {isAdminPerm ? 'Admin' : currentRole === 'host' ? 'Instructor' : 'Student'}
                     </p>
                   </div>
                 </div>
-                {user?.isHost && !isAdminPerm && (
-                  <div style={{ display: 'flex', gap: '8px', margin: '10px 0 0' }}>
-                    <button type="button" onClick={() => setActiveRole('student')} style={{ flex: 1, padding: '8px', borderRadius: '999px', border: currentRole === 'student' ? '1px solid #1d4ed8' : '1px solid #d1d5db', background: currentRole === 'student' ? '#1d4ed8' : '#fff', color: currentRole === 'student' ? '#fff' : '#111827' }}>Student</button>
-                    <button type="button" onClick={() => setActiveRole('host')} style={{ flex: 1, padding: '8px', borderRadius: '999px', border: currentRole === 'host' ? '1px solid #16a34a' : '1px solid #d1d5db', background: currentRole === 'host' ? '#16a34a' : '#fff', color: currentRole === 'host' ? '#fff' : '#111827' }}>Host</button>
-                  </div>
-                )}
               </div>
 
               {!showFinancialControlOnly && (
@@ -189,37 +185,30 @@ const MobileNav = ({ onLogout, onClose }) => {
                     className={`mobile-nav-link ${isActive('/browse') ? 'active' : ''}`}
                     onClick={closeMenu}
                   >
-                    📚 Browse Classes
+                    Browse Classes
                   </Link>
                   <Link
                     to="/dashboard"
                     className={`mobile-nav-link ${isActive('/dashboard') ? 'active' : ''}`}
                     onClick={closeMenu}
                   >
-                    {currentRole === 'host' ? '📊 Host Dashboard' : '📊 My Dashboard'}
+                    {showHostLinks ? 'Host Dashboard' : 'My Dashboard'}
                   </Link>
-                  {currentRole === 'student' && (
+                  {showStudentLinks && (
                     <Link
                       to="/points"
                       className={`mobile-nav-link ${isActive('/points') ? 'active' : ''}`}
                       onClick={closeMenu}
                     >
-                      🏅 My Points
+                      My Points
                     </Link>
                   )}
                 </div>
               )}
 
-              {user?.isHost && currentRole === 'host' && !showFinancialControlOnly && (
+              {showHostLinks && !showFinancialControlOnly && (
                 <div className="mobile-nav-section">
                   <h3 className="mobile-nav-section-title">Teaching</h3>
-                  <Link
-                    to="/host-dashboard"
-                    className={`mobile-nav-link ${isActive('/host-dashboard') ? 'active' : ''}`}
-                    onClick={closeMenu}
-                  >
-                    🎓 Host Dashboard
-                  </Link>
                 </div>
               )}
 
@@ -230,7 +219,7 @@ const MobileNav = ({ onLogout, onClose }) => {
                   className={`mobile-nav-link ${isActive('/notifications') ? 'active' : ''}`}
                   onClick={closeMenu}
                 >
-                  🔔 Notifications
+                  Notifications
                 </Link>
                 <button
                   type="button"
@@ -241,7 +230,7 @@ const MobileNav = ({ onLogout, onClose }) => {
                   }}
                   style={{ width: '100%', textAlign: 'left', border: 'none', background: 'transparent' }}
                 >
-                  🚪 Logout
+                  Logout
                 </button>
               </div>
             </>

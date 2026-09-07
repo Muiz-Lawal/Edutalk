@@ -200,7 +200,7 @@ export default function BundleCreation() {
         }
       });
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      setError('Unable to save this bundle. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -227,7 +227,7 @@ export default function BundleCreation() {
 
       {error && (
         <div className="error-message">
-          {error}
+          {error ? 'Unable to save this bundle. Please try again.' : null}
         </div>
       )}
 

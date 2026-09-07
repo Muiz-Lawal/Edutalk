@@ -30,6 +30,10 @@ export function sanitizeUserForRequester(user, requesterRole = null) {
   const safe = {
     ...minimal,
     bio: u.bio,
+    profileImage: u.profileImage,
+    interests: u.interests || [],
+    phoneVerified: Boolean(u.phoneVerified),
+    theme: u.theme || 'system',
     timezone: u.timezone,
     preferredLanguage: u.preferredLanguage,
     preferredCurrency: u.preferredCurrency,

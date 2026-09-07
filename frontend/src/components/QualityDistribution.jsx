@@ -1,10 +1,11 @@
 import React from 'react';
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
 import '../styles/AnalyticsCharts.css';
+import { Skeleton } from './AsyncBoundary';
 
 export default function QualityDistribution({ data }) {
   if (!data) {
-    return <div className="chart-container"><p className="chart-empty">Loading...</p></div>;
+    return <Skeleton variant="block" />;
   }
 
   const distribution = data.distribution || {};

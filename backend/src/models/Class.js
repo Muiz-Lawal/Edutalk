@@ -23,6 +23,13 @@ const classSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  lastPriceChangeAt: Date,
+  priceChangeAudit: [{
+    changedAt: Date,
+    previousPrice: Number,
+    newPrice: Number,
+    changedBy: mongoose.Schema.Types.ObjectId,
+  }],
   minPurchaseDays: {
     type: Number,
     default: 1,
@@ -37,6 +44,11 @@ const classSchema = new mongoose.Schema({
   },
   startDate: Date,
   endDate: Date,
+  totalDays: Number,
+  timezone: {
+    type: String,
+    default: 'UTC',
+  },
   
   // Schedule
   schedule: [{
@@ -46,7 +58,8 @@ const classSchema = new mongoose.Schema({
       max: 6, // 0 = Sunday, 6 = Saturday
     },
     startTime: String, // HH:mm format
-    duration: Number, // in minutes
+    duration: Number, // legacy duration in minutes
+    durationMinutes: Number,
     timezone: String,
   }],
   
@@ -62,6 +75,18 @@ const classSchema = new mongoose.Schema({
   thumbnailImage: String,
   introVideoUrl: String,
   introVideoTranscript: String,
+  appearance: {
+    thumbnailImage: String,
+    bannerImage: String,
+    bannerLqip: String,
+    gallery: [{
+      url: String,
+      caption: { type: String, maxlength: 80 },
+    }],
+    accentColor: String,
+    hostLogo: String,
+    slug: String,
+  },
   
   // Capacity and visibility
   maxStudents: Number,
@@ -69,11 +94,21 @@ const classSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  vacationMode: {
+    active: { type: Boolean, default: false },
+    startDate: Date,
+    endDate: Date,
+  },
+  vacationHistory: [{
+    startedAt: Date,
+    endedAt: Date,
+    pausedDays: Number,
+  }],
   
   // Status
   status: {
     type: String,
-    enum: ['active', 'paused', 'cancelled', 'completed'],
+    enum: ['draft', 'published', 'active', 'paused', 'cancelled', 'completed', 'archived'],
     default: 'active',
   },
   
@@ -109,6 +144,12 @@ const classSchema = new mongoose.Schema({
   watermarkEnabled: {
     type: Boolean,
     default: true,
+  },
+  recordingSettings: {
+    mode: { type: String, enum: ['auto', 'manual'], default: 'auto' },
+    releasePolicy: { type: String, enum: ['immediate', '24h'], default: 'immediate' },
+    retentionDays: { type: Number, enum: [30, 90, null], default: 30 },
+    watermarkOverlayEnabled: { type: Boolean, default: true },
   },
   
   // Dates

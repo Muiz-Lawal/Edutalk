@@ -129,7 +129,7 @@ export default function DynamicPricingManager({ bundleId }) {
   };
 
   if (loading) {
-    return <div className="dynamic-pricing-manager"><div className="loading">Loading pricing data...</div></div>;
+    return <div className="dynamic-pricing-manager"><div className="async-skeleton async-skeleton--block" aria-hidden="true" /></div>;
   }
 
   if (!bundle) {

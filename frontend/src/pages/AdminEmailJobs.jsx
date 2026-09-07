@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import '../styles/AdminEmailJobs.css';
+import { Skeleton } from '../components/AsyncBoundary';
 
 export default function AdminEmailJobs() {
   const [jobs, setJobs] = useState([]);
@@ -19,7 +20,8 @@ export default function AdminEmailJobs() {
       const res = await api.get(`/admin/utilities/email-jobs?limit=${limit}&page=${page}`);
       setJobs(res.data.jobs || []);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to load jobs');
+      console.error('Failed to load email jobs:', err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -96,8 +98,8 @@ export default function AdminEmailJobs() {
         </div>
       </div>
 
-      {loading && <div>Loading jobs...</div>}
-      {error && <div className="error">{error}</div>}
+      {loading && <Skeleton variant="list" />}
+      {error && <div className="async-state async-state--error" role="alert"><strong>We couldn’t load email jobs</strong><p>Please try again.</p><button type="button" onClick={fetchJobs}>Retry</button></div>}
 
       {!loading && !error && (
         <div>

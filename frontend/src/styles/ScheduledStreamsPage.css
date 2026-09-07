@@ -7,6 +7,41 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+@media (min-width: 481px) {
+  .scheduled-streams-page {
+    min-height: calc(100vh - 72px);
+    background: var(--app-bg);
+    color: var(--app-text);
+    font-family: inherit;
+  }
+  .scheduled-streams-page .form-card,
+  .scheduled-streams-page .dashboard-panel > *,
+  .scheduled-streams-page .schedule-card {
+    background: var(--app-surface);
+    color: var(--app-text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  .scheduled-streams-page .page-header h1,
+  .scheduled-streams-page .form-card h2,
+  .scheduled-streams-page .form-group label,
+  .scheduled-streams-page .reminder-checkbox span { color: var(--app-text); }
+  .scheduled-streams-page .page-header p,
+  .scheduled-streams-page .dashboard-panel p { color: var(--app-muted); }
+  .scheduled-streams-page .form-group input,
+  .scheduled-streams-page .form-group textarea,
+  .scheduled-streams-page .form-group select {
+    background: var(--app-surface);
+    color: var(--app-text);
+    border-color: var(--border);
+  }
+  .scheduled-streams-page .submit-btn {
+    background: var(--primary);
+    color: #fff;
+  }
+}
+
 .page-header {
   max-width: 1400px;
   margin: 0 auto 30px;
@@ -230,6 +265,89 @@ form {
     padding: 20px 15px;
   }
 
+  /* Align scheduling with the shared EduTalk light/dark design system. */
+  .scheduled-streams-page {
+    min-height: calc(100vh - 72px);
+    background: var(--app-bg);
+    color: var(--app-text);
+    font-family: inherit;
+  }
+
+  .scheduled-streams-page .page-header h1,
+  .scheduled-streams-page .form-card h2 {
+    color: var(--heading);
+  }
+
+  .scheduled-streams-page .page-header p,
+  .scheduled-streams-page .dashboard-panel p {
+    color: var(--app-muted);
+  }
+
+  .scheduled-streams-page .form-card,
+  .scheduled-streams-page .dashboard-panel > *,
+  .scheduled-streams-page .schedule-card {
+    background: var(--app-surface);
+    color: var(--app-text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .scheduled-streams-page .form-group label,
+  .scheduled-streams-page .reminder-checkbox span {
+    color: var(--app-text);
+  }
+
+  .scheduled-streams-page .form-group input,
+  .scheduled-streams-page .form-group textarea,
+  .scheduled-streams-page .form-group select {
+    background: var(--app-surface);
+    color: var(--app-text);
+    border-color: var(--border);
+  }
+
+  .scheduled-streams-page .form-group input:focus,
+  .scheduled-streams-page .form-group textarea:focus,
+  .scheduled-streams-page .form-group select:focus {
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+
+  .scheduled-streams-page .reminder-checkbox:hover {
+    background: var(--primary-subtle);
+  }
+
+  .scheduled-streams-page .submit-btn {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .scheduled-streams-page .submit-btn:hover:not(:disabled) {
+    background: var(--primary-hover);
+    box-shadow: var(--shadow-md);
+  }
+
+  .scheduled-streams-page .message.success {
+    background: var(--success-bg);
+    color: var(--success);
+    border-left-color: var(--success);
+  }
+
+  .scheduled-streams-page .message.error {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border-left-color: var(--danger);
+  }
+
+  :root[data-theme="dark"] .scheduled-streams-page .form-card,
+  :root[data-theme="dark"] .scheduled-streams-page .dashboard-panel > *,
+  :root[data-theme="dark"] .scheduled-streams-page .schedule-card {
+    background: var(--app-surface);
+    color: var(--app-text);
+    border-color: var(--app-border);
+  }
+
   .page-header {
     margin-bottom: 20px;
   }
@@ -272,6 +390,70 @@ form {
 @media (max-width: 480px) {
   .scheduled-streams-page {
     padding: 15px 10px;
+  }
+
+  /* Apply the scheduling theme at every viewport size. */
+  .scheduled-streams-page {
+    min-height: calc(100vh - 72px);
+    background: var(--app-bg);
+    color: var(--app-text);
+    font-family: inherit;
+  }
+
+  .scheduled-streams-page .page-header h1,
+  .scheduled-streams-page .form-card h2 { color: var(--heading); }
+  .scheduled-streams-page .page-header p,
+  .scheduled-streams-page .dashboard-panel p { color: var(--app-muted); }
+  .scheduled-streams-page .form-card,
+  .scheduled-streams-page .dashboard-panel > *,
+  .scheduled-streams-page .schedule-card {
+    background: var(--app-surface);
+    color: var(--app-text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  .scheduled-streams-page .form-group label,
+  .scheduled-streams-page .reminder-checkbox span { color: var(--app-text); }
+  .scheduled-streams-page .form-group input,
+  .scheduled-streams-page .form-group textarea,
+  .scheduled-streams-page .form-group select {
+    background: var(--app-surface);
+    color: var(--app-text);
+    border-color: var(--border);
+  }
+  .scheduled-streams-page .form-group input:focus,
+  .scheduled-streams-page .form-group textarea:focus,
+  .scheduled-streams-page .form-group select:focus {
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+  .scheduled-streams-page .reminder-checkbox:hover { background: var(--primary-subtle); }
+  .scheduled-streams-page .submit-btn {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: var(--shadow-sm);
+  }
+  .scheduled-streams-page .submit-btn:hover:not(:disabled) {
+    background: var(--primary-hover);
+    box-shadow: var(--shadow-md);
+  }
+  .scheduled-streams-page .message.success {
+    background: var(--success-bg);
+    color: var(--success);
+    border-left-color: var(--success);
+  }
+  .scheduled-streams-page .message.error {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border-left-color: var(--danger);
+  }
+  :root[data-theme="dark"] .scheduled-streams-page .form-card,
+  :root[data-theme="dark"] .scheduled-streams-page .dashboard-panel > *,
+  :root[data-theme="dark"] .scheduled-streams-page .schedule-card {
+    background: var(--app-surface);
+    color: var(--app-text);
+    border-color: var(--app-border);
   }
 
   .page-header {

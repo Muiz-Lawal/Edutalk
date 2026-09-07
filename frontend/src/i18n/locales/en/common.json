@@ -22,7 +22,7 @@
     "copyright": "© 2026 EduTalk. All rights reserved."
   },
   "common": {
-    "loading": "Loading...",
+    "loading": "Please wait",
     "error": "Error",
     "success": "Success",
     "warning": "Warning",
@@ -74,7 +74,7 @@
     "updated": "Updated successfully",
     "deleted": "Deleted successfully",
     "created": "Created successfully",
-    "loading": "Loading...",
+    "loading": "Please wait",
     "noResults": "No results found",
     "tryAgain": "Try again"
   }

@@ -13,6 +13,37 @@
   margin-bottom: 3rem;
 }
 
+.class-header--hero {
+  background-position: center;
+  background-size: cover;
+  color: white;
+  border-radius: 12px;
+  padding: 48px 32px;
+}
+
+.class-host-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 6px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.class-gallery {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.class-gallery__item { flex: 0 0 220px; padding: 0; border: 0; background: transparent; cursor: zoom-in; text-align: left; }
+.class-gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; }
+.class-gallery span { display: block; color: #64748b; font-size: 12px; margin-top: 4px; }
+.class-lightbox { position: fixed; inset: 0; z-index: 20; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 32px; background: rgba(15,23,42,.86); }
+.class-lightbox img { max-width: min(900px, 80vw); max-height: 80vh; margin: auto; object-fit: contain; }
+.class-lightbox button { border: 1px solid rgba(255,255,255,.4); border-radius: 8px; padding: 10px 14px; background: rgba(255,255,255,.1); color: white; cursor: pointer; }
+
 .class-header h1 {
   font-size: 2.5rem;
   color: #333;
@@ -259,6 +290,21 @@
   .class-content {
     grid-template-columns: 1fr;
   }
+
+  /* Theme overrides for legacy class-detail selectors. */
+  .class-detail-page { background: var(--app-bg); color: var(--app-text); }
+  .class-detail-page .class-main,
+  .class-detail-page .enrollment-card,
+  .class-detail-page .session-item,
+  .class-detail-page .price-calculation { background: var(--app-surface); border-color: var(--border); }
+  .class-detail-page h1,
+  .class-detail-page h2,
+  .class-detail-page h3 { color: var(--heading); }
+  .class-detail-page p,
+  .class-detail-page .host-info,
+  .class-detail-page .class-description { color: var(--app-muted); }
+  .class-detail-page input,
+  .class-detail-page select { background: var(--app-surface); color: var(--app-text); border-color: var(--border); }
 
   .class-header h1 {
     font-size: 1.8rem;

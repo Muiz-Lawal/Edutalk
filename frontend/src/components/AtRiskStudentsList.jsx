@@ -172,7 +172,7 @@ const AtRiskStudentsList = ({
                     onClick={() => onViewDetails(student)}
                     title="View student details"
                   >
-                    📊 Details
+                    Details
                   </button>
                 )}
               </div>

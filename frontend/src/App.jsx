@@ -7,16 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 // Loading component for lazy-loaded routes
 const LoadingSpinner = () => (
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '60vh',
-    fontSize: '18px',
-    color: '#666'
-  }}>
-    <div>Loading...</div>
-  </div>
+  <div className="route-loading-skeleton" aria-label="Loading page" />
 );
 
 // Lazy load all page components for code splitting
@@ -26,6 +17,10 @@ const SignupPage = React.lazy(() => import('./pages/SignupPage'));
 const BrowseClassesPage = React.lazy(() => import('./pages/BrowseClassesPage'));
 const ClassDetailPage = React.lazy(() => import('./pages/ClassDetailPage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
+const ClassCreationPage = React.lazy(() => import('./pages/ClassCreationPage'));
+const ClassSettingsPage = React.lazy(() => import('./pages/ClassSettingsPage'));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const HostDashboardPage = React.lazy(() => import('./pages/HostDashboardPage'));
 const RecordingsPage = React.lazy(() => import('./pages/RecordingsPage'));
 const NotificationsPage = React.lazy(() => import('./pages/NotificationsPage'));
@@ -34,6 +29,10 @@ const BundleCreation = React.lazy(() => import('./pages/BundleCreation'));
 const DynamicPricingPage = React.lazy(() => import('./pages/DynamicPricingPage'));
 const DiscountManager = React.lazy(() => import('./pages/DiscountManager'));
 const EnrollmentPage = React.lazy(() => import('./pages/EnrollmentPage'));
+const PaymentHistoryPage = React.lazy(() => import('./pages/PaymentHistoryPage'));
+const CartPage = React.lazy(() => import('./pages/CartPage'));
+const BatchCheckoutPage = React.lazy(() => import('./pages/BatchCheckoutPage'));
+const CheckoutConfirmationPage = React.lazy(() => import('./pages/CheckoutConfirmationPage'));
 const ModerationPage = React.lazy(() => import('./pages/ModerationPage'));
 const UserAppealsPage = React.lazy(() => import('./pages/UserAppealsPage'));
 const LiveStreamHost = React.lazy(() => import('./pages/LiveStreamHost'));
@@ -58,14 +57,15 @@ const AdminAnalyticsDashboard = React.lazy(() => import('./pages/AdminAnalyticsD
 // Admin Pages
 const AdminLoginPage = React.lazy(() => import('./pages/AdminLoginPage'));
 const AdminManagement = React.lazy(() => import('./pages/AdminManagement'));
-const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
-const AdminUsers = React.lazy(() => import('./pages/AdminUsers').then(module => ({ default: module.AdminUsers })));
+const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
+const AdminSupport = React.lazy(() => import('./pages/AdminSupport'));
+const AdminUsers = React.lazy(() => import('./pages/AdminUsers'));
 const AdminModeration = React.lazy(() => import('./pages/AdminModeration'));
-const AdminPayments = React.lazy(() => import('./pages/AdminPayments').then(module => ({ default: module.AdminPayments })));
+const AdminPayments = React.lazy(() => import('./pages/AdminPayments'));
 const AdminEmailJobs = React.lazy(() => import('./pages/AdminEmailJobs'));
-const AdminHosts = React.lazy(() => import('./pages/AdminHosts').then(module => ({ default: module.AdminHosts })));
-const AdminAnalytics = React.lazy(() => import('./pages/AdminAnalytics').then(module => ({ default: module.AdminAnalytics })));
-const AdminLogs = React.lazy(() => import('./pages/AdminLogs').then(module => ({ default: module.AdminLogs })));
+const AdminHosts = React.lazy(() => import('./pages/AdminHosts'));
+const AdminAnalytics = React.lazy(() => import('./pages/AdminAnalytics'));
+const AdminLogs = React.lazy(() => import('./pages/AdminLogs'));
 const AdminSettings = React.lazy(() => import('./pages/AdminSettings'));
 
 // Lazy load heavy components
@@ -88,6 +88,8 @@ import PushPermissionRequest from './components/PushPermissionRequest';
 // Styles
 import './styles/global.css';
 import './styles/mobile-utilities.css';
+import './styles/ThemeSurface.css';
+import './styles/AsyncBoundary.css';
 
 function App() {
   return (
@@ -130,6 +132,25 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+             path="/class/:classId/payment"
+             element={
+               <ProtectedRoute>
+                 <EnrollmentPage />
+               </ProtectedRoute>
+             }
+            />
+            <Route
+             path="/payments"
+             element={
+               <ProtectedRoute>
+                 <PaymentHistoryPage />
+               </ProtectedRoute>
+             }
+            />
+            <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
+            <Route path="/checkout/batch" element={<ProtectedRoute><BatchCheckoutPage /></ProtectedRoute>} />
+            <Route path="/checkout/confirmation" element={<ProtectedRoute><CheckoutConfirmationPage /></ProtectedRoute>} />
             <Route path="/class/:classId" element={<ClassDetailPage />} />
             <Route
               path="/dashboard"
@@ -140,12 +161,32 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/settings"
+              element={<ProtectedRoute><SettingsPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/dashboard/profile"
+              element={<ProtectedRoute><ProfilePage /></ProtectedRoute>}
+            />
+            <Route
               path="/host-dashboard"
               element={
                 <ProtectedRoute requireHost>
                   <HostDashboardPage />
                 </ProtectedRoute>
               }
+            />
+            <Route
+              path="/create-class"
+              element={<ProtectedRoute requireHost><ClassCreationPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/host/classes/new"
+              element={<ProtectedRoute requireHost><ClassCreationPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/host/classes/:classId"
+              element={<ProtectedRoute requireHost><ClassSettingsPage /></ProtectedRoute>}
             />
             <Route
               path="/recordings"
@@ -174,7 +215,7 @@ function App() {
             <Route
               path="/moderation"
               element={
-                <ProtectedRoute requireHost>
+                <ProtectedRoute requireAdmin>
                   <ModerationPage />
                 </ProtectedRoute>
               }
@@ -298,6 +339,7 @@ function App() {
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route
               path="/admin/dashboard"
               element={
@@ -307,9 +349,17 @@ function App() {
               }
             />
             <Route
+              path="/admin/support"
+              element={
+                <ProtectedRoute requireAdmin requirePermission="view_support_dashboard">
+                  <AdminSupport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/admin/users"
               element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requireAdmin requirePermission={['manage_users', 'view_user_profiles_readonly']}>
                   <AdminUsers />
                 </ProtectedRoute>
               }

@@ -1606,7 +1606,9 @@ export const getModerationStats = async (req, res) => {
 export const getTransactions = async (req, res) => {
   try {
     const { page = 1, limit = 20, status = 'all', startDate, endDate, minAmount, maxAmount, hostId, studentEmail } = req.query;
-    const skip = (page - 1) * limit;
+    const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+    const parsedLimit = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+    const skip = (parsedPage - 1) * parsedLimit;
 
     let matchStage = {};
 
@@ -1677,7 +1679,7 @@ export const getTransactions = async (req, res) => {
       },
       { $sort: { createdAt: -1 } },
       { $skip: skip },
-      { $limit: limit },
+      { $limit: parsedLimit },
       {
         $project: {
           _id: 1,
@@ -1701,10 +1703,10 @@ export const getTransactions = async (req, res) => {
     res.json({
       transactions,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: parsedPage,
+        limit: parsedLimit,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / parsedLimit)
       }
     });
   } catch (error) {
@@ -2558,7 +2560,8 @@ export const getSuspensionHistory = async (req, res) => {
 export const updateCommissionRate = async (req, res) => {
   try {
     const { tier, rate } = req.body;
-    const { adminId, adminEmail } = req.user;
+    const adminId = req.user._id;
+    const adminEmail = req.user.email;
 
     // Validate tier
     const validTiers = ['starter', 'growth', 'pro', 'elite'];
@@ -2571,20 +2574,20 @@ export const updateCommissionRate = async (req, res) => {
       return res.status(400).json({ error: 'Rate must be between 0 and 100' });
     }
 
-    let settings = await AdminSettings.findOne({});
+    let settings = await AdminSettings.findOne({ key: 'commission_rates' });
     if (!settings) {
       settings = new AdminSettings({
-        commissionRates: {
-          starter: 25,
-          growth: 20,
-          pro: 15,
-          elite: 10
-        }
+        key: 'commission_rates',
+        category: 'commission',
+        dataType: 'object',
+        value: { starter: 0.25, growth: 0.2, pro: 0.15, elite: 0.1 }
       });
     }
 
-    const oldRate = settings.commissionRates[tier];
-    settings.commissionRates[tier] = rate;
+    const rates = { ...(settings.value || {}) };
+    const oldRate = rates[tier];
+    rates[tier] = rate / 100;
+    settings.value = rates;
     settings.updatedAt = new Date();
     settings.updatedBy = adminId;
     await settings.save();
@@ -2603,7 +2606,7 @@ export const updateCommissionRate = async (req, res) => {
     res.json({
       success: true,
       message: `Commission rate for ${tier} updated to ${rate}%`,
-      commissionRates: settings.commissionRates
+      commissionRates: settings.value
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -2818,4 +2821,3 @@ export const updateEmailTemplate = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-

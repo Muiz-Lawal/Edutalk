@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, getProfile, updateProfile, upgradeToHost, adminLogin, adminLogout } from '../controllers/authController.js';
+import { register, login, getProfile, updateProfile, changePassword, upgradeToHost, adminLogin, adminLogout } from '../controllers/authController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { adminAuth } from '../middleware/adminAuth.js';
 import { loginLimiter } from '../utils/rateLimiters.js';
@@ -10,6 +10,7 @@ router.post('/register', register);
 router.post('/login', login);
 router.get('/profile', authenticateToken, getProfile);
 router.put('/profile', authenticateToken, updateProfile);
+router.post('/change-password', authenticateToken, changePassword);
 router.post('/upgrade-to-host', authenticateToken, upgradeToHost);
 
 // Admin authentication

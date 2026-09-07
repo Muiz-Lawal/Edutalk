@@ -183,6 +183,74 @@
   box-shadow: 0 0 0 1000px #ffffff inset;
 }
 
+.admin-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.admin-page-header h1 {
+  margin: 0;
+}
+
+.admin-subtitle {
+  margin: 8px 0 0;
+  color: #5f6c7b;
+}
+
+.admin-role-badge {
+  background: #eaf5ff;
+  border: 1px solid #b9dcff;
+  color: #15539e;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-role-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-role-actions .btn,
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  padding: 10px 14px;
+  text-decoration: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.admin-role-actions .btn:hover,
+.btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.96;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #1f2937;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
 /* Dashboard Grid */
 .admin-grid {
   display: grid;
@@ -575,4 +643,85 @@
   .admin-content {
     padding: 15px;
   }
+}
+
+:root[data-theme="dark"] .admin-container {
+  background-color: var(--app-bg);
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] .admin-header,
+:root[data-theme="dark"] .admin-content > section,
+:root[data-theme="dark"] .admin-content .card,
+:root[data-theme="dark"] .admin-content .panel,
+:root[data-theme="dark"] .admin-content .stat-card,
+:root[data-theme="dark"] .admin-content .metric-card,
+:root[data-theme="dark"] .admin-content .table-container {
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .admin-content .admin-table,
+:root[data-theme="dark"] .admin-content .admin-section,
+:root[data-theme="dark"] .admin-content .section-card,
+:root[data-theme="dark"] .admin-content .chart-card {
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .admin-header {
+  border-bottom-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .admin-content h1,
+:root[data-theme="dark"] .admin-content h2,
+:root[data-theme="dark"] .admin-content h3,
+:root[data-theme="dark"] .admin-content h4,
+:root[data-theme="dark"] .admin-content p,
+:root[data-theme="dark"] .admin-content label,
+:root[data-theme="dark"] .admin-content td,
+:root[data-theme="dark"] .admin-content th {
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] .admin-content .admin-subtitle,
+:root[data-theme="dark"] .admin-content small {
+  color: var(--app-muted);
+}
+
+:root[data-theme="dark"] .admin-content .stat-label {
+  color: var(--app-muted);
+}
+
+:root[data-theme="dark"] .admin-content .stat-value,
+:root[data-theme="dark"] .admin-content .header-title {
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] .admin-content .admin-table th,
+:root[data-theme="dark"] .admin-content .admin-table td {
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  border-bottom-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .admin-content input,
+:root[data-theme="dark"] .admin-content select,
+:root[data-theme="dark"] .admin-content textarea {
+  background-color: var(--app-surface-muted);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .admin-content table,
+:root[data-theme="dark"] .admin-content tr,
+:root[data-theme="dark"] .admin-content td,
+:root[data-theme="dark"] .admin-content th {
+  border-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .toggle-sidebar {
+  color: #c7d2fe;
 }

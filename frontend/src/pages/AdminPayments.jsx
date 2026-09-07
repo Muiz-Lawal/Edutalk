@@ -3,7 +3,10 @@ import { useAdmin } from '../context/AdminContext';
 import PaymentDetailsModal from '../components/PaymentDetailsModal';
 import PayoutManagementModal from '../components/PayoutManagementModal';
 import RefundManagementModal from '../components/RefundManagementModal';
+import { useAdminPermissions } from '../hooks/useAdminPermissions';
 import '../styles/admin-payments.css';
+import { Skeleton } from '../components/AsyncBoundary';
+import { formatDate } from '../lib/date';
 
 const AdminPayments = () => {
   const { 
@@ -13,8 +16,11 @@ const AdminPayments = () => {
     fetchRevenueTrends,
     fetchPaymentSummary,
     fetchCommissionSettings,
+    updateCommissionSettings,
     exportTransactions
   } = useAdmin();
+  const { hasPermission } = useAdminPermissions();
+  const canChangeCommission = hasPermission('change_commission');
 
   const [activeTab, setActiveTab] = useState('transactions');
   const [loading, setLoading] = useState(true);
@@ -49,9 +55,21 @@ const AdminPayments = () => {
 
   // Commission state
   const [commissionSettings, setCommissionSettings] = useState(null);
+  const [commissionDraft, setCommissionDraft] = useState({
+    starter: 25,
+    growth: 20,
+    pro: 15,
+    elite: 10,
+  });
+  const [savingCommission, setSavingCommission] = useState(false);
 
   // Summary state
   const [paymentSummary, setPaymentSummary] = useState(null);
+  const [payoutQueue, setPayoutQueue] = useState([
+    { id: 'PO-1034', host: 'Alicia Morgan', amount: 4200, due: 'Today', status: 'pending', requiresSuperAdmin: true },
+    { id: 'PO-1035', host: 'Marcus Bell', amount: 1980, due: 'Tomorrow', status: 'pending', requiresSuperAdmin: false },
+    { id: 'PO-1036', host: 'Sofia Patel', amount: 960, due: 'This week', status: 'approved', requiresSuperAdmin: false },
+  ]);
 
   // Load data on mount
   useEffect(() => {
@@ -64,18 +82,20 @@ const AdminPayments = () => {
     try {
       if (activeTab === 'transactions') {
         const result = await fetchTransactions(transactionPage, transactionFilters);
-        setTransactions(result?.data || []);
+        setTransactions(result?.transactions || result?.data || []);
       } else if (activeTab === 'revenue') {
         const hostRevResult = await fetchRevenueByHost();
         const trendsResult = await fetchRevenueTrends();
-        setHostRevenue(hostRevResult?.data || []);
-        setRevenueTrends(trendsResult?.data || []);
+        setHostRevenue(Array.isArray(hostRevResult) ? hostRevResult : hostRevResult?.topHosts || hostRevResult?.data || []);
+        setRevenueTrends(Array.isArray(trendsResult) ? trendsResult : trendsResult?.trends || []);
       } else if (activeTab === 'payouts') {
         const summaryResult = await fetchPaymentSummary();
-        setPaymentSummary(summaryResult?.data || null);
+        setPaymentSummary(summaryResult?.summary || summaryResult?.data || summaryResult || null);
       } else if (activeTab === 'settings') {
         const settingsResult = await fetchCommissionSettings();
-        setCommissionSettings(settingsResult?.data || null);
+        const nextSettings = normalizeCommissionSettings(settingsResult?.data || settingsResult || {});
+        setCommissionSettings(nextSettings);
+        setCommissionDraft(nextSettings);
       }
     } catch (err) {
       setError(err.message || 'Failed to load data');
@@ -104,20 +124,80 @@ const AdminPayments = () => {
     setTransactionPage(1);
   };
 
+  const normalizeCommissionSettings = (payload) => {
+    const source = payload?.commissionRates || payload?.rates || payload || {};
+    const readRate = (value, fallback = 0) => {
+      const numericValue = Number(value ?? fallback);
+      if (Number.isNaN(numericValue)) return fallback;
+      return numericValue > 1 ? numericValue : numericValue * 100;
+    };
+
+    return {
+      starter: readRate(source.starter, 25),
+      growth: readRate(source.growth, 20),
+      pro: readRate(source.pro, 15),
+      elite: readRate(source.elite, 10),
+    };
+  };
+
+  const handleCommissionInput = (key, value) => {
+    const numericValue = Number(value);
+    setCommissionDraft((prev) => ({
+      ...prev,
+      [key]: Number.isNaN(numericValue) ? 0 : Math.max(0, Math.min(100, numericValue)),
+    }));
+  };
+
+  const handleSaveCommissionSettings = async () => {
+    try {
+      setSavingCommission(true);
+      const payload = {
+        commissionRates: {
+          starter: Number(commissionDraft.starter) / 100,
+          growth: Number(commissionDraft.growth) / 100,
+          pro: Number(commissionDraft.pro) / 100,
+          elite: Number(commissionDraft.elite) / 100,
+        },
+      };
+      const saved = await updateCommissionSettings(payload);
+      if (saved) {
+        setCommissionSettings({ ...commissionDraft });
+        setError(null);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to save commission settings');
+    } finally {
+      setSavingCommission(false);
+    }
+  };
+
   const handleExport = async () => {
     try {
       const result = await exportTransactions(transactionFilters);
-      // Trigger download
+      if (!result?.data) return;
       const url = window.URL.createObjectURL(new Blob([result.data]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `transactions-${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
-      link.parentChild.removeChild(link);
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       setError('Failed to export transactions');
     }
+  };
+
+  const handlePayoutDecision = (payoutId, action) => {
+    setPayoutQueue((prev) =>
+      prev.map((payout) => {
+        if (payout.id !== payoutId) return payout;
+        if (action === 'approve') {
+          return { ...payout, status: 'approved', decision: 'Approved by Finance Admin' };
+        }
+        return { ...payout, status: 'escalated', decision: 'Escalated to SuperAdmin' };
+      })
+    );
   };
 
   return (
@@ -432,11 +512,11 @@ const AdminPayments = () => {
       `}</style>
 
       <div className="payments-header">
-        <h1>💰 Payments & Payouts</h1>
+        <h1>Payments &amp; Payouts</h1>
         <p>Manage transactions, revenue, and commission settings</p>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-message">We couldn’t load payment data. Please try again.</div>}
 
       {/* Summary Cards */}
       {paymentSummary && (
@@ -470,13 +550,13 @@ const AdminPayments = () => {
           className={`tab-button ${activeTab === 'transactions' ? 'active' : ''}`}
           onClick={() => setActiveTab('transactions')}
         >
-          📊 Transactions
+          Transactions
         </button>
         <button 
           className={`tab-button ${activeTab === 'revenue' ? 'active' : ''}`}
           onClick={() => setActiveTab('revenue')}
         >
-          📈 Revenue Analysis
+          Revenue Analysis
         </button>
         <button 
           className={`tab-button ${activeTab === 'payouts' ? 'active' : ''}`}
@@ -488,13 +568,13 @@ const AdminPayments = () => {
           className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => setActiveTab('settings')}
         >
-          ⚙️ Settings
+          Settings
         </button>
       </div>
 
       {/* Tab Content */}
       <div className="tab-content">
-        {loading && <div className="loading-spinner">Loading...</div>}
+        {loading && <Skeleton variant="list" />}
 
         {/* Transactions Tab */}
         {!loading && activeTab === 'transactions' && (
@@ -574,16 +654,16 @@ const AdminPayments = () => {
                       {transactions.map(tx => (
                         <tr key={tx._id} onClick={() => handleTransactionClick(tx)}>
                           <td>{tx._id.substring(0, 8)}...</td>
-                          <td>{tx.studentName}</td>
-                          <td>{tx.hostName}</td>
-                          <td>${tx.amount.toFixed(2)}</td>
-                          <td>${tx.platformFee.toFixed(2)}</td>
+                          <td>{tx.studentName || tx.studentEmail || '—'}</td>
+                          <td>{tx.hostName || tx.hostEmail || '—'}</td>
+                          <td>${Number(tx.amount || 0).toFixed(2)}</td>
+                          <td>${Number(tx.platformFee ?? tx.commissionAmount ?? 0).toFixed(2)}</td>
                           <td>
                             <span className={`status-badge ${tx.status.toLowerCase()}`}>
                               {tx.status}
                             </span>
                           </td>
-                          <td>{new Date(tx.createdAt).toLocaleDateString()}</td>
+                          <td>{formatDate(tx.createdAt)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -630,10 +710,13 @@ const AdminPayments = () => {
                     <tbody>
                       {revenueTrends.map((trend, idx) => (
                         <tr key={idx}>
-                          <td>{trend.period}</td>
-                          <td>${trend.totalRevenue.toFixed(2)}</td>
-                          <td>{trend.transactionCount}</td>
-                          <td>${(trend.totalRevenue / trend.transactionCount).toFixed(2)}</td>
+                          <td>{trend.period || trend._id}</td>
+                          <td>${Number(trend.totalRevenue ?? trend.revenue ?? 0).toFixed(2)}</td>
+                          <td>{trend.transactionCount ?? trend.transactions ?? 0}</td>
+                          <td>${(
+                            Number(trend.totalRevenue ?? trend.revenue ?? 0) /
+                            Math.max(1, Number(trend.transactionCount ?? trend.transactions ?? 0))
+                          ).toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -661,10 +744,10 @@ const AdminPayments = () => {
                     {hostRevenue.map(host => (
                       <tr key={host._id}>
                         <td>{host.hostName}</td>
-                        <td>${host.totalRevenue.toFixed(2)}</td>
-                        <td>{host.classCount}</td>
+                        <td>${Number(host.totalRevenue ?? 0).toFixed(2)}</td>
+                        <td>{host.classCount ?? host.transactionCount ?? 0}</td>
                         <td>{host.studentCount}</td>
-                        <td>{host.commissionRate}%</td>
+                        <td>{host.commissionRate ?? '—'}{host.commissionRate != null ? '%' : ''}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -688,9 +771,50 @@ const AdminPayments = () => {
               </button>
             </div>
 
-            <div className="empty-state">
-              <p>Payout management interface ready</p>
-              <p>Click "Process Payout" to create new payouts</p>
+            <div style={{ marginTop: '20px' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Payout ID</th>
+                    <th>Host</th>
+                    <th>Amount</th>
+                    <th>Due</th>
+                    <th>Approval</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payoutQueue.map((payout) => (
+                    <tr key={payout.id}>
+                      <td>{payout.id}</td>
+                      <td>{payout.host}</td>
+                      <td>${Number(payout.amount).toFixed(2)}</td>
+                      <td>{payout.due}</td>
+                      <td>{payout.requiresSuperAdmin ? 'SuperAdmin sign-off required' : 'Finance approval'}</td>
+                      <td>
+                        <span className={`status-badge ${payout.status}`}>
+                          {payout.status}
+                        </span>
+                      </td>
+                      <td>
+                        {payout.status === 'pending' ? (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button className="btn btn-secondary" onClick={() => handlePayoutDecision(payout.id, 'approve')}>
+                              Approve
+                            </button>
+                            <button className="btn btn-primary" onClick={() => handlePayoutDecision(payout.id, 'escalate')}>
+                              Escalate
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#4b5563', fontWeight: 600 }}>{payout.decision || 'Reviewed'}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -699,24 +823,60 @@ const AdminPayments = () => {
         {!loading && activeTab === 'settings' && (
           <div>
             {commissionSettings ? (
-              <div className="filter-bar">
-                <div className="filter-group">
-                  <label>Starter Commission Rate (%)</label>
-                  <input type="number" defaultValue={commissionSettings.starter} />
+              <>
+                <div className="filter-bar">
+                  <div className="filter-group">
+                    <label>Starter Commission Rate (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={commissionDraft.starter}
+                      onChange={(event) => handleCommissionInput('starter', event.target.value)}
+                    />
+                  </div>
+                  <div className="filter-group">
+                    <label>Growth Commission Rate (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={commissionDraft.growth}
+                      onChange={(event) => handleCommissionInput('growth', event.target.value)}
+                    />
+                  </div>
+                  <div className="filter-group">
+                    <label>Pro Commission Rate (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={commissionDraft.pro}
+                      onChange={(event) => handleCommissionInput('pro', event.target.value)}
+                    />
+                  </div>
+                  <div className="filter-group">
+                    <label>Elite Commission Rate (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={commissionDraft.elite}
+                      onChange={(event) => handleCommissionInput('elite', event.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="filter-group">
-                  <label>Growth Commission Rate (%)</label>
-                  <input type="number" defaultValue={commissionSettings.growth} />
+
+                <div className="action-buttons">
+                  {canChangeCommission ? (
+                    <button className="btn btn-primary" onClick={handleSaveCommissionSettings} disabled={savingCommission}>
+                      {savingCommission ? 'Saving...' : 'Save Commission Settings'}
+                    </button>
+                  ) : (
+                    <p className="info-note">Only SuperAdmin can change commission rates.</p>
+                  )}
                 </div>
-                <div className="filter-group">
-                  <label>Pro Commission Rate (%)</label>
-                  <input type="number" defaultValue={commissionSettings.pro} />
-                </div>
-                <div className="filter-group">
-                  <label>Elite Commission Rate (%)</label>
-                  <input type="number" defaultValue={commissionSettings.elite} />
-                </div>
-              </div>
+              </>
             ) : (
               <div className="empty-state">
                 <p>Commission settings loading...</p>
@@ -750,4 +910,4 @@ const AdminPayments = () => {
   );
 };
 
-export { AdminPayments };
+export default AdminPayments;

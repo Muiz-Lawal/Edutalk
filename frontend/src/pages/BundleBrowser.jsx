@@ -93,7 +93,7 @@ export default function BundleBrowser() {
   if (loading && bundles.length === 0) {
     return (
       <div className="bundle-browser">
-        <div className="loading">Loading bundles...</div>
+        <div className="async-skeleton async-skeleton--list" aria-hidden="true" />
       </div>
     );
   }
@@ -146,7 +146,7 @@ export default function BundleBrowser() {
 
       {error && (
         <div className="error-message">
-          {error}
+          We couldn’t load bundles. Please try again.
           <button onClick={fetchBundles} className="retry-btn">
             Try Again
           </button>
