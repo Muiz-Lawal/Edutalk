@@ -45,8 +45,6 @@ export default function Header() {
     setMobileMenuOpen(false);
   };
 
-  if (isAuthPage) return null;
-
   useEffect(() => {
     if (isAuthenticated && token) {
       initSocket(token);
@@ -84,6 +82,8 @@ export default function Header() {
       if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
     };
   }, []);
+
+  if (isAuthPage) return null;
 
   return (
     <header className="header">
