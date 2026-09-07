@@ -60,6 +60,20 @@ const userSchema = new mongoose.Schema({
   
   // Host-specific fields
   hostBio: String,
+  hostDisplayName: String,
+  hostHeadline: String,
+  hostExperience: String,
+  hostLanguages: [String],
+  hostCategories: [String],
+  hostCredentials: [{
+    name: String,
+    size: Number,
+    type: String,
+  }],
+  payoutCountry: String,
+  payoutMethod: String,
+  payoutDeferred: Boolean,
+  hostCommissionAccepted: Boolean,
   stripeConnectId: String,
   hostVerified: {
     type: Boolean,

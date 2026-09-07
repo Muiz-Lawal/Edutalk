@@ -207,6 +207,23 @@ export const updateProfile = async (req, res) => {
   }
 };
 
+export const updateHostOnboarding = async (req, res) => {
+  try {
+    const allowed = ['hostDisplayName', 'hostHeadline', 'hostBio', 'hostExperience', 'hostLanguages', 'hostCategories', 'hostCredentials', 'payoutCountry', 'payoutMethod', 'payoutDeferred', 'hostCommissionAccepted'];
+    const updates = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
+    const user = await User.findOneAndUpdate(
+      { _id: req.user.userId, isHost: true },
+      { $set: updates },
+      { new: true, runValidators: true },
+    ).select('-password');
+    if (!user) return res.status(404).json({ message: 'Host profile not found' });
+    res.json(sanitizeUserForRequester(user, req.user?.adminRole || null));
+  } catch (error) {
+    console.error('Unable to update host onboarding:', error);
+    res.status(500).json({ message: 'Unable to save your host profile.' });
+  }
+};
+
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;

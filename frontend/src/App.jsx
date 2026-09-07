@@ -16,6 +16,7 @@ const LoginPage = React.lazy(() => import('./pages/LoginPage'));
 const SignupPage = React.lazy(() => import('./pages/SignupPage'));
 const VerifyEmailPage = React.lazy(() => import('./pages/VerifyEmailPage'));
 const LegalPage = React.lazy(() => import('./pages/LegalPage'));
+const HostOnboardingPage = React.lazy(() => import('./pages/HostOnboardingPage'));
 const BrowseClassesPage = React.lazy(() => import('./pages/BrowseClassesPage'));
 const ClassDetailPage = React.lazy(() => import('./pages/ClassDetailPage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
@@ -110,6 +111,7 @@ function App() {
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
                 <Route path="/terms" element={<LegalPage />} />
                 <Route path="/privacy" element={<LegalPage />} />
+                <Route path="/onboarding/host" element={<ProtectedRoute requireHost><HostOnboardingPage /></ProtectedRoute>} />
                 <Route path="/browse" element={<BrowseClassesPage />} />
 
                 {/* Bundle Routes */}
