@@ -20,8 +20,17 @@ import { randomUUID } from 'crypto';
 import PaymentChain from '../models/PaymentChain.js';
 import { toCents } from '../utils/pricing.js';
 import Cart from '../models/Cart.js';
+import HostPaymentProcessor from '../models/HostPaymentProcessor.js';
+import { routePaymentProvider } from '../utils/paymentRouting.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_example');
+
+const resolveCheckoutProvider = async (user, items) => {
+  const firstClass = await Class.findById(items[0].classId).select('hostId');
+  if (!firstClass) return null;
+  const processors = await HostPaymentProcessor.find({ hostId: firstClass.hostId }).lean();
+  return routePaymentProvider(user.preferredCurrency || 'USD', processors);
+};
 
 export const handleStripeWebhook = async (req, res) => {
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
@@ -139,7 +148,7 @@ export const createCheckoutQuote = async (req, res) => {
 
 export const createPaymentIntent = async (req, res) => {
   try {
-    const { classId, numberOfDays, discountCode, provider, items } = req.body;
+    const { classId, numberOfDays, discountCode, items } = req.body;
     const normalizedItems = normalizeCheckoutItems({ classId, numberOfDays, discountCode, items });
 
     const user = await User.findById(req.user.userId);
@@ -152,6 +161,10 @@ export const createPaymentIntent = async (req, res) => {
       items: normalizedItems,
       discountService: DiscountService,
     });
+    const provider = await resolveCheckoutProvider(user, normalizedItems);
+    if (!provider) {
+      return res.status(409).json({ error: 'payment_unavailable' });
+    }
     const checkoutId = randomUUID();
 
     const gatewayPayload = await createGatewayPaymentIntent({

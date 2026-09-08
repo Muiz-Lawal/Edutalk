@@ -16,6 +16,7 @@ export default function HostDashboardPage() {
   const [starterClass, setStarterClass] = useState(null);
   const [externalMeetingUrl, setExternalMeetingUrl] = useState('');
   const [savedMeetingUrl, setSavedMeetingUrl] = useState('');
+  const [payoutsHeld, setPayoutsHeld] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,6 +24,12 @@ export default function HostDashboardPage() {
     api.get('/classes/my-classes')
       .then(({ data }) => setClasses(Array.isArray(data) ? data : []))
       .catch((error) => console.error('Failed to fetch host classes:', error));
+  }, [isAuthenticated, user?.isHost]);
+  useEffect(() => {
+    if (!isAuthenticated || !user?.isHost) return;
+    api.get('/auth/payout-processors')
+      .then(({ data }) => setPayoutsHeld(!(data.processors || []).some((processor) => processor.status === 'active')))
+      .catch(() => setPayoutsHeld(false));
   }, [isAuthenticated, user?.isHost]);
 
   if (loading) return <main className="dashboard-page"><div className="container"><AsyncBoundary loading loadingVariant="block" /></div></main>;
@@ -57,6 +64,7 @@ export default function HostDashboardPage() {
           <div><p className="eyebrow">Creator workspace</p><h1>Host Dashboard</h1><p className="page-subtitle">Manage classes, connect with learners, and track your impact.</p></div>
           <Link to="/host/classes/new" className="ui-button ui-button--primary ui-button--md"><Plus size={16} /> Create a class</Link>
         </header>
+        {payoutsHeld && <div className="processor-warning host-payout-held">Payouts held: connect and verify at least one payment processor to receive paid enrollments. <Link to="/dashboard/settings#host">Open payouts</Link></div>}
 
         <div className="host-stats dashboard-stats">
           <StatCard label="Total classes" value={classes.length} />

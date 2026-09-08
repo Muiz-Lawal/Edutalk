@@ -4,6 +4,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { adminAuth } from '../middleware/adminAuth.js';
 import { loginLimiter } from '../utils/rateLimiters.js';
 import { requestPasswordReset, resendCode, resetPassword, verifyEmail } from '../controllers/emailConfirmationController.js';
+import { connectPayoutProcessor, disconnectPayoutProcessor, getPayoutProcessors } from '../controllers/payoutProcessorController.js';
 
 const router = express.Router();
 
@@ -16,6 +17,9 @@ router.post('/reset-password', resetPassword);
 router.get('/profile', authenticateToken, getProfile);
 router.put('/profile', authenticateToken, updateProfile);
 router.patch('/host-onboarding', authenticateToken, updateHostOnboarding);
+router.get('/payout-processors', authenticateToken, getPayoutProcessors);
+router.post('/payout-processors/connect', authenticateToken, connectPayoutProcessor);
+router.delete('/payout-processors/:provider', authenticateToken, disconnectPayoutProcessor);
 router.post('/change-password', authenticateToken, changePassword);
 router.post('/upgrade-to-host', authenticateToken, upgradeToHost);
 

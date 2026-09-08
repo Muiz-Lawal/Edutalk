@@ -3,6 +3,7 @@
   background: var(--app-bg);
   padding: 3rem 2rem;
 }
+.host-payout-held{margin:0 0 20px;padding:12px 14px;border:1px solid #FDE68A;border-radius:8px;background:#FFFBEB;color:#92400E;font-size:14px}.host-payout-held a{color:#92400E;font-weight:700;text-decoration:underline}
 
 .dashboard-page .page-header h1 {
   font-size: 28px;

@@ -91,6 +91,7 @@ export const register = async (req, res) => {
       await sendMail({ to: user.email, ...template, code: issued.code });
     } catch (emailError) {
       console.error('Unable to send verification email:', emailError);
+      return res.status(503).json({ error: 'verification_email_unavailable' });
     }
 
     const token = generateToken(user._id, user.email, user.tokenVersion);
@@ -202,8 +203,12 @@ export const updateProfile = async (req, res) => {
 
 export const updateHostOnboarding = async (req, res) => {
   try {
-    const allowed = ['hostDisplayName', 'hostHeadline', 'hostBio', 'hostExperience', 'hostLanguages', 'hostCategories', 'hostCredentials', 'payoutCountry', 'payoutMethod', 'payoutDeferred', 'hostCommissionAccepted'];
+    const allowed = ['hostDisplayName', 'hostHeadline', 'hostBio', 'hostExperience', 'hostLanguages', 'hostCategories', 'hostCredentials', 'payoutCountry', 'payoutMethod', 'payoutMethods', 'payoutDeferred', 'hostCommissionAccepted'];
     const updates = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
+    if (Array.isArray(updates.payoutMethods)) {
+      updates.payoutMethods = updates.payoutMethods.filter((method) => ['paystack', 'stripe'].includes(method));
+      updates.payoutMethod = updates.payoutMethods[0] || '';
+    }
     const user = await User.findOneAndUpdate(
       { _id: req.user.userId, isHost: true },
       { $set: updates },

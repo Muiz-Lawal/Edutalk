@@ -73,6 +73,7 @@ const userSchema = new mongoose.Schema({
   }],
   payoutCountry: String,
   payoutMethod: String,
+  payoutMethods: { type: [String], enum: ['paystack', 'stripe'], default: [] },
   payoutDeferred: Boolean,
   hostCommissionAccepted: Boolean,
   stripeConnectId: String,

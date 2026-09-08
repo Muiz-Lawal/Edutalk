@@ -17,7 +17,6 @@ function EnrollmentForm({ classData, selectedDays, onSuccess }) {
   const [discountValidation, setDiscountValidation] = useState(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [provider, setProvider] = useState('stripe');
   const [error, setError] = useState('');
 
   const calculatePrice = () => {
@@ -67,11 +66,6 @@ function EnrollmentForm({ classData, selectedDays, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (provider === 'stripe' && (!stripe || !elements)) {
-      setError('Stripe not loaded');
-      return;
-    }
-
     setIsProcessing(true);
     setError('');
 
@@ -81,7 +75,6 @@ function EnrollmentForm({ classData, selectedDays, onSuccess }) {
         classId: classData._id,
         numberOfDays: selectedDays,
         discountCode: discountValidation?.valid ? discountCode : null,
-        provider,
       });
 
       if (paymentResponse.data.provider === 'paystack' && paymentResponse.data.paymentUrl) {
@@ -90,12 +83,9 @@ function EnrollmentForm({ classData, selectedDays, onSuccess }) {
       }
 
       const { clientSecret } = paymentResponse.data;
-
-      // Confirm payment
+      if (!stripe || !elements) throw new Error('payment_unavailable');
       const { error: stripeError } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardElement),
-        }
+        payment_method: { card: elements.getElement(CardElement) },
       });
 
       if (stripeError) {
@@ -108,12 +98,13 @@ function EnrollmentForm({ classData, selectedDays, onSuccess }) {
         paymentIntentId: paymentResponse.data.paymentIntentId,
         classId: classData._id,
         numberOfDays: selectedDays,
-        provider,
       });
 
       onSuccess();
     } catch (err) {
-      setError('Payment could not be completed. Please try again.');
+      setError(err.response?.data?.error === 'payment_unavailable'
+        ? "This host can't accept payments in your currency yet."
+        : 'Payment could not be completed. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -183,23 +174,8 @@ function EnrollmentForm({ classData, selectedDays, onSuccess }) {
         </div>
 
         <div className="form-group">
-          <label>Payment Method</label>
-          <div className="payment-provider-toggle" style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-            {['stripe', 'paystack'].map((option) => (
-              <label key={option} style={{ display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'capitalize' }}>
-                <input
-                  type="radio"
-                  name="payment-provider"
-                  checked={provider === option}
-                  onChange={() => setProvider(option)}
-                />
-                {option}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {provider === 'stripe' && (
+          <label>Payment method</label>
+          <p className="payment-routing-note">EduTalk automatically selects the available processor for your currency.</p>
           <div className="form-group">
             <label>Payment Information</label>
             <div className="card-element-wrapper">
@@ -221,16 +197,16 @@ function EnrollmentForm({ classData, selectedDays, onSuccess }) {
               />
             </div>
           </div>
-        )}
+        </div>
 
         {error && <div className="error-message">{error}</div>}
 
         <button
           type="submit"
-          disabled={(provider === 'stripe' && !stripe) || isProcessing}
+          disabled={isProcessing}
           className="btn btn-primary full-width"
         >
-          {isProcessing ? 'Processing...' : `Pay $${finalPrice.toFixed(2)} via ${provider === 'stripe' ? 'Stripe' : 'Paystack'}`}
+          {isProcessing ? 'Processing...' : `Pay $${finalPrice.toFixed(2)}`}
         </button>
       </form>
     </div>
