@@ -49,7 +49,12 @@ export default function SignupPage() {
       navigate(`/verify-email?email=${encodeURIComponent(form.email.trim())}`, { replace: true });
     } catch (requestError) {
       console.error('Signup failed', requestError);
-      setServerError(requestError?.cause?.response?.status === 409 ? 'An account with this email already exists.' : 'We couldn’t create your account. Check your details and try again.');
+      const status = requestError?.cause?.response?.status;
+      setServerError(status === 409
+        ? 'An account with this email already exists.'
+        : status === 503
+          ? 'We could not send the verification email. Check the email address and try again.'
+          : 'We couldn’t create your account. Check your details and try again.');
     } finally {
       setLoading(false);
     }
