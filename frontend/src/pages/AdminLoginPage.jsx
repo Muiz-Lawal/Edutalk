@@ -67,11 +67,12 @@ export default function AdminLoginPage() {
       navigate('/admin/dashboard');
     } catch (err) {
       console.error('Login error:', err); // Debug log
-      const errorMsg = err.response?.data?.error || err.response?.data?.message || 'Login failed. Please try again.';
+      const responseData = err.cause?.response?.data;
+      const errorMsg = responseData?.error || responseData?.message || err.message || 'Login failed. Please try again.';
       setError(`❌ ${errorMsg}`);
       
       // Check for account lock
-      if (err.response?.status === 423) {
+      if ((err.status || err.cause?.response?.status) === 423) {
         setLoading(false);
         return;
       }

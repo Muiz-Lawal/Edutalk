@@ -409,7 +409,7 @@ export const adminLogin = async (req, res) => {
     // Check if password is expired
     if (isPasswordExpired(user.passwordChangedAt)) {
       // Allow login but require password change
-      const token = (await import('../utils/auth.js')).generateToken(user._id, user.email);
+      const token = (await import('../utils/auth.js')).generateToken(user._id, user.email, user.tokenVersion);
 
       return res.json({
         message: 'Password change required',
@@ -440,7 +440,7 @@ export const adminLogin = async (req, res) => {
 
     // Generate JWT token
     const { generateToken } = await import('../utils/auth.js');
-    const token = generateToken(user._id, user.email);
+    const token = generateToken(user._id, user.email, user.tokenVersion);
 
     console.log('[adminLogin] Generated token:', {
       userId: user._id,
