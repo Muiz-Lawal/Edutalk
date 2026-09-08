@@ -24,7 +24,7 @@ const AchievementBadge = ({
     const icons = {
       first_session: '🚀',
       course_completion: '🎓',
-      perfect_score: '⭐',
+      perfect_score: 'Perfect',
       quiz_streak: '🔥',
       participation: '💬',
       engagement_champion: '👑',

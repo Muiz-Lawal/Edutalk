@@ -2,9 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import DynamicPriceDisplay from './DynamicPriceDisplay';
 import '../styles/BundleCard.css';
+import { formatPrice } from '../lib/currency';
 
 export default function BundleCard({ bundle }) {
-  const formatPrice = (price) => `$${price.toFixed(2)}`;
+  const formatBundlePrice = (price) => formatPrice((Number(price) || 0) * 100);
 
   const calculateSavings = () => {
     const original = bundle.pricing.totalOriginalPrice;
@@ -38,9 +39,9 @@ export default function BundleCard({ bundle }) {
               <li key={idx} className="class-item">
                 <span className="class-name">{cls.title}</span>
                 <span className="class-price">
-                  {formatPrice(cls.bundlePrice)}
+                  {formatBundlePrice(cls.bundlePrice)}
                   {cls.bundlePrice < cls.originalPrice && (
-                    <span className="original-price">{formatPrice(cls.originalPrice)}</span>
+                    <span className="original-price">{formatBundlePrice(cls.originalPrice)}</span>
                   )}
                 </span>
               </li>
@@ -83,7 +84,7 @@ export default function BundleCard({ bundle }) {
             </span>
             {bundle.host?.averageRating > 0 && (
               <span className="host-rating">
-                ⭐ {bundle.host.averageRating.toFixed(1)}
+                {bundle.host.averageRating.toFixed(1)}
               </span>
             )}
           </div>

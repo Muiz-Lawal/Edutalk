@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useAdmin } from '../context/AdminContext';
+import { Skeleton } from './AsyncBoundary';
 
 const UserGrowthChart = () => {
   const [data, setData] = useState([]);
@@ -27,8 +28,9 @@ const UserGrowthChart = () => {
     fetchData();
   }, [fetchUserGrowth]);
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '20px' }}>Loading chart...</div>;
-  if (error) return <div style={{ color: 'red', padding: '20px' }}>Error: {error}</div>;
+  if (loading) return <Skeleton variant="block" />;
+  if (error) return <div className="async-state async-state--error" role="alert"><strong>We couldn’t load user growth</strong><p>Please try again.</p></div>;
+  if (data.length === 0) return <div className="async-state async-state--empty">User growth data will appear as people join.</div>;
 
   return (
     <div className="chart-card">

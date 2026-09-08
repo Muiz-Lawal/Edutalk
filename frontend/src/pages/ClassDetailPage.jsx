@@ -1,129 +1,100 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { getClassById, getClassSchedule, calculatePricing } from '../utils/api';
+import api from '../utils/api';
 import useEventLogger from '../hooks/useEventLogger';
+import { formatInTimeZone } from 'date-fns-tz';
+import { getClassStatus } from '../lib/classStatus';
+import { getEnrollmentDayLimits, getSessionsInAccessWindow, formatSessionSummary } from '../lib/sessions';
+import { useCartStore } from '../stores/cartStore';
+import { showToast } from '../utils/toastManager';
 import '../styles/ClassDetail.css';
-
-const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-const getFallbackPrice = (monthlyPrice, days) => {
-  const multiplier = days <= 3 ? 1.8 : days <= 6 ? 1.5 : days <= 13 ? 1.25 : days <= 20 ? 1.1 : 1;
-  return monthlyPrice * (multiplier / 30) * days;
-};
+import { Skeleton } from '../components/AsyncBoundary';
 
 export default function ClassDetailPage() {
   const { classId } = useParams();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { logEvent } = useEventLogger();
   const [classData, setClassData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [selectedDays, setSelectedDays] = useState(1);
-  const [totalPrice, setTotalPrice] = useState(null);
-  const [perDayPrice, setPerDayPrice] = useState(null);
-  const [pricingTiers, setPricingTiers] = useState([]);
-  const [sessionCount, setSessionCount] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+  const addLine = useCartStore((state) => state.addLine);
 
   useEffect(() => {
-    const fetchClass = async () => {
-      try {
-        const data = await getClassById(classId);
-        const payload = data?.class || data;
-        setClassData(payload);
-        setPricingTiers(data?.pricingTiers || []);
-        setSessionCount(data?.totalSessions || 0);
-        try {
-          const sched = await getClassSchedule(classId);
-          const sessions = sched?.upcomingSessions || sched?.sessions || sched?.schedule || [];
-          setClassData((prev) => (prev ? { ...prev, sessions } : prev));
-        } catch (schedErr) {
-          console.warn('Failed to fetch schedule', schedErr);
-        }
-      } catch (error) {
-        console.error('Failed to fetch class:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchClass();
   }, [classId]);
 
+  // Log that user viewed this class
+  const { logEvent } = useEventLogger();
   useEffect(() => {
     if (classData) {
       logEvent({ action: 'view_class', targetType: 'class', targetId: classData._id });
     }
-  }, [classData, logEvent]);
+  }, [classData]);
 
-  useEffect(() => {
-    const fetchPricing = async () => {
-      if (!classData?.monthlyPrice) return;
-      try {
-        const res = await calculatePricing(classData.monthlyPrice, selectedDays);
-        const total = res?.total || res?.price || res?.totalPrice || res?.amount || null;
-        const perDay = res?.perDay || res?.per_day || (total && selectedDays ? total / selectedDays : null);
-        setTotalPrice(total);
-        setPerDayPrice(perDay);
-      } catch (err) {
-        console.warn('Pricing fetch failed', err);
-        setTotalPrice(getFallbackPrice(classData.monthlyPrice, selectedDays));
-        setPerDayPrice(getFallbackPrice(classData.monthlyPrice, selectedDays) / selectedDays);
-      }
-    };
-
-    fetchPricing();
-  }, [classData?.monthlyPrice, selectedDays]);
+  const fetchClass = async () => {
+    try {
+      setLoading(true);
+      setError(false);
+      const response = await api.get(`/classes/${classId}`);
+      setClassData(response.data);
+    } catch (error) {
+      console.error('Failed to fetch class:', error);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEnroll = () => {
     if (!isAuthenticated) {
       navigate('/login');
     } else {
+      // Redirect to payment flow
       navigate(`/class/${classId}/enroll?days=${selectedDays}`);
     }
   };
 
+  const handleAddToCart = () => {
+    addLine(classData, safeDays);
+    showToast({ type: 'success', title: 'Added to cart', message: `${classData.title} is ready for multi-class checkout.` });
+  };
+
   if (loading) {
-    return <div className="loading">Loading class details...</div>;
+    return <Skeleton variant="block" />;
   }
 
-  if (!classData) {
-    return <div className="error">Class not found</div>;
+  if (error || !classData) {
+    return <div className="async-state async-state--error" role="alert"><strong>We couldn’t load this class</strong><p>Please try again.</p><button type="button" onClick={fetchClass}>Retry</button></div>;
   }
 
-  const minDays = classData.minPurchaseDays || 1;
-  const maxDays = classData.maxPurchaseDays || 30;
-  const hostName = [classData.hostId?.firstName, classData.hostId?.lastName].filter(Boolean).join(' ') || 'EduTalk host';
-  const scheduleEntries = classData.schedule || [];
-  const sessions = classData.sessions || [];
-  const featuredTags = classData.tags?.slice(0, 6) || [];
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const limits = getEnrollmentDayLimits(classData);
+  const safeDays = limits.max > 0 ? Math.min(Math.max(selectedDays, limits.min), limits.max) : limits.min;
+  const sessions = Array.isArray(classData.sessions) ? classData.sessions : [];
+  const previewSessions = getSessionsInAccessWindow(sessions, new Date(), safeDays);
+  const appearance = classData.appearance || {};
+  const accentColor = appearance.accentColor || '#4F46E5';
+  const heroImage = appearance.bannerImage || appearance.thumbnailImage || classData.thumbnailImage;
+  const heroPlaceholder = appearance.bannerLqip || appearance.thumbnailImage || classData.thumbnailImage;
+  const gallery = Array.isArray(appearance.gallery) ? appearance.gallery : [];
 
   return (
-    <div className="class-detail-page">
+    <div className="class-detail-page" style={{ '--class-accent': accentColor }}>
       <div className="container">
-        <div className="class-header">
-          <div className="class-header__content">
-            <div className="class-badges">
-              {classData.category && <span className="tag tag--category">{classData.category}</span>}
-              {sessionCount > 0 && <span className="tag">{sessionCount} upcoming sessions</span>}
-            </div>
-            <h1>{classData.title}</h1>
-            <p className="host-info">by {hostName}</p>
-            <p className="class-summary">{classData.description?.slice(0, 180)}{classData.description?.length > 180 ? '…' : ''}</p>
-          </div>
-          <button className="btn btn-primary btn-inline" onClick={() => {
-            logEvent({ action: 'click_enroll', targetType: 'class', targetId: classData._id });
-            handleEnroll();
-          }}>
-            {isAuthenticated ? 'Enroll Now' : 'Sign in to Enroll'}
-          </button>
+        <div className="class-header class-header--hero" style={heroImage ? { backgroundImage: `linear-gradient(rgba(15,23,42,.7), rgba(15,23,42,.7)), url("${heroImage}")`, '--hero-placeholder': `url("${heroPlaceholder}")` } : undefined}>
+          <h1>{classData.title}</h1>
+          <p className="host-info">{appearance.hostLogo && <img className="class-host-logo" src={appearance.hostLogo} alt="" loading="lazy" />} by {classData.hostId?.firstName} {classData.hostId?.lastName}</p>
+          <p className="class-status">{getClassStatus(classData, new Date(), timezone)}</p>
         </div>
 
         <div className="class-content">
           <div className="class-main">
             <div className="class-intro">
               {classData.thumbnailImage ? (
-                <img src={classData.thumbnailImage} alt={classData.title} />
+                <img src={classData.thumbnailImage} alt={classData.title} loading="lazy" />
               ) : (
                 <div className="placeholder">📚</div>
               )}
@@ -134,24 +105,17 @@ export default function ClassDetailPage() {
               <p>{classData.description}</p>
             </section>
 
-            <section className="section">
-              <h2>What you’ll get</h2>
-              <div className="benefit-list">
-                <div className="benefit-item">Live sessions tailored to your schedule</div>
-                <div className="benefit-item">Personalized feedback and accountability</div>
-                <div className="benefit-item">Access to recorded lessons and class notes</div>
-              </div>
-            </section>
+            {gallery.length > 0 && <section className="section"><h2>Gallery</h2><div className="class-gallery">{gallery.map((image, index) => <button className="class-gallery__item" type="button" key={`${image.url}-${index}`} onClick={() => setLightboxIndex(index)}><img src={image.url} alt={image.caption || `${classData.title} gallery image ${index + 1}`} loading="lazy" /><span>{image.caption}</span></button>)}</div></section>}
 
             <section className="section">
               <h2>Schedule</h2>
               <div className="schedule-info">
-                {scheduleEntries.length > 0 ? (
+                {classData.schedule && classData.schedule.length > 0 ? (
                   <ul>
-                    {scheduleEntries.map((session, idx) => (
+                    {classData.schedule.map((session, idx) => (
                       <li key={idx}>
-                        <span className="schedule-day">{dayNames[session.dayOfWeek] || 'Flexible'}</span>
-                        <span className="schedule-time">{session.startTime} • {session.duration || 60} min</span>
+                        {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][session.dayOfWeek]} at {session.startTime}
+                        ({session.durationMinutes || session.duration || 60} minutes)
                       </li>
                     ))}
                   </ul>
@@ -162,16 +126,16 @@ export default function ClassDetailPage() {
             </section>
 
             <section className="section">
-              <h2>Upcoming Sessions ({sessions.length})</h2>
+              <h2>Sessions ({classData.sessions?.length || 0})</h2>
               <div className="sessions-list">
                 {sessions.length > 0 ? (
-                  sessions.slice(0, 5).map((session, index) => (
-                    <div key={session._id || `${session.scheduledStartTime}-${index}`} className="session-item">
+                  sessions.slice(0, 5).map((session) => (
+                    <div key={session._id} className="session-item">
                       <span className="session-date">
-                        {new Date(session.scheduledStartTime).toLocaleDateString()}
+                        {formatInTimeZone(session.scheduledStartTime, timezone, 'MMM d, yyyy')}
                       </span>
                       <span className="session-time">
-                        {new Date(session.scheduledStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {formatInTimeZone(session.scheduledStartTime, timezone, 'h:mm a')}
                       </span>
                     </div>
                   ))
@@ -182,21 +146,10 @@ export default function ClassDetailPage() {
             </section>
 
             <section className="section">
-              <h2>About the host</h2>
-              <div className="host-card">
-                <div className="host-card__avatar">{hostName.charAt(0).toUpperCase()}</div>
-                <div>
-                  <h3>{hostName}</h3>
-                  <p>{classData.hostId?.bio || 'The host is preparing a great learning experience for students.'}</p>
-                </div>
-              </div>
-            </section>
-
-            <section className="section">
               <h2>Category & Tags</h2>
               <div className="tags">
-                {classData.category && <span className="tag tag--category">{classData.category}</span>}
-                {featuredTags.map((tag) => (
+                {classData.category && <span className="tag category">{classData.category}</span>}
+                {classData.tags?.map((tag) => (
                   <span key={tag} className="tag">
                     {tag}
                   </span>
@@ -214,53 +167,49 @@ export default function ClassDetailPage() {
               </div>
 
               <div className="days-selector">
-                <label htmlFor="days-selector">Select Duration</label>
+                <label>Select Duration</label>
                 <input
-                  id="days-selector"
                   type="range"
-                  min={minDays}
-                  max={maxDays}
-                  value={selectedDays}
+                  min={limits.min}
+                  max={limits.max}
+                  value={safeDays}
+                  disabled={limits.endingSoon}
                   onChange={(e) => setSelectedDays(parseInt(e.target.value, 10))}
                 />
-                <p className="days-display">{selectedDays} day{selectedDays === 1 ? '' : 's'} selected</p>
+                <p className="days-display">{limits.endingSoon ? 'This class is ending soon' : `${safeDays} days selected (minimum ${limits.min}, maximum ${limits.max})`}</p>
+                {!limits.endingSoon && <p className="session-preview">You&apos;ll get {previewSessions.length} sessions{previewSessions.length ? `: ${formatSessionSummary(previewSessions, timezone)}` : '.'}</p>}
               </div>
 
               <div className="price-calculation">
-                <p><strong>Total Price:</strong> {totalPrice != null ? `$${Number(totalPrice).toFixed(2)}` : `$${getFallbackPrice(classData.monthlyPrice, selectedDays).toFixed(2)}`}</p>
-                {perDayPrice != null && <p className="price-per-day">Per day: ${Number(perDayPrice).toFixed(2)}</p>}
+                <p>
+                  <strong>Total Price:</strong> $
+                  {(
+                    (classData.monthlyPrice / 30) *
+                    (safeDays <= 3 ? 1.8 : safeDays <= 6 ? 1.5 : safeDays <= 13 ? 1.25 : safeDays <= 20 ? 1.1 : 1) *
+                    safeDays
+                  ).toFixed(2)}
+                </p>
               </div>
 
-              {pricingTiers.length > 0 && (
-                <div className="pricing-tiers">
-                  <h4>Flexible pricing</h4>
-                  <ul>
-                    {pricingTiers.map((tier) => (
-                      <li key={tier.days}>
-                        <span>{tier.days} days</span>
-                        <strong>${tier.price.toFixed(2)}</strong>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <button className="btn btn-primary" onClick={() => {
+              <button className="btn btn-primary" style={{ backgroundColor: accentColor }} disabled={limits.endingSoon} onClick={() => {
                 logEvent({ action: 'click_enroll', targetType: 'class', targetId: classData._id });
-                handleEnroll();
+                if (isAuthenticated) handleAddToCart();
+                else navigate('/login');
               }}>
-                {isAuthenticated ? 'Enroll Now' : 'Sign in to Enroll'}
+                {isAuthenticated ? 'Add to cart' : 'Sign in to Enroll'}
               </button>
 
               <div className="class-stats">
                 <div className="stat">
                   <span className="label">Students</span>
-                  <span className="value">{classData.totalEnrolled || 0}</span>
+                  <span className="value">{classData.totalEnrolled}</span>
                 </div>
+
                 <div className="stat">
                   <span className="label">Rating</span>
-                  <span className="value">⭐ {classData.averageRating?.toFixed(1) || 'N/A'}</span>
+                  <span className="value">{classData.averageRating != null ? classData.averageRating.toFixed(1) : '—'}</span>
                 </div>
+                {lightboxIndex !== null && gallery[lightboxIndex] && <div className="class-lightbox" role="dialog" aria-modal="true" onClick={() => setLightboxIndex(null)}><button type="button" aria-label="Close image" onClick={() => setLightboxIndex(null)}>Close</button><img src={gallery[lightboxIndex].url} alt={gallery[lightboxIndex].caption || classData.title} onClick={(event) => event.stopPropagation()} /><button type="button" aria-label="Previous image" onClick={(event) => { event.stopPropagation(); setLightboxIndex((lightboxIndex - 1 + gallery.length) % gallery.length); }}>Previous</button><button type="button" aria-label="Next image" onClick={(event) => { event.stopPropagation(); setLightboxIndex((lightboxIndex + 1) % gallery.length); }}>Next</button></div>}
               </div>
             </div>
           </aside>

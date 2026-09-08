@@ -187,7 +187,7 @@ const ProfileScreen = ({ navigation, user, setUser, setToken }) => {
             style={styles.actionButton}
             onPress={handleUpgradeToHost}
           >
-            <Text style={styles.actionIcon}>⭐</Text>
+            <Text style={styles.actionIcon}>Achievements</Text>
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Become a Host</Text>
               <Text style={styles.actionDesc}>Start teaching and earn</Text>
@@ -224,7 +224,7 @@ const ProfileScreen = ({ navigation, user, setUser, setToken }) => {
           style={[styles.actionButton, styles.logoutButton]}
           onPress={handleLogout}
         >
-          <Text style={styles.logoutButtonText}>🚪 Logout</Text>
+          <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
       </View>
 

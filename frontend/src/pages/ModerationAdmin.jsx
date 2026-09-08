@@ -19,13 +19,13 @@ const ModerationAdmin = () => {
             className={`ma-tab ${activeTab === 'queue' ? 'ma-tab--active' : ''}`}
             onClick={() => setActiveTab('queue')}
           >
-            📋 Moderation Queue
+            Moderation Queue
           </button>
           <button
             className={`ma-tab ${activeTab === 'stats' ? 'ma-tab--active' : ''}`}
             onClick={() => setActiveTab('stats')}
           >
-            📊 Statistics
+            Statistics
           </button>
         </div>
 

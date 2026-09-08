@@ -4,8 +4,98 @@ import AdminSession from '../models/AdminSession.js';
 import { updateLastActivity } from '../utils/sessionManager.js';
 import { logActivity } from '../utils/activityLogger.js';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here';
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 const INACTIVITY_WARNING = 25 * 60 * 1000; // 25 minutes
+
+const ADMIN_ROLE_HIERARCHY = {
+  // Treat admin roles as discrete capabilities except superadmin which includes all
+  support: ['support'],
+  moderator: ['moderator'],
+  admin: ['admin'],
+  finance_admin: ['finance_admin'],
+  superadmin: ['support', 'moderator', 'admin', 'finance_admin', 'superadmin'],
+};
+
+
+// Permission to admin role mapping (principle of least privilege)
+export const PERMISSIONS = {
+  // Support / operations
+  view_support_dashboard: ['support', 'admin', 'superadmin'],
+  view_user_profiles: ['support', 'admin', 'superadmin'],
+  view_user_profiles_readonly: ['support', 'admin', 'superadmin'],
+  respond_support_ticket: ['support', 'admin', 'superadmin'],
+  process_limited_refund: ['support', 'admin', 'superadmin'],
+  issue_goodwill_credits: ['support', 'admin', 'superadmin'],
+
+  // Moderation & content
+  moderate_content: ['moderator', 'admin', 'superadmin'],
+  hide_class: ['moderator', 'admin', 'superadmin'],
+  review_content_reports: ['moderator', 'admin', 'superadmin'],
+
+  // Users & host management
+  manage_users: ['admin', 'superadmin'],
+  manage_hosts: ['admin', 'superadmin'],
+  approve_host_verification: ['admin', 'superadmin'],
+  suspend_user: ['admin', 'superadmin'],
+  ban_user: ['admin', 'superadmin'],
+
+  // Financial operations
+  view_payments: ['admin', 'finance_admin', 'superadmin'],
+  export_financial_reports: ['admin', 'finance_admin', 'superadmin'],
+  process_refund: ['admin', 'finance_admin', 'superadmin'],
+  approve_high_value_refund: ['superadmin'],
+  change_commission: ['superadmin'],
+
+  // Audit & security
+  view_audit_logs: ['admin', 'finance_admin', 'superadmin'],
+  export_audit_logs: ['superadmin'],
+  manage_admins: ['superadmin'],
+  view_security_alerts: ['admin', 'superadmin'],
+};
+
+export const canAccessAdminRole = (user, ...requiredRoles) => {
+  if (!user || !user.isAdmin || !user.adminRole) {
+    return false;
+  }
+
+  const allowedRoles = ADMIN_ROLE_HIERARCHY[user.adminRole] || [];
+  return requiredRoles.some((role) => allowedRoles.includes(role));
+};
+
+export const requirePermission = (permissionKey) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const user = req.user;
+
+      // Superadmin bypass
+      if (user.adminRole === 'superadmin') {
+        return next();
+      }
+
+      const allowedRoles = PERMISSIONS[permissionKey] || [];
+      if (!allowedRoles.length) {
+        return res.status(403).json({ error: 'Permission not configured' });
+      }
+
+      if (!user.adminRole) {
+        return res.status(403).json({ error: 'Access denied. Valid admin role required.' });
+      }
+
+      if (!canAccessAdminRole(user, ...allowedRoles)) {
+        return res.status(403).json({ error: `Access denied. Requires permission: ${permissionKey}` });
+      }
+
+      next();
+    } catch (error) {
+      res.status(500).json({ error: 'Permission check failed' });
+    }
+  };
+};
 
 export const adminAuth = async (req, res, next) => {
   try {
@@ -17,7 +107,7 @@ export const adminAuth = async (req, res, next) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.userId);
 
     // Check if user exists
@@ -25,10 +115,13 @@ export const adminAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    // Check if user is admin
-    if (!user.isAdmin) {
-      return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
+    // Check if user is admin and has a valid internal role
+    if (!user.isAdmin || !user.adminRole) {
+      return res.status(403).json({ error: 'Access denied. Valid admin role required.' });
     }
+
+    // Dual-role users are allowed: an admin may also be a student or host.
+    // Admin routing is enforced at the route layer; this middleware only checks admin access.
 
     // Check if user is locked (failed login attempts)
     if (user.isLockedUntil && new Date(user.isLockedUntil) > new Date()) {
@@ -115,7 +208,7 @@ export const verify2FA = async (req, res, next) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.userId);
 
     if (!user || !user.twoFAEnabled) {
@@ -171,15 +264,14 @@ export const requireRole = (...allowedRoles) => {
         return res.status(401).json({ error: 'No token provided' });
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET);
       const user = await User.findById(decoded.userId);
 
-      if (!user || !user.isAdmin) {
-        return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
+      if (!user || !user.isAdmin || !user.adminRole) {
+        return res.status(403).json({ error: 'Access denied. Valid admin privileges required.' });
       }
 
-      // Check if user has required role
-      if (!allowedRoles.includes(user.adminRole)) {
+      if (!canAccessAdminRole(user, ...allowedRoles)) {
         return res.status(403).json({ 
           error: `Access denied. Required role(s): ${allowedRoles.join(', ')}` 
         });
@@ -207,7 +299,7 @@ export const superAdminAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.userId);
 
     if (!user) {
@@ -215,7 +307,7 @@ export const superAdminAuth = async (req, res, next) => {
     }
 
     // Check if super admin
-    if (!user.isSuperAdmin) {
+    if (!user.isAdmin || user.adminRole !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied. SuperAdmin privileges required.' });
     }
 

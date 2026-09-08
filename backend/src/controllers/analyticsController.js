@@ -83,9 +83,17 @@ export const getRevenueAnalytics = async (req, res) => {
       status: 'completed',
     }).populate('classId', 'hostId');
 
+    // Normalize payments to remove sensitive fields (stripe ids, raw metadata)
+    const safePayments = payments.map(p => ({
+      amount: p.amount,
+      hostEarnings: p.hostEarnings,
+      createdAt: p.createdAt,
+      classId: p.classId,
+    }));
+
     // Group by date
     const grouped = {};
-    payments.forEach(payment => {
+    safePayments.forEach(payment => {
       const date = new Date(payment.createdAt);
       const key = period === 'monthly' 
         ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -115,7 +123,7 @@ export const getStudentAnalytics = async (req, res) => {
   try {
     const subscriptions = await Subscription.find({
       userId: req.user.userId,
-    }).populate('classId');
+    }).populate({ path: 'classId', populate: { path: 'hostId', select: 'firstName lastName' } });
 
     const analytics = subscriptions.map(sub => ({
       class: sub.classId?.title,
@@ -125,6 +133,8 @@ export const getStudentAnalytics = async (req, res) => {
       daysRemaining: Math.max(0, Math.ceil((sub.endDate - Date.now()) / (24 * 60 * 60 * 1000))),
       sessionsAttended: sub.sessionsAttended.length,
       completionPercentage: sub.completionPercentage,
+      accessCode: sub.accessCode || '',
+      host: sub.classId?.hostId?.firstName ? `${sub.classId.hostId.firstName} ${sub.classId.hostId.lastName || ''}`.trim() : 'EduTalk host',
       status: sub.status,
     }));
 
@@ -344,5 +354,56 @@ export const getAnalyticsDocuments = async (req, res) => {
   } catch (err) {
     console.error('getAnalyticsDocuments error:', err);
     res.status(500).json({ message: err.message });
+  }
+};
+
+export const getAnalyticsSummary = async (req, res) => {
+  try {
+    const { from, to, classId } = req.query;
+    const ownedClasses = await Class.find({ hostId: req.user.userId }).select('_id');
+    const ownedClassIds = ownedClasses.map((item) => item._id);
+    const match = { targetType: 'class', targetId: { $in: ownedClassIds } };
+    if (classId) {
+      const ownsClass = ownedClassIds.some((id) => id.toString() === classId);
+      if (!ownsClass) return res.status(403).json({ message: 'Not authorized' });
+      match.targetId = new mongoose.Types.ObjectId(classId);
+    }
+    if (from || to) {
+      match.createdAt = {};
+      if (from) match.createdAt.$gte = new Date(`${from}T00:00:00.000Z`);
+      if (to) match.createdAt.$lt = new Date(`${to}T23:59:59.999Z`);
+    }
+
+    const [summary] = await Event.aggregate([
+      { $match: match },
+      { $group: { _id: null, totalEvents: { $sum: 1 }, users: { $addToSet: '$userId' } } },
+      { $project: { _id: 0, totalEvents: 1, uniqueUsers: { $size: '$users' } } },
+    ]);
+    const [trend, breakdown] = await Promise.all([
+      Event.aggregate([
+        { $match: match },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
+        { $project: { _id: 0, date: '$_id', count: 1 } },
+        { $sort: { date: 1 } },
+      ]),
+      Event.aggregate([
+        { $match: match },
+        { $group: { _id: '$action', count: { $sum: 1 } } },
+        { $project: { _id: 0, event: '$_id', count: 1 } },
+        { $sort: { count: -1 } },
+      ]),
+    ]);
+    const totalEvents = summary?.totalEvents ?? null;
+    const uniqueUsers = summary?.uniqueUsers ?? null;
+    res.json({
+      totalEvents,
+      uniqueUsers,
+      avgEventsPerUser: totalEvents && uniqueUsers ? totalEvents / uniqueUsers : null,
+      trend,
+      breakdown,
+    });
+  } catch (error) {
+    console.error('getAnalyticsSummary error:', error);
+    res.status(500).json({ message: 'Unable to load analytics.' });
   }
 };

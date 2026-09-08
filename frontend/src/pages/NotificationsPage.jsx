@@ -61,12 +61,12 @@ export default function Notifications() {
       auto_renewal: '🔄',
       renewal_failed: '❌',
       host_no_show: '😞',
-      refund_confirmation: '💰',
+      refund_confirmation: 'Refund',
       class_cancellation: '🚫',
-      plan_upgrade: '⭐',
-      referral_reward: '🎁',
+      plan_upgrade: 'Plan',
+      referral_reward: 'Referral',
       waitlist_available: '🎯',
-      new_review: '⭐',
+      new_review: 'Review',
       class_announcement: '📢',
       recording_ready: '🎥',
       achievement_unlocked: '🏅',
@@ -75,7 +75,7 @@ export default function Notifications() {
   };
 
   if (loading) {
-    return <div className="loading">Loading notifications...</div>;
+    return <div className="async-skeleton async-skeleton--list" aria-hidden="true" />;
   }
 
   return (

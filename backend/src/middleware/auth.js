@@ -12,7 +12,7 @@ const normalizeUser = (decoded) => {
 };
 
 // Main authentication middleware
-export const authenticateToken = (req, res, next) => {
+export const authenticateToken = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
 
@@ -22,6 +22,10 @@ export const authenticateToken = (req, res, next) => {
 
     const decoded = decodeToken(token);
     if (!decoded) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+    const user = await User.findById(decoded.userId).select('tokenVersion');
+    if (!user || (decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
       return res.status(401).json({ message: 'Invalid or expired token' });
     }
 

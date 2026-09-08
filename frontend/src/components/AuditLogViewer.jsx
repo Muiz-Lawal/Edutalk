@@ -91,7 +91,7 @@ const AuditLogViewer = ({ logs: initialLogs }) => {
       'content_rejected': '🚫',
       'content_approved': '✓',
       'user_suspended': '🔘',
-      'commission_updated': '💰',
+      'commission_updated': 'Commission',
       'feature_toggled': '🚩',
       'template_updated': '📧',
     };

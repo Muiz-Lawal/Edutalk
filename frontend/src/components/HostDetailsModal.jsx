@@ -381,7 +381,7 @@ const HostDetailsModal = ({ host, onClose, onApprove, onReject, onSuspend, onUns
             className={`host-modal-tab ${activeTab === 'performance' ? 'active' : ''}`}
             onClick={() => setActiveTab('performance')}
           >
-            📊 Performance
+            Performance
           </button>
           <button
             className={`host-modal-tab ${activeTab === 'classes' ? 'active' : ''}`}
@@ -399,7 +399,7 @@ const HostDetailsModal = ({ host, onClose, onApprove, onReject, onSuspend, onUns
             className={`host-modal-tab ${activeTab === 'activity' ? 'active' : ''}`}
             onClick={() => setActiveTab('activity')}
           >
-            📈 Activity
+            Activity
           </button>
         </div>
 
@@ -474,7 +474,7 @@ const HostDetailsModal = ({ host, onClose, onApprove, onReject, onSuspend, onUns
               <div className="performance-metrics">
                 <div className="metric-card">
                   <div className="metric-label">Average Rating</div>
-                  <p className="metric-value">⭐ {(host.rating || 0).toFixed(1)}</p>
+                  <p className="metric-value">{(host.rating || 0).toFixed(1)}</p>
                 </div>
                 <div className="metric-card classes">
                   <div className="metric-label">Total Classes</div>
@@ -536,9 +536,9 @@ const HostDetailsModal = ({ host, onClose, onApprove, onReject, onSuspend, onUns
                         <h4>{cls.title}</h4>
                         <div className="class-info">
                           <div>👥 {cls.studentCount || 0} students</div>
-                          <div>⭐ {(cls.rating || 0).toFixed(1)} rating</div>
-                          <div>💰 ${(cls.price || 0).toFixed(2)}</div>
-                          <div>📊 {cls.reviews || 0} reviews</div>
+                          <div>{(cls.rating || 0).toFixed(1)} rating</div>
+                          <div>${(cls.price || 0).toFixed(2)}</div>
+                          <div>{cls.reviews || 0} reviews</div>
                         </div>
                       </div>
                     ))}

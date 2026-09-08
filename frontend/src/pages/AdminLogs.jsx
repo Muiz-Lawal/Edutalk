@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
 import { AdminLayout } from '../components/AdminLayout';
 import '../styles/admin.css';
+import { formatDate } from '../lib/date';
 
-export const AdminLogs = () => {
+const AdminLogs = () => {
   const { fetchAdminLogs, loading, error } = useAdmin();
   const [logs, setLogs] = useState([]);
   const [pagination, setPagination] = useState({});
@@ -27,7 +28,7 @@ export const AdminLogs = () => {
       <div className="admin-page">
         <h1>Audit Logs</h1>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message">We couldn’t load the audit logs. Please try again.</div>}
 
         <div className="search-bar">
           <select value={action} onChange={(e) => setAction(e.target.value)} className="search-input">
@@ -60,7 +61,7 @@ export const AdminLogs = () => {
                   <td>{log.adminEmail}</td>
                   <td>{log.targetEmail || log.targetId}</td>
                   <td>{log.details?.reason || '-'}</td>
-                  <td>{new Date(log.createdAt).toLocaleDateString()}</td>
+                  <td>{formatDate(log.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -87,3 +88,5 @@ export const AdminLogs = () => {
     </AdminLayout>
   );
 };
+
+export default AdminLogs;

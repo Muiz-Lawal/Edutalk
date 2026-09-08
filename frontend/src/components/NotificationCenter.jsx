@@ -69,7 +69,7 @@ export default function NotificationCenter() {
         onClick={() => setShowPanel(!showPanel)}
         aria-label="Notifications"
       >
-        🔔 {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
+        Notifications {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
       </button>
 
       {showPanel && (

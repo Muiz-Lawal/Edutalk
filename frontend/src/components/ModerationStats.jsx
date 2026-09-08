@@ -26,7 +26,7 @@ const ModerationStats = () => {
   }, [period]);
 
   if (loading && !stats) {
-    return <div className="moderation-stats-loading">Loading statistics...</div>;
+    return <div className="async-skeleton async-skeleton--block" aria-hidden="true" />;
   }
 
   if (!stats) {

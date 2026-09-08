@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
 import '../styles/BrowseClasses.css';
+import { Skeleton } from '../components/AsyncBoundary';
+import { getClassStatus } from '../lib/classStatus';
 import { useNavigate } from 'react-router-dom';
 import useEventLogger from '../hooks/useEventLogger';
+import { useCartStore } from '../stores/cartStore';
+import { useAuth } from '../hooks/useAuth';
+import { showToast } from '../utils/toastManager';
 
 export default function BrowseClassesPage() {
   const [classes, setClasses] = useState([]);
@@ -13,6 +18,17 @@ export default function BrowseClassesPage() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const addLine = useCartStore((state) => state.addLine);
+  const addClassToCart = (event, classItem) => {
+    event.stopPropagation();
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    addLine(classItem, classItem.minPurchaseDays || 1);
+    showToast({ type: 'success', title: 'Added to cart', message: `${classItem.title} is ready for checkout.` });
+  };
 
   const categories = [
     'Technology',
@@ -130,10 +146,10 @@ export default function BrowseClassesPage() {
         <section className="recommendation-section">
           <div className="recommendation-header">
             <h2>{recommendationSummary}</h2>
-            {recommendationLoading && <span>Loading recommendations...</span>}
+            {recommendationLoading && <span className="sr-only">Recommendations are loading</span>}
           </div>
           {recommendationLoading ? (
-            <div className="loading">Loading recommendations...</div>
+            <div className="async-skeleton async-skeleton--list" aria-hidden="true" />
           ) : recommendations.length > 0 ? (
             <div className="recommendations-grid">
               {recommendations.map((classItem) => (
@@ -151,12 +167,14 @@ export default function BrowseClassesPage() {
                   </div>
                   <div className="class-info">
                     <h3>{classItem.title}</h3>
+                    <p className="class-status">{getClassStatus(classItem)}</p>
                     <p className="host-name">{classItem.hostId?.firstName}</p>
                     <div className="class-meta">
                       <span className="price">${(classItem.monthlyPrice / 30).toFixed(2)}/day</span>
-                      <span className="rating">⭐ {classItem.averageRating?.toFixed(1) || '0'}</span>
+                      <span className="rating">{classItem.averageRating != null ? classItem.averageRating.toFixed(1) : '—'}</span>
                     </div>
                     <p className="description">{classItem.description?.substring(0, 80)}...</p>
+                    <button type="button" className="btn btn-secondary" onClick={(event) => addClassToCart(event, classItem)}>Add to cart</button>
                   </div>
                 </div>
               ))}
@@ -167,7 +185,7 @@ export default function BrowseClassesPage() {
         </section>
 
         {loading ? (
-          <div className="loading">Loading classes...</div>
+          <Skeleton variant="list" />
         ) : classes.length > 0 ? (
           <div className="classes-grid">
             {classes.map((classItem) => (
@@ -186,6 +204,7 @@ export default function BrowseClassesPage() {
 
                 <div className="class-info">
                   <h3>{classItem.title}</h3>
+                  <p className="class-status">{getClassStatus(classItem)}</p>
                   <p className="host-name">{classItem.hostId?.firstName}</p>
 
                   <div className="class-meta">
@@ -193,11 +212,12 @@ export default function BrowseClassesPage() {
                       ${(classItem.monthlyPrice / 30).toFixed(2)}/day
                     </span>
                     <span className="rating">
-                      ⭐ {classItem.averageRating?.toFixed(1) || '0'} ({classItem.totalReviews})
+                      {classItem.averageRating != null ? classItem.averageRating.toFixed(1) : '—'} ({classItem.totalReviews || 0})
                     </span>
                   </div>
 
                   <p className="description">{classItem.description?.substring(0, 100)}...</p>
+                  <button type="button" className="btn btn-secondary" onClick={(event) => addClassToCart(event, classItem)}>Add to cart</button>
 
                   <div className="class-footer">
                     <span className="enrolled">{classItem.totalEnrolled} students</span>

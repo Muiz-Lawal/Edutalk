@@ -4,11 +4,346 @@
   box-sizing: border-box;
 }
 
+:where(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+:where(button, a) {
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+html {
+  font-family: Inter, sans-serif;
+  background: var(--page-bg);
+}
+
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
-  background: #f8f9fa;
+  font-family: Inter, sans-serif;
+  color: var(--app-text);
+  background: var(--app-bg);
+  font-size: 14px;
   line-height: 1.6;
+}
+
+:root {
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-subtle: #eef2ff;
+  --ring: #6366f1;
+  --slate-900: #0f172a;
+  --slate-700: #334155;
+  --slate-600: #475569;
+  --slate-500: #64748b;
+  --slate-400: #94a3b8;
+  --slate-300: #cbd5e1;
+  --slate-200: #e2e8f0;
+  --slate-100: #f1f5f9;
+  --page-bg: #f8fafc;
+  --surface: #ffffff;
+  --heading: #0f172a;
+  --app-bg: var(--page-bg);
+  --app-surface: var(--surface);
+  --app-surface-muted: #f8fafc;
+  --app-text: var(--slate-900);
+  --app-muted: var(--slate-600);
+  --muted: var(--slate-500);
+  --app-border: var(--slate-200);
+  --border: var(--slate-200);
+  --success: #059669;
+  --success-bg: #ecfdf5;
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --danger: #e11d48;
+  --danger-bg: #fff1f2;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
+  --shadow-md: 0 1px 3px rgba(15, 23, 42, .08), 0 8px 24px rgba(15, 23, 42, .08);
+  --focus-ring: 0 0 0 3px rgba(99, 102, 241, .35);
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] #root {
+  --page-bg: #0f172a;
+  --surface: #1e293b;
+  --heading: #f8fafc;
+  --slate-700: #e2e8f0;
+  --slate-600: #cbd5e1;
+  --slate-500: #94a3b8;
+  --slate-400: #94a3b8;
+  --slate-300: #64748b;
+  --slate-200: #475569;
+  --slate-100: #334155;
+  --app-bg: var(--page-bg);
+  --app-surface: var(--surface);
+  --app-surface-muted: #273449;
+  --app-text: var(--heading);
+  --app-muted: var(--slate-600);
+  --app-border: var(--slate-200);
+  --border: var(--slate-200);
+  --primary-subtle: #312e81;
+  --success-bg: #064e3b;
+  --warning-bg: #78350f;
+  --danger-bg: #881337;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] .dashboard-page,
+:root[data-theme="dark"] .profile-page,
+:root[data-theme="dark"] .points-page,
+:root[data-theme="dark"] .achievements-page {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] .dashboard-card,
+:root[data-theme="dark"] .stat-card,
+:root[data-theme="dark"] .points-card,
+:root[data-theme="dark"] .points-history,
+:root[data-theme="dark"] .points-earn-card,
+:root[data-theme="dark"] .achievements-page__section,
+:root[data-theme="dark"] .summary-card {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .header {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-bottom: 1px solid var(--app-border);
+}
+
+:root[data-theme="dark"] .header .logo,
+:root[data-theme="dark"] .header .nav-link {
+  color: #c7d2fe;
+}
+
+:root[data-theme="dark"] .profile-dropdown,
+:root[data-theme="dark"] .profile-menu .profile-avatar-large {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .profile-dropdown a,
+:root[data-theme="dark"] .profile-dropdown > button {
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] .profile-dropdown a:hover,
+:root[data-theme="dark"] .profile-dropdown button:hover,
+:root[data-theme="dark"] .profile-role-switch .selected {
+  background: #35446a !important;
+  color: #e0e7ff !important;
+}
+
+:root[data-theme="dark"] .profile-identity span,
+:root[data-theme="dark"] .profile-nudge,
+:root[data-theme="dark"] .profile-menu-icon,
+:root[data-theme="dark"] .muted,
+:root[data-theme="dark"] .settings-header p,
+:root[data-theme="dark"] .notification-row small,
+:root[data-theme="dark"] .points-earn-card p,
+:root[data-theme="dark"] .points-state {
+  color: var(--app-muted) !important;
+}
+
+:root[data-theme="dark"] .class-item,
+:root[data-theme="dark"] .quick-stat,
+:root[data-theme="dark"] .profile-completion,
+:root[data-theme="dark"] .profile-form,
+:root[data-theme="dark"] .profile-access,
+:root[data-theme="dark"] .points-history,
+:root[data-theme="dark"] .points-earn-card {
+  background: var(--app-surface-muted);
+  border-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .class-item h4,
+:root[data-theme="dark"] .settings-card h2,
+:root[data-theme="dark"] .settings-card h3,
+:root[data-theme="dark"] .profile-form h2,
+:root[data-theme="dark"] .profile-form h3,
+:root[data-theme="dark"] .profile-access h2,
+:root[data-theme="dark"] .points-earn-card h3,
+:root[data-theme="dark"] .points-history th,
+:root[data-theme="dark"] .points-history td {
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
+  background: #111827;
+  color: var(--app-text);
+  border-color: #4b5563;
+}
+
+:root[data-theme="dark"] .settings-nav button {
+  color: var(--app-muted);
+}
+
+:root[data-theme="dark"] .settings-nav button.active {
+  background: #35446a;
+  color: #e0e7ff;
+  border-color: #818cf8;
+}
+
+:root[data-theme="dark"] .dashboard-page h1,
+:root[data-theme="dark"] .dashboard-card h2,
+:root[data-theme="dark"] .dashboard-card p,
+:root[data-theme="dark"] .profile-info p,
+:root[data-theme="dark"] .loading {
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] .dashboard-card h2 {
+  border-bottom-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .dashboard-card p,
+:root[data-theme="dark"] .profile-info p,
+:root[data-theme="dark"] .stat-card h3,
+:root[data-theme="dark"] .class-item .class-category {
+  color: var(--app-muted);
+}
+
+:root[data-theme="dark"] .class-item:hover,
+:root[data-theme="dark"] .class-item.active {
+  background: #35446a;
+}
+
+:root[data-theme="dark"] .profile-stats > div,
+:root[data-theme="dark"] .profile-stats > a,
+:root[data-theme="dark"] .profile-completion,
+:root[data-theme="dark"] .profile-form,
+:root[data-theme="dark"] .profile-access {
+  background: var(--app-surface);
+  color: var(--app-muted);
+  border: 1px solid var(--app-border);
+}
+
+:root[data-theme="dark"] .profile-stats strong {
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] .profile-form label,
+:root[data-theme="dark"] .profile-completion h2,
+:root[data-theme="dark"] .profile-access h2 {
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] .meter {
+  background: #374151;
+}
+
+:root[data-theme="dark"] .interest-chips button {
+  background: var(--app-surface);
+  border-color: #6366f1;
+  color: #c7d2fe;
+}
+
+:root[data-theme="dark"] .points-label,
+:root[data-theme="dark"] .points-earn-card p,
+:root[data-theme="dark"] .points-state {
+  color: var(--app-muted);
+}
+
+:root[data-theme="dark"] .points-history th,
+:root[data-theme="dark"] .points-history td {
+  border-bottom-color: var(--app-border);
+}
+
+/* Page-specific styles are loaded after this file, so these shared dark
+   surfaces intentionally use !important to keep the palette consistent. */
+:root[data-theme="dark"] main,
+:root[data-theme="dark"] [class*="page"],
+:root[data-theme="dark"] [class*="content"] {
+  background-color: var(--app-bg);
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] [class*="card"],
+:root[data-theme="dark"] [class*="panel"],
+:root[data-theme="dark"] [class*="modal"],
+:root[data-theme="dark"] [class*="table"],
+:root[data-theme="dark"] [class*="form"],
+:root[data-theme="dark"] [class*="section"] {
+  background-color: var(--app-surface) !important;
+  color: var(--app-text) !important;
+  border-color: var(--app-border) !important;
+}
+
+:root[data-theme="dark"] [class*="card"] h1,
+:root[data-theme="dark"] [class*="card"] h2,
+:root[data-theme="dark"] [class*="card"] h3,
+:root[data-theme="dark"] [class*="card"] h4,
+:root[data-theme="dark"] [class*="panel"] h1,
+:root[data-theme="dark"] [class*="panel"] h2,
+:root[data-theme="dark"] [class*="panel"] h3,
+:root[data-theme="dark"] [class*="panel"] h4,
+:root[data-theme="dark"] [class*="modal"] h1,
+:root[data-theme="dark"] [class*="modal"] h2,
+:root[data-theme="dark"] [class*="modal"] h3,
+:root[data-theme="dark"] [class*="modal"] h4,
+:root[data-theme="dark"] [class*="table"] th,
+:root[data-theme="dark"] [class*="table"] td {
+  color: var(--app-text) !important;
+}
+
+:root[data-theme="dark"] [class*="card"] p,
+:root[data-theme="dark"] [class*="card"] small,
+:root[data-theme="dark"] [class*="panel"] p,
+:root[data-theme="dark"] [class*="panel"] small,
+:root[data-theme="dark"] [class*="modal"] p,
+:root[data-theme="dark"] [class*="modal"] small {
+  color: var(--app-muted) !important;
+}
+
+:root[data-theme="dark"] [class*="table"] tr,
+:root[data-theme="dark"] [class*="table"] th,
+:root[data-theme="dark"] [class*="table"] td {
+  background-color: var(--app-surface) !important;
+  border-color: var(--app-border) !important;
+}
+
+:root[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
+  background-color: var(--app-surface-muted) !important;
+  color: var(--app-text) !important;
+  border-color: #526174 !important;
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Keep legacy page styles on the same design-system surfaces. */
+[class*="page"],
+[class*="dashboard"],
+[class*="content"] {
+  color: var(--app-text);
+}
+
+[class*="page"] a,
+[class*="dashboard"] a,
+[class*="content"] a {
+  color: var(--primary-hover);
+}
+
+[class*="page"] button,
+[class*="dashboard"] button,
+[class*="content"] button {
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+[class*="page"] table,
+[class*="dashboard"] table,
+[class*="content"] table {
+  color: var(--app-text);
 }
 
 .container {
@@ -16,6 +351,11 @@ body {
   margin: 0 auto;
   padding: 0 2rem;
 }
+
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:28px}
+.page-header h1{margin:4px 0 8px}
+.page-subtitle{margin:0;color:var(--muted);font-size:14px}
+.eyebrow{margin:0;color:var(--primary);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
 
 @media (max-width: 768px) {
   .container {
@@ -25,6 +365,32 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   line-height: 1.2;
+  color: var(--heading);
+}
+
+h1 { font-size: 28px; font-weight: 800; letter-spacing: -.02em; }
+h2 { font-size: 20px; font-weight: 700; }
+h3, h4 { font-size: 16px; font-weight: 600; }
+
+button, input, textarea, select {
+  font-family: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 0;
+  box-shadow: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 a {

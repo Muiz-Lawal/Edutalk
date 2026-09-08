@@ -46,7 +46,7 @@ export default function ScheduleCard({ schedule, onEdit, onCancel, onViewDetails
 
         <div className="schedule-details">
           <div className="detail-item">
-            <span className="label">📅 Date & Time:</span>
+            <span className="label">Date &amp; Time:</span>
             <span className="value">
               {new Date(schedule.scheduledStartTime).toLocaleString()}
             </span>

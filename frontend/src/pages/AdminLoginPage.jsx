@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import TwoFAVerification from '../components/TwoFAVerification';
@@ -9,6 +9,7 @@ import '../styles/AdminLoginPage.css';
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [requires2FA, setRequires2FA] = useState(false);
@@ -17,7 +18,11 @@ export default function AdminLoginPage() {
   const [requiresPasswordChange, setRequiresPasswordChange] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const navigate = useNavigate();
-  const { setAuthSession } = useAuth();
+  const { setAuthSession, isAuthenticated, user } = useAuth();
+
+  if (isAuthenticated && (user?.isAdmin || user?.adminRole)) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,7 +53,7 @@ export default function AdminLoginPage() {
       }
 
       // Normal login - check if user is admin
-      if (!user.isAdmin) {
+      if (!(user.isAdmin || user.adminRole)) {
         setError('❌ Access denied. Admin account required.');
         setLoading(false);
         return;
@@ -155,15 +160,27 @@ export default function AdminLoginPage() {
 
           <div className="admin-form-group">
             <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              disabled={loading}
-            />
+            <div className="admin-password-input-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="admin-password-toggle"
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+                disabled={loading}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
 
           <button

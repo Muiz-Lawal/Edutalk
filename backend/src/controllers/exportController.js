@@ -37,7 +37,8 @@ export const exportAnalyticsCSV = async (req, res) => {
     }
 
     // Check if user is the host or authorized
-    if (stream.hostId.toString() !== userId.toString() && req.user.role !== 'admin') {
+    const isFinance = req.user?.adminRole === 'finance_admin';
+    if (stream.hostId.toString() !== userId.toString() && !(req.user.isAdmin && !isFinance)) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized to export this stream data',
@@ -111,7 +112,8 @@ export const exportAnalyticsPDF = async (req, res) => {
     }
 
     // Check if user is the host or authorized
-    if (stream.hostId.toString() !== userId.toString() && req.user.role !== 'admin') {
+    const isFinance = req.user?.adminRole === 'finance_admin';
+    if (stream.hostId.toString() !== userId.toString() && !(req.user.isAdmin && !isFinance)) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized to export this stream data',
@@ -393,7 +395,8 @@ export const updateScheduledReport = async (req, res) => {
       });
     }
 
-    if (schedule.userId.toString() !== userId.toString() && req.user.role !== 'admin') {
+    const isFinance = req.user?.adminRole === 'finance_admin';
+    if (schedule.userId.toString() !== userId.toString() && !(req.user.isAdmin && !isFinance)) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized to update this schedule',
@@ -462,7 +465,8 @@ export const deleteScheduledReport = async (req, res) => {
       });
     }
 
-    if (schedule.userId.toString() !== userId.toString() && req.user.role !== 'admin') {
+    const isFinance = req.user?.adminRole === 'finance_admin';
+    if (schedule.userId.toString() !== userId.toString() && !(req.user.isAdmin && !isFinance)) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized to delete this schedule',

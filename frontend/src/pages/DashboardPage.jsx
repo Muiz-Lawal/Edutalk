@@ -1,80 +1,63 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Navigate, Link } from 'react-router-dom';
-import api from '../utils/api';
+import { Navigate, useNavigate } from 'react-router-dom';
 import '../styles/Dashboard.css';
+import { BookOpen, Copy, Search } from 'lucide-react';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import EmptyState from '../components/ui/EmptyState';
+import StatCard from '../components/ui/StatCard';
+import AsyncBoundary from '../components/AsyncBoundary';
+import api from '../utils/api';
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, loading } = useAuth();
-  const [points, setPoints] = useState(null);
-
+  const { user, isAuthenticated, loading, activeRole } = useAuth();
+  const navigate = useNavigate();
+  const [enrollments, setEnrollments] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState(false);
   useEffect(() => {
-    let mounted = true;
-    async function loadPoints() {
-      if (!user) return;
-      try {
-        const res = await api.get(`/points/balance/${user._id}`);
-        if (mounted) setPoints(res.data.balance || 0);
-      } catch (err) {
-        console.warn('Failed to load points balance', err.message || err);
-      }
-    }
-    loadPoints();
-    return () => { mounted = false; };
-  }, [user]);
-
+    if (!isAuthenticated || activeRole === 'host') return;
+    api.get('/analytics/student').then(({ data }) => setEnrollments(Array.isArray(data) ? data : [])).catch((requestError) => {
+      console.error('Failed to load student dashboard', requestError);
+      setDataError(true);
+    }).finally(() => setDataLoading(false));
+  }, [isAuthenticated, activeRole]);
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <main className="dashboard-page"><div className="container"><AsyncBoundary loading loadingVariant="block" /></div></main>;
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
+  if (user?.isAdmin || user?.adminRole) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  if (activeRole === 'host') {
+    return <Navigate to="/host-dashboard" replace />;
+  }
+
   return (
-    <div className="dashboard-page">
+    <main className="dashboard-page">
       <div className="container">
-        <h1>My Learning Dashboard</h1>
-
-        <div className="dashboard-grid">
-          <section className="dashboard-card">
-            <h2>My Profile</h2>
-            <div className="profile-info">
-              <p>
-                <strong>Name:</strong> {user?.firstName} {user?.lastName}
-              </p>
-              <p>
-                <strong>Email:</strong> {user?.email}
-              </p>
-              <p>
-                <strong>Member Since:</strong>{' '}
-                {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-              </p>
-              <p>
-                <strong>Points:</strong> {points != null ? points : '—'} (<Link to="/points">View history</Link>)
-              </p>
-            </div>
-          </section>
-
-          <section className="dashboard-card">
-            <h2>My Enrollments</h2>
-            <p>You haven't enrolled in any classes yet.</p>
-            <Link to="/browse" className="btn btn-primary">
-              Browse Classes
-            </Link>
-          </section>
-
-          <section className="dashboard-card">
-            <h2>Payment History</h2>
-            <p>No payments yet.</p>
-          </section>
-
-          <section className="dashboard-card">
-            <h2>Progress Tracking</h2>
-            <p>Track your attendance, completion percentage, and achievements here.</p>
-          </section>
+        <div className="page-header">
+          <div><p className="eyebrow">Your learning space</p><h1>My Learning Dashboard</h1><p className="page-subtitle">Pick up where you left off and keep your learning momentum going.</p></div>
+          <Button onClick={() => navigate('/browse')}><Search size={16} /> Browse classes</Button>
         </div>
+        <div className="dashboard-stats">
+          <StatCard label="Enrolled classes" value={enrollments.length} loading={dataLoading} />
+          <StatCard label="Sessions attended" value={enrollments.reduce((total, item) => total + (item.sessionsAttended || 0), 0)} loading={dataLoading} />
+          <StatCard label="Current streak" value="0 days" loading={dataLoading} />
+          <StatCard label="Points earned" value={user?.points || 0} loading={dataLoading} />
+        </div>
+
+        <section className="dashboard-enrollments">
+          <div className="dashboard-section-heading"><div><h2>My enrollments</h2><p>Your active classes and upcoming sessions.</p></div></div>
+          {dataError ? <AsyncBoundary error errorMessage="We couldn’t load your enrollments" onRetry={() => window.location.reload()} /> : dataLoading ? <AsyncBoundary loading loadingVariant="list" /> : enrollments.length === 0 ? <EmptyState icon={BookOpen} title="No enrollments yet" description="Explore classes from expert hosts and start building your learning path." action={{ label: 'Browse classes', onClick: () => navigate('/browse'), variant: 'secondary' }} /> : <div className="dashboard-enrollment-list">{enrollments.map((item) => <article className="dashboard-enrollment-row" key={item.classId}><div className="dashboard-enrollment-thumb">{item.class?.charAt(0) || 'C'}</div><div className="dashboard-enrollment-main"><h3>{item.class}</h3><p>{item.host || 'EduTalk host'}</p><div className="dashboard-progress"><span style={{ width: `${Math.min(100, item.completionPercentage || 0)}%` }} /></div><small>{item.daysRemaining} days remaining</small></div><div className="dashboard-enrollment-code"><span>{item.accessCode ? `${item.accessCode.slice(0, 3)}••••${item.accessCode.slice(-2)}` : 'ET-••••••'}</span><button type="button" aria-label="Copy access code" onClick={() => navigator.clipboard?.writeText(item.accessCode || '')}><Copy size={14} /></button></div><Button size="sm" onClick={() => navigate(`/class/${item.classId}`)}>Join next session</Button></article>)}</div>}
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

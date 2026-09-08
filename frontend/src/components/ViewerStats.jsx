@@ -25,7 +25,7 @@ export default function ViewerStats({
 
   return (
     <div className="viewer-stats">
-      <h3>📊 Live Analytics</h3>
+      <h3>Live Analytics</h3>
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-label">Current Viewers</div>
@@ -36,7 +36,7 @@ export default function ViewerStats({
         <div className="stat-card peak">
           <div className="stat-label">Peak Viewers</div>
           <div className="stat-value">{peakViewers}</div>
-          <div className="stat-icon">📈</div>
+          <div className="stat-icon" aria-hidden="true" />
         </div>
 
         <div className="stat-card">

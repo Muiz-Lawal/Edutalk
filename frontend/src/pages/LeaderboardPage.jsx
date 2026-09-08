@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import AchievementBadge from '../components/AchievementBadge';
 import api from '../utils/api';
 import '../styles/LeaderboardPage.css';
+import { Skeleton } from '../components/AsyncBoundary';
 
 const LeaderboardPage = () => {
   const { classId } = useParams();
@@ -85,11 +86,7 @@ const LeaderboardPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="leaderboard-page">
-        <div className="leaderboard-page__loading">Loading leaderboard...</div>
-      </div>
-    );
+    return <div className="leaderboard-page"><Skeleton variant="list" /></div>;
   }
 
   return (
@@ -103,7 +100,7 @@ const LeaderboardPage = () => {
 
       {error && (
         <div className="leaderboard-page__error">
-          <p>Error: {error}</p>
+          <p>We couldn’t load the leaderboard. Please try again.</p>
         </div>
       )}
 
@@ -223,7 +220,7 @@ const LeaderboardPage = () => {
                     </span>
                     {entry.trend && (
                       <span className={`leaderboard-page__trend ${entry.trend > 0 ? 'leaderboard-page__trend--up' : 'leaderboard-page__trend--down'}`}>
-                        {entry.trend > 0 ? '📈' : '📉'} {Math.abs(entry.trend)}
+                        {entry.trend > 0 ? '+' : '-'} {Math.abs(entry.trend)}
                       </span>
                     )}
                   </div>
@@ -269,7 +266,7 @@ const LeaderboardPage = () => {
             <span>Ranked by achievements, completion, and participation</span>
           </div>
           <div className="leaderboard-page__legend-item">
-            <span className="leaderboard-page__legend-icon">📊</span>
+            <span className="leaderboard-page__legend-icon" aria-hidden="true" />
             <span>Points earned from completing assignments and achieving milestones</span>
           </div>
           <div className="leaderboard-page__legend-item">
@@ -277,7 +274,7 @@ const LeaderboardPage = () => {
             <span>Badges displayed for top 3 recent achievements</span>
           </div>
           <div className="leaderboard-page__legend-item">
-            <span className="leaderboard-page__legend-icon">📈</span>
+            <span className="leaderboard-page__legend-icon" aria-hidden="true" />
             <span>Trends show rank movement this period</span>
           </div>
         </div>

@@ -70,6 +70,7 @@ export const getDashboardStats = async (req, res) => {
 // Get all users with pagination
 export const getAllUsers = async (req, res) => {
   try {
+
     const { page = 1, limit = 20, search, role, status } = req.query;
     const skip = (page - 1) * limit;
 
@@ -103,8 +104,46 @@ export const getAllUsers = async (req, res) => {
 
     const total = await User.countDocuments(query);
 
+    // Defensive: ensure we know the requester's admin role even if middleware didn't populate req.user
+    let requesterRole = req.user?.adminRole;
+    if (!requesterRole) {
+      try {
+        const token = req.headers.authorization?.replace('Bearer ', '') || null;
+        if (token) {
+          const jwt = await import('jsonwebtoken');
+            try {
+              const decoded = jwt.default.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key_here');
+              if (decoded && decoded.userId) {
+                const reqUser = await User.findById(decoded.userId).select('adminRole isAdmin isHost isStudent');
+                if (reqUser && reqUser.isAdmin && reqUser.adminRole) {
+                  requesterRole = reqUser.adminRole;
+                }
+              }
+            } catch (ve) {
+              // fallback to decode if verify fails for some reason
+              const decoded = jwt.default.decode(token);
+              if (decoded && decoded.userId) {
+                const reqUser = await User.findById(decoded.userId).select('adminRole isAdmin isHost isStudent');
+                if (reqUser && reqUser.isAdmin && reqUser.adminRole) {
+                  requesterRole = reqUser.adminRole;
+                }
+              }
+            }
+          }
+      } catch (e) {
+        console.warn('[getAllUsers] could not determine requesterRole from token:', e.message);
+      }
+    }
+
+    const isFinance = requesterRole === 'finance_admin';
+    console.log('[getAllUsers] requesterRole=', requesterRole, 'isFinance=', isFinance);
+
+    const responseUsers = isFinance
+      ? users.map(u => ({ id: u._id, isHost: u.isHost, planTier: u.planTier, createdAt: u.createdAt }))
+      : users;
+
     res.json({
-      users,
+      users: responseUsers,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -121,12 +160,36 @@ export const getAllUsers = async (req, res) => {
 export const getUserDetails = async (req, res) => {
   try {
     const { userId } = req.params;
-    const user = await User.findById(userId).select('-password').populate('createdAt');
+    const user = await User.findById(userId).select('-password');
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    const requesterRole = req.user?.adminRole;
+    const isFinance = requesterRole === 'finance_admin';
+
+    // Finance admin should only receive payment/payout related info, not full PII
+    if (isFinance) {
+      // Fetch payment history for this user
+      const payments = await Payment.find({ userId: user._id }).select('-stripeChargeId -stripePaymentIntentId -updatedAt');
+
+      // Fetch payout records for this user if present (assume Payment contains payouts/refunds info)
+      const refunds = await Payment.find({ userId: user._id, refundAmount: { $exists: true, $ne: null } }).select('amount refundAmount refundReason refundedAt status createdAt');
+
+      return res.json({
+        user: {
+          id: user._id,
+          isHost: user.isHost,
+          planTier: user.planTier,
+          createdAt: user.createdAt,
+        },
+        payments,
+        refunds,
+      });
+    }
+
+    // Non-finance admins get full view (subject to existing permissions elsewhere)
     // Get user's classes if host
     let classes = [];
     if (user.isHost) {
@@ -159,7 +222,7 @@ export const suspendUser = async (req, res) => {
         suspendReason: reason,
       },
       { new: true }
-    );
+    ).select('-password');
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -175,7 +238,20 @@ export const suspendUser = async (req, res) => {
       { reason }
     );
 
-    res.json({ message: 'User suspended', user });
+    // Return a sanitized user object to avoid leaking hashed passwords or sensitive fields
+    const sanitized = {
+      id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      isHost: user.isHost,
+      isStudent: user.isStudent,
+      suspendedAt: user.suspendedAt,
+      suspendReason: user.suspendReason,
+      createdAt: user.createdAt,
+    };
+
+    res.json({ message: 'User suspended', user: sanitized });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -192,7 +268,7 @@ export const unsuspendUser = async (req, res) => {
         $unset: { suspendedAt: 1, suspendReason: 1 },
       },
       { new: true }
-    );
+    ).select('-password');
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -207,7 +283,17 @@ export const unsuspendUser = async (req, res) => {
       user.email
     );
 
-    res.json({ message: 'User unsuspended', user });
+    const sanitized = {
+      id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      isHost: user.isHost,
+      isStudent: user.isStudent,
+      createdAt: user.createdAt,
+    };
+
+    res.json({ message: 'User unsuspended', user: sanitized });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -254,7 +340,8 @@ export const deleteUser = async (req, res) => {
       { reason, isSuperAdmin: user.isSuperAdmin, adminRole: user.adminRole }
     );
 
-    res.json({ message: 'User deleted', user });
+    // Return minimal confirmation to avoid leaking deleted user's full record
+    res.json({ message: 'User deleted', id: user._id, email: user.email });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -268,6 +355,10 @@ export const getAdminLogs = async (req, res) => {
 
     let query = {};
 
+    // If a non-superadmin with finance_admin role requests logs, limit to financial actions
+    const role = req.user?.adminRole;
+    const isFinance = role === 'finance_admin';
+
     if (action) query.action = action;
     if (adminId) query.adminId = adminId;
 
@@ -277,6 +368,12 @@ export const getAdminLogs = async (req, res) => {
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
+    // For finance admins, restrict to financial-related actions only
+    if (isFinance) {
+      const financialActionRegex = /(payment|refund|payout|commission|billing|stripe)/i;
+      query.action = query.action ? query.action : { $regex: financialActionRegex };
+    }
+
     const logs = await AdminLog.find(query)
       .limit(limit)
       .skip(skip)
@@ -284,8 +381,26 @@ export const getAdminLogs = async (req, res) => {
 
     const total = await AdminLog.countDocuments(query);
 
+    // Mask sensitive information for finance admins (e.g., emails, user identifiers)
+    const maskedLogs = logs.map((l) => {
+      if (!isFinance) return l;
+      const masked = l.toObject();
+      if (masked.targetEmail) masked.targetEmail = masked.targetEmail.replace(/(.{2}).+@/, '$1***@');
+      if (masked.adminEmail) masked.adminEmail = masked.adminEmail.replace(/(.{2}).+@/, '$1***@');
+      // remove sensitive detail fields if present
+      if (masked.details) {
+        const details = { ...masked.details };
+        // remove any email or personal identifiers inside details
+        Object.keys(details).forEach((k) => {
+          if (/email|ssn|id|phone|card|account/i.test(k)) delete details[k];
+        });
+        masked.details = details;
+      }
+      return masked;
+    });
+
     res.json({
-      logs,
+      logs: maskedLogs,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -399,7 +514,7 @@ export const createAdminUser = async (req, res) => {
     }
 
     // Validate role
-    const validRoles = ['moderator', 'support', 'admin', 'superadmin'];
+    const validRoles = ['moderator', 'support', 'admin', 'finance_admin', 'superadmin'];
     if (!validRoles.includes(adminRole)) {
       return res.status(400).json({ 
         error: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
@@ -478,7 +593,7 @@ export const updateAdminUser = async (req, res) => {
 
     // Validate role if provided
     if (adminRole) {
-      const validRoles = ['moderator', 'support', 'admin', 'superadmin'];
+      const validRoles = ['moderator', 'support', 'admin', 'finance_admin', 'superadmin'];
       if (!validRoles.includes(adminRole)) {
         return res.status(400).json({ 
           error: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
@@ -768,7 +883,23 @@ export const getTopHosts = async (req, res) => {
       { $limit: parseInt(limit) }
     ]);
 
-    res.json(topHosts);
+    const requesterRole = req.user?.adminRole;
+    const isFinance = requesterRole === 'finance_admin';
+
+    const maskedTopHosts = topHosts.map(h => {
+      if (!isFinance) return h;
+      return {
+        _id: h._id,
+        hostName: h.hostName ? h.hostName.split(' ').map(n => n[0] + '.').join(' ') : undefined,
+        hostEmail: h.hostEmail ? h.hostEmail.replace(/(.{2}).+@/, '$1***@') : undefined,
+        classCount: h.classCount,
+        studentCount: h.studentCount,
+        revenue: h.revenue,
+        rating: h.rating
+      };
+    });
+
+    res.json(maskedTopHosts);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1475,7 +1606,9 @@ export const getModerationStats = async (req, res) => {
 export const getTransactions = async (req, res) => {
   try {
     const { page = 1, limit = 20, status = 'all', startDate, endDate, minAmount, maxAmount, hostId, studentEmail } = req.query;
-    const skip = (page - 1) * limit;
+    const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+    const parsedLimit = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+    const skip = (parsedPage - 1) * parsedLimit;
 
     let matchStage = {};
 
@@ -1546,7 +1679,7 @@ export const getTransactions = async (req, res) => {
       },
       { $sort: { createdAt: -1 } },
       { $skip: skip },
-      { $limit: limit },
+      { $limit: parsedLimit },
       {
         $project: {
           _id: 1,
@@ -1570,10 +1703,10 @@ export const getTransactions = async (req, res) => {
     res.json({
       transactions,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: parsedPage,
+        limit: parsedLimit,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / parsedLimit)
       }
     });
   } catch (error) {
@@ -2427,7 +2560,8 @@ export const getSuspensionHistory = async (req, res) => {
 export const updateCommissionRate = async (req, res) => {
   try {
     const { tier, rate } = req.body;
-    const { adminId, adminEmail } = req.user;
+    const adminId = req.user._id;
+    const adminEmail = req.user.email;
 
     // Validate tier
     const validTiers = ['starter', 'growth', 'pro', 'elite'];
@@ -2440,20 +2574,20 @@ export const updateCommissionRate = async (req, res) => {
       return res.status(400).json({ error: 'Rate must be between 0 and 100' });
     }
 
-    let settings = await AdminSettings.findOne({});
+    let settings = await AdminSettings.findOne({ key: 'commission_rates' });
     if (!settings) {
       settings = new AdminSettings({
-        commissionRates: {
-          starter: 25,
-          growth: 20,
-          pro: 15,
-          elite: 10
-        }
+        key: 'commission_rates',
+        category: 'commission',
+        dataType: 'object',
+        value: { starter: 0.25, growth: 0.2, pro: 0.15, elite: 0.1 }
       });
     }
 
-    const oldRate = settings.commissionRates[tier];
-    settings.commissionRates[tier] = rate;
+    const rates = { ...(settings.value || {}) };
+    const oldRate = rates[tier];
+    rates[tier] = rate / 100;
+    settings.value = rates;
     settings.updatedAt = new Date();
     settings.updatedBy = adminId;
     await settings.save();
@@ -2472,7 +2606,7 @@ export const updateCommissionRate = async (req, res) => {
     res.json({
       success: true,
       message: `Commission rate for ${tier} updated to ${rate}%`,
-      commissionRates: settings.commissionRates
+      commissionRates: settings.value
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -2687,4 +2821,3 @@ export const updateEmailTemplate = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-

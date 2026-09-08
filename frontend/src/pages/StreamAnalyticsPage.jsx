@@ -72,7 +72,7 @@ export default function StreamAnalyticsPage() {
       <div className="stream-analytics-page">
         <div className="analytics-loading">
           <div className="spinner"></div>
-          <p>Loading analytics...</p>
+          <div className="async-skeleton async-skeleton--block" aria-hidden="true" />
         </div>
       </div>
     );
@@ -82,8 +82,8 @@ export default function StreamAnalyticsPage() {
     return (
       <div className="stream-analytics-page">
         <div className="analytics-error">
-          <h2>Error Loading Analytics</h2>
-          <p>{error}</p>
+          <h2>We couldn’t load analytics</h2>
+          <p>We couldn’t load stream analytics. Please try again.</p>
           <button onClick={fetchAnalyticsData} className="btn-retry">
             Retry
           </button>

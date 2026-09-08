@@ -97,7 +97,7 @@ const BrowseClassesScreen = ({ navigation }) => {
           {item.title}
         </Text>
         <View style={styles.ratingBadge}>
-          <Text style={styles.ratingText}>⭐ {(item.rating || 0).toFixed(1)}</Text>
+          <Text style={styles.ratingText}>{(item.rating || 0).toFixed(1)}</Text>
         </View>
       </View>
 

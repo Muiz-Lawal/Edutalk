@@ -207,7 +207,7 @@ export default function HLSPlayer({ streamId, quality, onQualityChange, isLive }
         <div className="player-loading">
           <div className="loading-spinner">
             <div className="spinner"></div>
-            <p>Loading stream...</p>
+            <div className="async-skeleton async-skeleton--block" aria-hidden="true" />
           </div>
         </div>
       )}

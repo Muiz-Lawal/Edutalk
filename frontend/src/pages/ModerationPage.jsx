@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import '../styles/ModerationPage.css';
+import { Skeleton } from '../components/AsyncBoundary';
 
 const ModerationPage = () => {
   const { user } = useAuth();
@@ -159,7 +160,7 @@ const ModerationPage = () => {
   return (
     <div className="moderation-page">
       <div className="moderation-header">
-        <h1>🛡️ Content Moderation</h1>
+        <h1>Content Moderation</h1>
         <button onClick={handleExport} className="export-btn">
           📥 Export Logs
         </button>
@@ -280,7 +281,7 @@ const ModerationPage = () => {
           )}
 
           {loading ? (
-            <div className="loading">Loading...</div>
+            <Skeleton variant="list" />
           ) : moderationQueue.length === 0 ? (
             <div className="empty-state">No items to moderate</div>
           ) : (

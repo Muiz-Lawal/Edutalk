@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { resolveHostPlanTier } from '../utils/hostPlans.js';
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -11,10 +12,15 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  tokenVersion: { type: Number, default: 0 },
   firstName: String,
   lastName: String,
+  dateOfBirth: Date,
   profileImage: String,
   bio: String,
+  interests: { type: [String], default: [] },
+  phoneVerified: { type: Boolean, default: false },
+  theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
   
   // Role flags
   isStudent: {
@@ -33,10 +39,15 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  activeRole: {
+    type: String,
+    enum: ['student', 'host', 'admin'],
+    default: 'student',
+  },
   adminRole: {
     type: String,
     enum: {
-      values: [null, 'moderator', 'support', 'admin', 'superadmin'],
+      values: [null, 'support', 'moderator', 'admin', 'finance_admin', 'superadmin'],
       message: '{VALUE} is not a valid admin role',
     },
     default: null,
@@ -50,6 +61,20 @@ const userSchema = new mongoose.Schema({
   
   // Host-specific fields
   hostBio: String,
+  hostDisplayName: String,
+  hostHeadline: String,
+  hostExperience: String,
+  hostLanguages: [String],
+  hostCategories: [String],
+  hostCredentials: [{
+    name: String,
+    size: Number,
+    type: String,
+  }],
+  payoutCountry: String,
+  payoutMethod: String,
+  payoutDeferred: Boolean,
+  hostCommissionAccepted: Boolean,
   stripeConnectId: String,
   hostVerified: {
     type: Boolean,
@@ -82,6 +107,10 @@ const userSchema = new mongoose.Schema({
     default: 'en',
   },
   timezone: String,
+  recordingTranscriptionUsage: {
+    date: String,
+    minutes: { type: Number, default: 0 },
+  },
   // Email preferences
   emailPreferences: {
     paymentConfirmations: { type: Boolean, default: true },
@@ -93,9 +122,8 @@ const userSchema = new mongoose.Schema({
     adminActivityAlerts: { type: Boolean, default: true },
     suspiciousActivityAlerts: { type: Boolean, default: true },
     emailVerified: { type: Boolean, default: false },
-    emailVerificationToken: String,
-    emailVerificationExpires: Date,
   },
+  welcomeEmailSentAt: Date,
   
   // Two-Factor Authentication (2FA)
   twoFAEnabled: {
@@ -147,5 +175,49 @@ const userSchema = new mongoose.Schema({
     default: Date.now,
   },
 }, { timestamps: true });
+
+userSchema.pre('save', function(next) {
+if (this.adminRole && !this.isAdmin) {
+  this.isAdmin = true;
+}
+
+if (this.isAdmin && !this.adminRole) {
+  this.adminRole = 'admin';
+}
+
+this.isSuperAdmin = this.adminRole === 'superadmin' || this.isSuperAdmin;
+
+  if (this.isHost && !this.dateOfBirth) {
+    const error = new Error('Date of birth is required for host registration.');
+    return next(error);
+  }
+
+if (!this.isStudent && !this.isHost && !this.isAdmin) {
+  this.isStudent = true;
+}
+
+if (this.isHost) {
+  this.planTier = resolveHostPlanTier({
+    totalActiveStudents: this.totalActiveStudents || 0,
+    averageRating: this.averageRating || 0,
+    currentTier: this.planTier || 'starter',
+  });
+}
+
+if (this.activeRole) {
+  const allowedRoles = ['student', 'host', 'admin'];
+  if (!allowedRoles.includes(this.activeRole)) {
+    this.activeRole = 'student';
+  }
+} else if (this.isAdmin) {
+  this.activeRole = 'admin';
+} else if (this.isHost) {
+  this.activeRole = 'host';
+} else {
+  this.activeRole = 'student';
+}
+
+next();
+});
 
 export default mongoose.model('User', userSchema);

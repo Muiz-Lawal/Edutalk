@@ -126,7 +126,7 @@ const HomeScreen = ({ navigation, user }) => {
             style={styles.actionButton}
             onPress={() => navigation.navigate('Settings')}
           >
-            <Text style={styles.actionIcon}>⚙️</Text>
+            <Text style={styles.actionIcon}>Settings</Text>
             <Text style={styles.actionLabel}>Settings</Text>
           </TouchableOpacity>
         </View>

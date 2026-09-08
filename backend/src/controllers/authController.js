@@ -9,34 +9,92 @@ import {
   sendSuspiciousActivityEmail,
 } from '../utils/emailNotifications.js';
 import { createAdminSession, checkSuspiciousLogin } from '../utils/sessionManager.js';
+import { issueVerificationCode, CODE_PURPOSES } from '../utils/verificationCodes.js';
+import { sendMail, verificationEmail } from '../utils/mailer.js';
+
+const getAgeFromDateOfBirth = (dateOfBirth) => {
+  if (!dateOfBirth) return null;
+
+  const birthDate = new Date(dateOfBirth);
+  if (Number.isNaN(birthDate.getTime())) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const hasBirthdayPassed =
+    today.getMonth() > birthDate.getMonth() ||
+    (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+
+  if (!hasBirthdayPassed) {
+    age -= 1;
+  }
+
+  return age;
+};
+
+const validateHostRegistration = (isHost, dateOfBirth) => {
+  if (!isHost) {
+    return null;
+  }
+
+  if (!dateOfBirth) {
+    return 'Date of birth is required to register as a host.';
+  }
+
+  const age = getAgeFromDateOfBirth(dateOfBirth);
+  if (age === null || age < 18) {
+    return 'Only users aged 18 or older can register as a host.';
+  }
+
+  return null;
+};
 
 export const register = async (req, res) => {
   try {
-    const { email, password, firstName, lastName, isHost } = req.body;
-    
-    // Check if user already exists
-    let user = await User.findOne({ email });
-    if (user) {
+    const { email, password, firstName, lastName, isHost, dateOfBirth, isAdmin, adminRole } = req.body;
+
+    if (isAdmin || adminRole) {
+      return res.status(400).json({ message: 'Admin accounts must use the separate admin registration flow.' });
+    }
+
+    let existingUser = await User.findOne({ email });
+    if (existingUser) {
+      if (existingUser.isAdmin) {
+        return res.status(400).json({ message: 'This email is already linked to an admin account. Use the admin login flow.' });
+      }
       return res.status(400).json({ message: 'User already exists' });
     }
-    
-    // Hash password
+
+    const hostValidationError = validateHostRegistration(Boolean(isHost), dateOfBirth);
+    if (hostValidationError) {
+      return res.status(400).json({ message: hostValidationError });
+    }
+
     const hashedPassword = await hashPassword(password);
-    
-    // Create new user
-    user = new User({
+
+    const user = new User({
       email,
       password: hashedPassword,
       firstName,
       lastName,
+      dateOfBirth: dateOfBirth || undefined,
       isStudent: true,
-      isHost: isHost || false,
+      isHost: Boolean(isHost),
+      isAdmin: false,
+      isSuperAdmin: false,
+      adminRole: null,
     });
-    
+
     await user.save();
-    
-    const token = generateToken(user._id, user.email);
-    
+    try {
+      const issued = await issueVerificationCode({ email: user.email, purpose: CODE_PURPOSES.EMAIL_VERIFICATION });
+      const template = verificationEmail({ firstName: user.firstName, code: issued.code, email: user.email });
+      await sendMail({ to: user.email, ...template, code: issued.code });
+    } catch (emailError) {
+      console.error('Unable to send verification email:', emailError);
+    }
+
+    const token = generateToken(user._id, user.email, user.tokenVersion);
+
     res.status(201).json({
       message: 'User registered successfully',
       token,
@@ -67,6 +125,10 @@ export const login = async (req, res) => {
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
+
+    if (user.isAdmin) {
+      return res.status(403).json({ message: 'Admin accounts must use the admin login flow.' });
+    }
     
     // Compare password
     const isPasswordValid = await comparePassword(password, user.password);
@@ -74,7 +136,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
     
-    const token = generateToken(user._id, user.email);
+    const token = generateToken(user._id, user.email, user.tokenVersion);
     
     res.json({
       message: 'Login successful',
@@ -97,6 +159,8 @@ export const login = async (req, res) => {
   }
 };
 
+import { sanitizeUserForRequester } from '../utils/sanitize.js';
+
 export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');
@@ -104,7 +168,14 @@ export const getProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    res.json(user);
+    // Preserve role fields when a user loads their own profile so admin sessions
+    // remain admin sessions after the initial login response.
+    const requesterRole = user._id.toString() === req.user.userId.toString()
+      ? user.adminRole
+      : req.user?.adminRole || null;
+    const sanitized = sanitizeUserForRequester(user, requesterRole);
+
+    res.json(sanitized);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -112,15 +183,59 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { firstName, lastName, bio, timezone, preferredLanguage, preferredCurrency } = req.body;
+    const { firstName, lastName, bio, timezone, preferredLanguage, preferredCurrency, interests, profileImage, theme } = req.body;
     
     const user = await User.findByIdAndUpdate(
       req.user.userId,
-      { firstName, lastName, bio, timezone, preferredLanguage, preferredCurrency },
+      { firstName, lastName, bio, timezone, preferredLanguage, preferredCurrency, interests, profileImage, theme },
       { new: true }
     ).select('-password');
     
-    res.json(user);
+    const requesterRole = req.user?.adminRole || null;
+    const sanitized = sanitizeUserForRequester(user, requesterRole);
+
+    res.json(sanitized);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateHostOnboarding = async (req, res) => {
+  try {
+    const allowed = ['hostDisplayName', 'hostHeadline', 'hostBio', 'hostExperience', 'hostLanguages', 'hostCategories', 'hostCredentials', 'payoutCountry', 'payoutMethod', 'payoutDeferred', 'hostCommissionAccepted'];
+    const updates = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
+    const user = await User.findOneAndUpdate(
+      { _id: req.user.userId, isHost: true },
+      { $set: updates },
+      { new: true, runValidators: true },
+    ).select('-password');
+    if (!user) return res.status(404).json({ message: 'Host profile not found' });
+    res.json(sanitizeUserForRequester(user, req.user?.adminRole || null));
+  } catch (error) {
+    console.error('Unable to update host onboarding:', error);
+    res.status(500).json({ message: 'Unable to save your host profile.' });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current and new passwords are required' });
+    }
+    const validation = validatePassword(newPassword);
+    if (!validation.isValid) {
+      return res.status(400).json({ message: validation.errors.join('. ') });
+    }
+    const user = await User.findById(req.user.userId);
+    if (!user || !(await comparePassword(currentPassword, user.password))) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+    user.password = await hashPassword(newPassword);
+    user.passwordChangedAt = new Date();
+    user.passwordExpiresAt = undefined;
+    await user.save();
+    res.json({ message: 'Password changed successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -128,21 +243,39 @@ export const updateProfile = async (req, res) => {
 
 export const upgradeToHost = async (req, res) => {
   try {
-    const { hostBio, stripeConnectId } = req.body;
-    
-    const user = await User.findByIdAndUpdate(
-      req.user.userId,
-      { 
+    const userId = req.user.userId;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isAdmin) {
+      return res.status(403).json({ message: 'Admin accounts cannot be upgraded to host accounts.' });
+    }
+
+    const { hostBio, stripeConnectId, dateOfBirth } = req.body;
+    const effectiveDateOfBirth = dateOfBirth || user.dateOfBirth;
+    const hostValidationError = validateHostRegistration(true, effectiveDateOfBirth);
+
+    if (hostValidationError) {
+      return res.status(400).json({ message: hostValidationError });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
         isHost: true,
+        dateOfBirth: effectiveDateOfBirth,
         hostBio,
         stripeConnectId,
       },
       { new: true }
     ).select('-password');
-    
+
     res.json({
       message: 'Upgraded to host',
-      user,
+      user: updatedUser,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

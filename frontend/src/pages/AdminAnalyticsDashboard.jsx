@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useAdmin } from '../context/AdminContext';
 import '../styles/AdminAnalyticsDashboard.css';
+import { BarChart3 } from 'lucide-react';
 
 export default function AdminAnalyticsDashboard() {
   const [engagement, setEngagement] = useState([]);
+  const [revenueTrends, setRevenueTrends] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedMetric, setSelectedMetric] = useState('action');
@@ -17,22 +19,26 @@ export default function AdminAnalyticsDashboard() {
 
   const [exportFormat, setExportFormat] = useState('csv');
   const [exporting, setExporting] = useState(false);
+  const { fetchRevenueTrends, fetchEngagementMetrics } = useAdmin();
 
   useEffect(() => {
     fetchAnalytics();
-  }, []);
+  }, [filters.startDate, filters.endDate, filters.classId, filters.minCount]);
 
   const fetchAnalytics = async () => {
     setLoading(true);
     setError('');
     try {
-      const params = new URLSearchParams();
-      if (filters.startDate) params.append('start', filters.startDate);
-      if (filters.endDate) params.append('end', filters.endDate);
-      if (filters.classId) params.append('classId', filters.classId);
-
-      const res = await axios.get(`/api/analytics/engagement?${params}`);
-      let data = res.data.data || [];
+      const [engagementResult, revenueResult] = await Promise.all([
+        fetchEngagementMetrics(),
+        fetchRevenueTrends(),
+      ]);
+      const engagementPayload = engagementResult?.data || engagementResult || {};
+      let data = Array.isArray(engagementPayload)
+        ? engagementPayload
+        : engagementPayload.data || engagementPayload.metrics || [];
+      const trendsPayload = revenueResult?.trends || revenueResult?.data || revenueResult || [];
+      setRevenueTrends(Array.isArray(trendsPayload) ? trendsPayload : []);
       
       // Filter by minimum count
       data = data.filter(d => d.count >= filters.minCount);
@@ -128,14 +134,14 @@ export default function AdminAnalyticsDashboard() {
   return (
     <div className="admin-analytics-dashboard">
       <div className="admin-dashboard-header">
-        <h1>📊 Platform Analytics Dashboard</h1>
+        <h1>Platform Analytics Dashboard</h1>
         <p className="subtitle">Real-time event tracking and engagement metrics</p>
       </div>
 
       {/* Summary Cards */}
       <div className="analytics-summary-grid">
         <div className="summary-card metric-card">
-          <div className="card-icon">📈</div>
+          <div className="card-icon"><BarChart3 size={18} /></div>
           <div className="card-content">
             <h3>Total Events</h3>
             <p className="metric-value">{totalEvents.toLocaleString()}</p>
@@ -159,7 +165,7 @@ export default function AdminAnalyticsDashboard() {
           </div>
         </div>
         <div className="summary-card metric-card">
-          <div className="card-icon">📊</div>
+          <div className="card-icon"><BarChart3 size={18} /></div>
           <div className="card-content">
             <h3>Avg Events/User</h3>
             <p className="metric-value">{totalUsers > 0 ? (totalEvents / totalUsers).toFixed(2) : 0}</p>
@@ -167,6 +173,40 @@ export default function AdminAnalyticsDashboard() {
           </div>
         </div>
       </div>
+
+      <section className="admin-filters-section">
+        <h2>Revenue Analysis</h2>
+        {revenueTrends.length === 0 ? (
+          <p>No completed payment revenue has been recorded for the selected period.</p>
+        ) : (
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Period</th>
+                  <th>Host Revenue</th>
+                  <th>Platform Commission</th>
+                  <th>Transactions</th>
+                  <th>Students</th>
+                  <th>Hosts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {revenueTrends.map((trend) => (
+                  <tr key={String(trend._id || trend.period)}>
+                    <td>{trend.period || trend._id}</td>
+                    <td>${Number(trend.revenue ?? trend.totalRevenue ?? 0).toFixed(2)}</td>
+                    <td>${Number(trend.platformCommission ?? 0).toFixed(2)}</td>
+                    <td>{trend.transactions ?? trend.transactionCount ?? 0}</td>
+                    <td>{trend.uniqueStudents ?? 0}</td>
+                    <td>{trend.uniqueHosts ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {/* Filters Section */}
       <div className="admin-filters-section">
@@ -215,7 +255,7 @@ export default function AdminAnalyticsDashboard() {
             disabled={loading}
             className="btn-apply-filter"
           >
-            {loading ? '⏳ Loading...' : '🔍 Apply Filters'}
+            {loading ? '⏳ Applying filters...' : '🔍 Apply Filters'}
           </button>
         </div>
 
@@ -227,7 +267,7 @@ export default function AdminAnalyticsDashboard() {
               className="export-select"
             >
               <option value="csv">📄 Export as CSV</option>
-              <option value="json">📋 Export as JSON</option>
+              <option value="json">Export as JSON</option>
             </select>
             <button 
               onClick={handleExport} 
@@ -241,7 +281,7 @@ export default function AdminAnalyticsDashboard() {
       </div>
 
       {/* Error Display */}
-      {error && <div className="admin-error-message">{error}</div>}
+      {error && <div className="admin-error-message">We couldn’t load analytics. Please try again.</div>}
 
       {/* Data Table */}
       <div className="analytics-data-section">

@@ -320,7 +320,7 @@ export default function DiscountManager() {
     return (
       <div className="discount-manager">
         <div className="loading">
-          Loading discounts...
+          <span className="sr-only">Discounts are loading</span>
         </div>
       </div>
     );
@@ -366,7 +366,7 @@ export default function DiscountManager() {
                   onClick={handleViewOverallAnalytics}
                   className="btn btn-info"
                 >
-                  📊 Overall Analytics
+                  Overall Analytics
                 </button>
               )}
               {discounts.length < 3 && (
@@ -383,7 +383,7 @@ export default function DiscountManager() {
       {/* ERROR */}
       {error && (
         <div className="error-message">
-          {error}
+          We couldn’t load discount data. Please try again.
         </div>
       )}
 
@@ -643,7 +643,7 @@ export default function DiscountManager() {
                         }
                         className="btn btn-info"
                       >
-                        📊 Analytics
+                        Analytics
                       </button>
 
                       <button

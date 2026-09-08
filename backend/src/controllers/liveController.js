@@ -9,6 +9,9 @@ import { v4 as uuidv4 } from 'uuid';
 export const createLiveStream = async (req, res) => {
   try {
     const { classId, title, description, scheduledStartTime, duration } = req.body;
+    if (!classId || !title?.trim()) {
+      return res.status(400).json({ message: 'Class and stream title are required' });
+    }
 
     // Verify class exists and user is host
     const classDoc = await Class.findById(classId);
@@ -25,7 +28,7 @@ export const createLiveStream = async (req, res) => {
       hostId: req.user.userId,
       title,
       description,
-      scheduledStartTime,
+      scheduledStartTime: scheduledStartTime ? new Date(scheduledStartTime) : new Date(),
       duration,
       streamKey: uuidv4(),
       status: 'scheduled',

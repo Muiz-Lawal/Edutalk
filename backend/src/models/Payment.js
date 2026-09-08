@@ -15,6 +15,15 @@ const paymentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Subscription',
   },
+  // A checkout can contain several class line items. These fields make the
+  // gateway intent and the resulting ledger records idempotently traceable.
+  checkoutId: String,
+  checkoutItems: [{
+    _id: false,
+    classId: mongoose.Schema.Types.ObjectId,
+    days: Number,
+    amount: Number,
+  }],
   
   // Amount and currency
   amount: {
@@ -33,10 +42,30 @@ const paymentSchema = new mongoose.Schema({
   platformCommission: Number,
   stripeProcessingFee: Number,
   hostEarnings: Number,
+
+  // Payout ledger and holdback rules
+  payoutStatus: {
+    type: String,
+    enum: ['pending', 'hold', 'available', 'released'],
+    default: 'pending',
+  },
+  holdbackAmount: Number,
+  holdbackRate: {
+    type: Number,
+    default: 0.125,
+  },
+  holdbackDays: {
+    type: Number,
+    default: 30,
+  },
+  payoutAmount: Number,
+  payoutReleasedAt: Date,
   
   // Stripe details
   stripePaymentIntentId: String,
   stripeChargeId: String,
+  gatewayEventId: String,
+  webhookProcessedAt: Date,
   
   // Payment type
   paymentType: {
@@ -57,8 +86,15 @@ const paymentSchema = new mongoose.Schema({
   },
   
   // Refund information
+  refundStatus: {
+    type: String,
+    enum: ['none', 'pending', 'approved', 'processed', 'rejected'],
+    default: 'none',
+  },
   refundAmount: Number,
   refundReason: String,
+  refundInitiatedAt: Date,
+  refundProcessedAt: Date,
   refundedAt: Date,
   
   createdAt: {

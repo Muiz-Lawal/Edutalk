@@ -89,7 +89,7 @@ export default function AdminSecuritySettings() {
   };
 
   if (loading) {
-    return <div className="settings-loading">⏳ Loading security settings...</div>;
+    return <div className="async-skeleton async-skeleton--form" aria-hidden="true" />;
   }
 
   return (
@@ -108,7 +108,7 @@ export default function AdminSecuritySettings() {
           className={`tab-btn ${tab === 'overview' ? 'active' : ''}`}
           onClick={() => setTab('overview')}
         >
-          📋 Overview
+          Overview
         </button>
         <button
           className={`tab-btn ${tab === '2fa' ? 'active' : ''}`}
@@ -252,9 +252,7 @@ export default function AdminSecuritySettings() {
                         className="copy-btn-small"
                         onClick={() => copyToClipboard(code)}
                         title="Copy code"
-                      >
-                        📋
-                      </button>
+                      ></button>
                     </div>
                   ))}
                 </div>
@@ -299,7 +297,7 @@ export default function AdminSecuritySettings() {
                       </div>
                       <p>{login.browser} on {login.os}</p>
                       <p className="ip">🌐 {login.ipAddress}</p>
-                      <p className="timestamp">📅 {formatDate(login.loginTime)}</p>
+                      <p className="timestamp">{formatDate(login.loginTime)}</p>
                     </div>
                     {login.notes && (
                       <div className="login-notes">

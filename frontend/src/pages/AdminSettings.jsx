@@ -5,6 +5,7 @@ import EmailTemplateEditor from '../components/EmailTemplateEditor';
 import FeatureFlagToggle from '../components/FeatureFlagToggle';
 import AuditLogViewer from '../components/AuditLogViewer';
 import '../styles/admin-settings.css';
+import { Skeleton } from '../components/AsyncBoundary';
 
 export const AdminSettings = () => {
   const {
@@ -81,7 +82,7 @@ export const AdminSettings = () => {
 
       {error && (
         <div className="error-banner">
-          {error}
+          We couldn’t load settings. Please try again.
         </div>
       )}
 
@@ -96,7 +97,7 @@ export const AdminSettings = () => {
           className={`tab-button ${activeTab === 'commission' ? 'active' : ''}`}
           onClick={() => setActiveTab('commission')}
         >
-          💰 Commission Rates
+          Commission Rates
         </button>
         <button
           className={`tab-button ${activeTab === 'email' ? 'active' : ''}`}
@@ -114,12 +115,12 @@ export const AdminSettings = () => {
           className={`tab-button ${activeTab === 'audit' ? 'active' : ''}`}
           onClick={() => setActiveTab('audit')}
         >
-          📋 Audit Logs
+          Audit Logs
         </button>
       </div>
 
       <div className="settings-content">
-        {loading && <div className="loading">Loading settings...</div>}
+        {loading && <Skeleton variant="form" />}
 
         {!loading && activeTab === 'commission' && commissionSettings && (
           <CommissionRateCard

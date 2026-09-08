@@ -37,7 +37,7 @@ export default function ViewerTimeline({ data }) {
             👥 Viewers: {payload[0].payload.viewers}
           </p>
           <p className="tooltip-bitrate">
-            📊 Bitrate: {Math.round(payload[0].payload.bitrate)} kbps
+            Bitrate: {Math.round(payload[0].payload.bitrate)} kbps
           </p>
         </div>
       );

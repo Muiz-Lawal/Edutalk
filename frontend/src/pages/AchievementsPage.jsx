@@ -3,6 +3,12 @@ import api from '../utils/api';
 import AchievementBadge from '../components/AchievementBadge';
 import '../styles/AchievementsPage.css';
 import { useAuth } from '../hooks/useAuth';
+import { Award } from 'lucide-react';
+import Card from '../components/ui/Card';
+import EmptyState from '../components/ui/EmptyState';
+import { formatDate } from '../lib/date';
+import StatCard from '../components/ui/StatCard';
+import { Skeleton } from '../components/AsyncBoundary';
 
 const AchievementsPage = () => {
   const { user } = useAuth();
@@ -28,11 +34,15 @@ const AchievementsPage = () => {
         setGrouped(myResponse.data.data.grouped || {});
         setBadges(badgesResponse.data.data || []);
 
-        // Fetch points balance for current user
+        // Fetch points balance for current user (skip for admin accounts)
         try {
           const uid = user?.id || user?.userId || '';
-          const balanceRes = await api.get(`/points/balance/${uid}`);
-          setPointsBalance(balanceRes.data?.data?.balance ?? 0);
+          if (!uid || user?.isAdmin) {
+            setPointsBalance(0);
+          } else {
+            const balanceRes = await api.get(`/points/balance/${uid}`);
+            setPointsBalance(balanceRes.data?.data?.balance ?? 0);
+          }
         } catch (balanceErr) {
           console.warn('Failed to fetch points balance:', balanceErr.message || balanceErr);
         }
@@ -54,7 +64,7 @@ const AchievementsPage = () => {
   if (loading) {
     return (
       <div className="achievements-page">
-        <div className="achievements-page__loading">Loading your achievements...</div>
+        <Skeleton variant="block" />
       </div>
     );
   }
@@ -63,7 +73,7 @@ const AchievementsPage = () => {
     return (
       <div className="achievements-page">
         <div className="achievements-page__error">
-          <p>{error}</p>
+          <p>We couldn’t load your achievements. Please try again.</p>
         </div>
       </div>
     );
@@ -71,28 +81,16 @@ const AchievementsPage = () => {
 
   return (
     <div className="achievements-page">
-      <div className="achievements-page__header">
-        <h1>My Achievements</h1>
-        <p>Track your badges, milestones, and leaderboard progress across classes.</p>
+      <div className="achievements-page__header page-header">
+        <div><p className="eyebrow">Your milestones</p><h1>My Achievements</h1>
+        <p>Track your badges, milestones, and leaderboard progress across classes.</p></div>
       </div>
 
-      <div className="achievements-page__summary">
-        <div className="summary-card">
-          <span className="summary-card__value">{totalEarned}</span>
-          <span className="summary-card__label">Achievements Earned</span>
-        </div>
-        <div className="summary-card">
-          <span className="summary-card__value">{unlockedTypes}</span>
-          <span className="summary-card__label">Badge Types Unlocked</span>
-        </div>
-        <div className="summary-card">
-          <span className="summary-card__value">{availableBadges}</span>
-          <span className="summary-card__label">Available Badges</span>
-        </div>
-        <div className="summary-card">
-          <span className="summary-card__value">{pointsBalance}</span>
-          <span className="summary-card__label">Total Points</span>
-        </div>
+      <div className="achievements-page__summary dashboard-stats">
+        <StatCard label="Achievements earned" value={totalEarned} />
+        <StatCard label="Badge types unlocked" value={unlockedTypes} />
+        <StatCard label="Available badges" value={availableBadges} />
+        <StatCard label="Total points" value={pointsBalance} />
       </div>
 
       <section className="achievements-page__section">
@@ -102,9 +100,7 @@ const AchievementsPage = () => {
         </div>
 
         {achievements.length === 0 ? (
-          <div className="achievements-page__empty">
-            <p>You haven’t unlocked any achievements yet. Keep learning to earn badges!</p>
-          </div>
+          <Card className="achievements-page__empty"><EmptyState icon={Award} title="Your first badge is waiting" description="Keep learning to unlock milestones and celebrate your progress." /></Card>
         ) : (
           <div className="achievements-page__badges-grid">
             {achievements.map((achievement, index) => (
@@ -114,7 +110,7 @@ const AchievementsPage = () => {
                   <h3>{achievement.name}</h3>
                   <p>{achievement.description}</p>
                   {achievement.awardedAt && (
-                    <span>Unlocked on {new Date(achievement.awardedAt).toLocaleDateString()}</span>
+                    <span>Unlocked on {formatDate(achievement.awardedAt)}</span>
                   )}
                 </div>
               </div>

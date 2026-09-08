@@ -7,8 +7,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "integration-test": "node src/integration_test.js"
+    "test": "vitest run --environment node",
+    "integration-test": "node src/integration_test.js",
+    "check-permissions": "node src/check_permissions.mjs",
+    "ci:permissions": "npm run check-permissions"
   },
   "keywords": [
     "education",
@@ -22,6 +24,8 @@
     "axios": "^1.5.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "date-fns": "^4.4.0",
+    "date-fns-tz": "^3.2.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^8.5.2",
@@ -39,6 +43,7 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "vitest": "^2.1.8"
   }
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import '../styles/AnalyticsOverview.css';
 
 export default function AnalyticsOverview({ data }) {
-  if (!data) return <div className="overview-loading">Loading metrics...</div>;
+  if (!data) return <div className="async-skeleton async-skeleton--block" aria-hidden="true" />;
 
   const kpis = [
     {
@@ -14,7 +14,7 @@ export default function AnalyticsOverview({ data }) {
     {
       title: 'Peak Viewers',
       value: data.peakViewers || 0,
-      icon: '📈',
+      icon: 'trend',
       color: '#2ecc71',
     },
     {

@@ -109,7 +109,7 @@ export default function ScheduledStreamsPage() {
   return (
     <div className="scheduled-streams-page">
       <div className="page-header">
-        <h1>📅 Scheduled Streams</h1>
+        <h1>Scheduled Streams</h1>
         <p>Create and manage your scheduled classes</p>
       </div>
 
@@ -144,7 +144,7 @@ export default function ScheduledStreamsPage() {
 
               {/* Description */}
               <div className="form-group">
-                <label htmlFor="description">📋 Description</label>
+                <label htmlFor="description">Description</label>
                 <textarea
                   id="description"
                   name="description"
@@ -223,7 +223,7 @@ export default function ScheduledStreamsPage() {
 
               {/* Reminders */}
               <div className="form-group">
-                <label>🔔 Send Reminders</label>
+                <label>Send Reminders</label>
                 <div className="reminders-group">
                   {['24h', '1h', '30m'].map(time => (
                     <label key={time} className="reminder-checkbox">

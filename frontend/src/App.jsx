@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -8,27 +7,24 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 // Loading component for lazy-loaded routes
 const LoadingSpinner = () => (
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '60vh',
-    fontSize: '18px',
-    color: '#666'
-  }}>
-    <div>Loading...</div>
-  </div>
+  <div className="route-loading-skeleton" aria-label="Loading page" />
 );
 
 // Lazy load all page components for code splitting
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
 const SignupPage = React.lazy(() => import('./pages/SignupPage'));
+const VerifyEmailPage = React.lazy(() => import('./pages/VerifyEmailPage'));
+const LegalPage = React.lazy(() => import('./pages/LegalPage'));
+const HostOnboardingPage = React.lazy(() => import('./pages/HostOnboardingPage'));
 const BrowseClassesPage = React.lazy(() => import('./pages/BrowseClassesPage'));
 const ClassDetailPage = React.lazy(() => import('./pages/ClassDetailPage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
+const ClassCreationPage = React.lazy(() => import('./pages/ClassCreationPage'));
+const ClassSettingsPage = React.lazy(() => import('./pages/ClassSettingsPage'));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const HostDashboardPage = React.lazy(() => import('./pages/HostDashboardPage'));
-const CreateClassPage = React.lazy(() => import('./pages/CreateClassPage'));
 const RecordingsPage = React.lazy(() => import('./pages/RecordingsPage'));
 const NotificationsPage = React.lazy(() => import('./pages/NotificationsPage'));
 const BundleBrowser = React.lazy(() => import('./pages/BundleBrowser'));
@@ -36,6 +32,10 @@ const BundleCreation = React.lazy(() => import('./pages/BundleCreation'));
 const DynamicPricingPage = React.lazy(() => import('./pages/DynamicPricingPage'));
 const DiscountManager = React.lazy(() => import('./pages/DiscountManager'));
 const EnrollmentPage = React.lazy(() => import('./pages/EnrollmentPage'));
+const PaymentHistoryPage = React.lazy(() => import('./pages/PaymentHistoryPage'));
+const CartPage = React.lazy(() => import('./pages/CartPage'));
+const BatchCheckoutPage = React.lazy(() => import('./pages/BatchCheckoutPage'));
+const CheckoutConfirmationPage = React.lazy(() => import('./pages/CheckoutConfirmationPage'));
 const ModerationPage = React.lazy(() => import('./pages/ModerationPage'));
 const UserAppealsPage = React.lazy(() => import('./pages/UserAppealsPage'));
 const LiveStreamHost = React.lazy(() => import('./pages/LiveStreamHost'));
@@ -60,14 +60,15 @@ const AdminAnalyticsDashboard = React.lazy(() => import('./pages/AdminAnalyticsD
 // Admin Pages
 const AdminLoginPage = React.lazy(() => import('./pages/AdminLoginPage'));
 const AdminManagement = React.lazy(() => import('./pages/AdminManagement'));
-const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
-const AdminUsers = React.lazy(() => import('./pages/AdminUsers').then(module => ({ default: module.AdminUsers })));
+const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
+const AdminSupport = React.lazy(() => import('./pages/AdminSupport'));
+const AdminUsers = React.lazy(() => import('./pages/AdminUsers'));
 const AdminModeration = React.lazy(() => import('./pages/AdminModeration'));
-const AdminPayments = React.lazy(() => import('./pages/AdminPayments').then(module => ({ default: module.AdminPayments })));
+const AdminPayments = React.lazy(() => import('./pages/AdminPayments'));
 const AdminEmailJobs = React.lazy(() => import('./pages/AdminEmailJobs'));
-const AdminHosts = React.lazy(() => import('./pages/AdminHosts').then(module => ({ default: module.AdminHosts })));
-const AdminAnalytics = React.lazy(() => import('./pages/AdminAnalytics').then(module => ({ default: module.AdminAnalytics })));
-const AdminLogs = React.lazy(() => import('./pages/AdminLogs').then(module => ({ default: module.AdminLogs })));
+const AdminHosts = React.lazy(() => import('./pages/AdminHosts'));
+const AdminAnalytics = React.lazy(() => import('./pages/AdminAnalytics'));
+const AdminLogs = React.lazy(() => import('./pages/AdminLogs'));
 const AdminSettings = React.lazy(() => import('./pages/AdminSettings'));
 
 // Lazy load heavy components
@@ -90,6 +91,8 @@ import PushPermissionRequest from './components/PushPermissionRequest';
 // Styles
 import './styles/global.css';
 import './styles/mobile-utilities.css';
+import './styles/ThemeSurface.css';
+import './styles/AsyncBoundary.css';
 
 function App() {
   return (
@@ -104,6 +107,11 @@ function App() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
+                <Route path="/register" element={<SignupPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/terms" element={<LegalPage />} />
+                <Route path="/privacy" element={<LegalPage />} />
+                <Route path="/onboarding/host" element={<ProtectedRoute requireHost><HostOnboardingPage /></ProtectedRoute>} />
                 <Route path="/browse" element={<BrowseClassesPage />} />
 
                 {/* Bundle Routes */}
@@ -132,6 +140,25 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+             path="/class/:classId/payment"
+             element={
+               <ProtectedRoute>
+                 <EnrollmentPage />
+               </ProtectedRoute>
+             }
+            />
+            <Route
+             path="/payments"
+             element={
+               <ProtectedRoute>
+                 <PaymentHistoryPage />
+               </ProtectedRoute>
+             }
+            />
+            <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
+            <Route path="/checkout/batch" element={<ProtectedRoute><BatchCheckoutPage /></ProtectedRoute>} />
+            <Route path="/checkout/confirmation" element={<ProtectedRoute><CheckoutConfirmationPage /></ProtectedRoute>} />
             <Route path="/class/:classId" element={<ClassDetailPage />} />
             <Route
               path="/dashboard"
@@ -140,6 +167,14 @@ function App() {
                   <DashboardPage />
                 </ProtectedRoute>
               }
+            />
+            <Route
+              path="/dashboard/settings"
+              element={<ProtectedRoute><SettingsPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/dashboard/profile"
+              element={<ProtectedRoute><ProfilePage /></ProtectedRoute>}
             />
             <Route
               path="/host-dashboard"
@@ -151,24 +186,20 @@ function App() {
             />
             <Route
               path="/create-class"
-              element={
-                <ProtectedRoute requireHost>
-                  <CreateClassPage />
-                </ProtectedRoute>
-              }
+              element={<ProtectedRoute requireHost><ClassCreationPage /></ProtectedRoute>}
             />
             <Route
-              path="/host-dashboard/create-class"
-              element={
-                <ProtectedRoute requireHost>
-                  <CreateClassPage />
-                </ProtectedRoute>
-              }
+              path="/host/classes/new"
+              element={<ProtectedRoute requireHost><ClassCreationPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/host/classes/:classId"
+              element={<ProtectedRoute requireHost><ClassSettingsPage /></ProtectedRoute>}
             />
             <Route
               path="/recordings"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <RecordingsPage />
                 </ProtectedRoute>
               }
@@ -192,7 +223,7 @@ function App() {
             <Route
               path="/moderation"
               element={
-                <ProtectedRoute requireHost>
+                <ProtectedRoute requireAdmin>
                   <ModerationPage />
                 </ProtectedRoute>
               }
@@ -250,7 +281,7 @@ function App() {
             <Route
               path="/student-progress"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <StudentProgressPage />
                 </ProtectedRoute>
               }
@@ -258,7 +289,7 @@ function App() {
             <Route
               path="/achievements"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <AchievementsPage />
                 </ProtectedRoute>
               }
@@ -266,7 +297,7 @@ function App() {
             <Route
               path="/points"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <PointsHistoryPage />
                 </ProtectedRoute>
               }
@@ -274,7 +305,7 @@ function App() {
             <Route
               path="/class/:classId/progress"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <ClassProgressPage />
                 </ProtectedRoute>
               }
@@ -290,7 +321,7 @@ function App() {
             <Route
               path="/certificates"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <CertificateGalleryPage />
                 </ProtectedRoute>
               }
@@ -298,7 +329,7 @@ function App() {
             <Route
               path="/class/:classId/leaderboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStudent>
                   <LeaderboardPage />
                 </ProtectedRoute>
               }
@@ -316,18 +347,27 @@ function App() {
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route
               path="/admin/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/support"
+              element={
+                <ProtectedRoute requireAdmin requirePermission="view_support_dashboard">
+                  <AdminSupport />
                 </ProtectedRoute>
               }
             />
             <Route
               path="/admin/users"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission={['manage_users', 'view_user_profiles_readonly']}>
                   <AdminUsers />
                 </ProtectedRoute>
               }
@@ -335,7 +375,7 @@ function App() {
             <Route
               path="/admin/moderation"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission="moderate_content">
                   <AdminModeration />
                 </ProtectedRoute>
               }
@@ -343,7 +383,7 @@ function App() {
             <Route
               path="/admin/email-jobs"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission="manage_admins">
                   <AdminEmailJobs />
                 </ProtectedRoute>
               }
@@ -351,7 +391,7 @@ function App() {
             <Route
               path="/admin/payments"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission="view_payments">
                   <AdminPayments />
                 </ProtectedRoute>
               }
@@ -359,7 +399,7 @@ function App() {
             <Route
               path="/admin/hosts"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <AdminHosts />
                 </ProtectedRoute>
               }
@@ -367,7 +407,7 @@ function App() {
             <Route
               path="/admin/analytics"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission="view_audit_logs">
                   <AdminAnalyticsDashboard />
                 </ProtectedRoute>
               }
@@ -375,7 +415,7 @@ function App() {
             <Route
               path="/admin/logs"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission="view_audit_logs">
                   <AdminLogs />
                 </ProtectedRoute>
               }
@@ -383,7 +423,7 @@ function App() {
             <Route
               path="/admin/settings"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requirePermission="manage_admins">
                   <AdminSettings />
                 </ProtectedRoute>
               }
@@ -391,7 +431,7 @@ function App() {
             <Route
               path="/admin/management"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin requireSuperAdmin>
                   <AdminManagement />
                 </ProtectedRoute>
               }
@@ -401,7 +441,7 @@ function App() {
             <Route
               path="/admin/security/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <SecurityDashboard />
                 </ProtectedRoute>
               }
@@ -409,7 +449,7 @@ function App() {
             <Route
               path="/admin/security/settings"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <AdminSecuritySettings />
                 </ProtectedRoute>
               }
@@ -417,7 +457,7 @@ function App() {
             <Route
               path="/admin/security/2fa-setup"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <TwoFASetup />
                 </ProtectedRoute>
               }
@@ -425,7 +465,7 @@ function App() {
             <Route
               path="/admin/security/change-password"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <ChangePassword />
                 </ProtectedRoute>
               }

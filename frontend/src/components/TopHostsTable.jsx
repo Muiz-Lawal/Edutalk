@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
+import { Skeleton } from './AsyncBoundary';
 
 const TopHostsTable = () => {
   const [hosts, setHosts] = useState([]);
@@ -26,8 +27,8 @@ const TopHostsTable = () => {
     fetchData();
   }, [fetchTopHosts]);
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '20px' }}>Loading...</div>;
-  if (error) return <div style={{ color: 'red', padding: '20px' }}>Error: {error}</div>;
+  if (loading) return <Skeleton variant="list" />;
+  if (error) return <div className="async-state async-state--error" role="alert"><strong>We couldn’t load host performance</strong><p>Please try again.</p></div>;
 
   return (
     <div className="table-card">
@@ -58,7 +59,7 @@ const TopHostsTable = () => {
                 <td>{host.classCount}</td>
                 <td>{host.studentCount || 0}</td>
                 <td>${(host.revenue || 0).toFixed(2)}</td>
-                <td>{host.rating ? host.rating.toFixed(1) : 'N/A'} ⭐</td>
+                <td>{host.rating ? host.rating.toFixed(1) : '—'}</td>
               </tr>
             ))
           )}

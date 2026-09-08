@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import useEventLogger from '../hooks/useEventLogger';
 import ProgressCard from '../components/ProgressCard';
 import ProgressTimeline from '../components/ProgressTimeline';
 import api from '../utils/api';
 import '../styles/StudentProgressPage.css';
+import { Skeleton } from '../components/AsyncBoundary';
+import { formatDate } from '../lib/date';
 
 const StudentProgressPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { logEvent } = useEventLogger();
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,11 +32,8 @@ const StudentProgressPage = () => {
       }
     } catch (err) {
       console.error('Progress fetch error:', err);
-      setError(
-        err.response?.data?.message ||
-        err.message ||
-        'An unexpected error occurred. Please try again.'
-      );
+      console.error('Progress fetch error:', err);
+      setError(true);
     } finally {
       setLoading(false);
       setRetrying(false);
@@ -52,14 +53,7 @@ const StudentProgressPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="student-progress-page">
-        <div className="student-progress-page__loading">
-          <div className="student-progress-page__spinner"></div>
-          <p>Loading your progress...</p>
-        </div>
-      </div>
-    );
+    return <div className="student-progress-page"><Skeleton variant="block" /></div>;
   }
 
   return (
@@ -73,7 +67,7 @@ const StudentProgressPage = () => {
         <div className="student-progress-page__error">
           <div className="student-progress-page__error-icon">⚠️</div>
           <div className="student-progress-page__error-content">
-            <p className="student-progress-page__error-message">{error}</p>
+            <p className="student-progress-page__error-message">We couldn’t load your progress. Please try again.</p>
             <button 
               className="student-progress-page__error-button"
               onClick={handleRetry}
@@ -92,6 +86,7 @@ const StudentProgressPage = () => {
             {enrollments.length === 0 ? (
               <div className="student-progress-page__empty">
                 <p>No enrolled courses yet</p>
+                <button type="button" className="btn btn-primary" onClick={() => navigate('/browse')}>Browse classes</button>
               </div>
             ) : (
               <div className="student-progress-page__cards-grid">
@@ -145,7 +140,7 @@ const StudentProgressPage = () => {
                   <div className="student-progress-page__stat-label">Estimated Completion</div>
                   <div className="student-progress-page__stat-value">
                     {selectedEnrollment.estimatedCompletionDate
-                      ? new Date(selectedEnrollment.estimatedCompletionDate).toLocaleDateString()
+                      ? formatDate(selectedEnrollment.estimatedCompletionDate)
                       : 'TBD'}
                   </div>
                 </div>
@@ -160,7 +155,7 @@ const StudentProgressPage = () => {
 
               <div className="student-progress-page__actions">
                 <button className="student-progress-page__button student-progress-page__button--primary">
-                  📊 View Detailed Analytics
+                  View Detailed Analytics
                 </button>
                 <button className="student-progress-page__button student-progress-page__button--secondary">
                   💬 Contact Instructor

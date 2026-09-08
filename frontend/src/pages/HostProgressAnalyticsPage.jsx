@@ -5,6 +5,7 @@ import api from '../utils/api';
 import ProgressChart from '../components/ProgressChart';
 import AtRiskStudentsList from '../components/AtRiskStudentsList';
 import '../styles/HostProgressAnalyticsPage.css';
+import { Skeleton } from '../components/AsyncBoundary';
 
 const HostProgressAnalyticsPage = () => {
   const { classId } = useParams();
@@ -62,7 +63,8 @@ const HostProgressAnalyticsPage = () => {
         }));
         setChartData(dataPoints);
       } catch (err) {
-        setError(err.response?.data?.message || err.message || 'Failed to fetch analytics');
+        console.error('Failed to fetch host analytics:', err);
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -74,11 +76,7 @@ const HostProgressAnalyticsPage = () => {
   }, [classId, filterPeriod]);
 
   if (loading) {
-    return (
-      <div className="host-progress-analytics-page">
-        <div className="host-progress-analytics-page__loading">Loading analytics...</div>
-      </div>
-    );
+    return <div className="host-progress-analytics-page"><Skeleton variant="block" /></div>;
   }
 
   return (
@@ -92,7 +90,7 @@ const HostProgressAnalyticsPage = () => {
 
       {error && (
         <div className="host-progress-analytics-page__error">
-          <p>Error: {error}</p>
+          <p>We couldn’t load class analytics. Please try again.</p>
         </div>
       )}
 
@@ -126,7 +124,7 @@ const HostProgressAnalyticsPage = () => {
             {analytics?.avgCompletionRate != null ? analytics.avgCompletionRate.toFixed(1) : '0'}%
           </div>
           <div className="host-progress-analytics-page__kpi-change">
-            {analytics?.completionTrend != null ? (analytics.completionTrend > 0 ? '📈' : '📉') : '📉'} {Math.abs(analytics?.completionTrend || 0).toFixed(1)}%
+            {analytics?.completionTrend != null ? (analytics.completionTrend > 0 ? '+' : '-') : '-'} {Math.abs(analytics?.completionTrend || 0).toFixed(1)}%
           </div>
         </div>
 
@@ -249,7 +247,7 @@ const HostProgressAnalyticsPage = () => {
           className="host-progress-analytics-page__button host-progress-analytics-page__button--primary"
           onClick={() => alert('PDF export is not available yet.')}
         >
-          📊 Export Report (PDF)
+          Export Report (PDF)
         </button>
         <button
           className="host-progress-analytics-page__button host-progress-analytics-page__button--secondary"

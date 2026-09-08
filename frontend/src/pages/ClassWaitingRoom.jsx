@@ -69,7 +69,7 @@ export default function ClassWaitingRoom() {
       <div className="class-waiting-room-page">
         <div className="loading-container">
           <div className="spinner"></div>
-          <p>Loading stream...</p>
+          <div className="async-skeleton async-skeleton--block" aria-hidden="true" />
         </div>
       </div>
     );
@@ -81,7 +81,7 @@ export default function ClassWaitingRoom() {
         <div className="error-container">
           <div className="error-icon">❌</div>
           <h2>Unable to Load Stream</h2>
-          <p>{error}</p>
+          <p>We couldn’t load the waiting room. Please try again.</p>
           <div className="error-actions">
             <button onClick={() => window.location.reload()} className="retry-btn">
               🔄 Retry

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import PointsLedger from '../models/PointsLedger.js';
 import User from '../models/User.js';
 
@@ -5,8 +6,19 @@ export const getPointsBalance = async (req, res) => {
   try {
     const userId = req.params.userId || req.user.id;
 
+    // Basic validation: refuse if requester not allowed
     if (userId !== req.user.id && !req.user.isAdmin) {
       return res.status(403).json({ message: 'Unauthorized access' });
+    }
+
+    // Defensive: if no userId or not a valid ObjectId, return zero balance instead of throwing
+    if (!userId) {
+      return res.json({ success: true, data: { userId: null, balance: 0 } });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      console.warn('getPointsBalance called with invalid userId:', userId);
+      return res.json({ success: true, data: { userId, balance: 0 } });
     }
 
     const balance = await PointsLedger.getBalance(userId);

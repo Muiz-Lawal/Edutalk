@@ -229,6 +229,19 @@
     gap: 1.5rem;
   }
 
+  /* Keep browse surfaces aligned with the active EduTalk theme. */
+  .browse-page { background: var(--app-bg); color: var(--app-text); }
+  .browse-header h1, .recommendation-header h2, .class-info h3 { color: var(--heading); }
+  .browse-header p, .host-name, .description, .loading, .no-results { color: var(--app-muted); }
+  .recommendation-section, .class-card { background: var(--app-surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  .search-form input, .category-btn { background: var(--app-surface); color: var(--app-text); border-color: var(--border); }
+  .search-form input:focus, .category-btn:hover { border-color: var(--primary); }
+  .search-form button, .category-btn.active { background: var(--primary); border-color: var(--primary); }
+  .class-thumbnail { background: var(--app-surface-muted); }
+  .class-info h3 { color: var(--heading); }
+  .host-name, .description { color: var(--app-muted); }
+  .class-footer { border-top-color: var(--border); color: var(--muted); }
+
   .browse-header h1 {
     font-size: 1.8rem;
   }

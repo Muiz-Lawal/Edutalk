@@ -87,9 +87,26 @@ export const getCertificate = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized access' });
     }
 
+    // If requester is finance_admin, restrict view to non-PII fields
+    const isFinance = req.user?.adminRole === 'finance_admin';
+    if (isFinance && certificate.studentId._id.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied for finance role' });
+    }
+
+    let responseData = certificate;
+    if (isFinance) {
+      responseData = {
+        id: certificate._id,
+        certificateNumber: certificate.certificateNumber,
+        courseTitle: certificate.certificateData?.courseTitle,
+        completionDate: certificate.completionDate,
+        issuedDate: certificate.issuedDate
+      };
+    }
+
     res.json({
       success: true,
-      data: certificate
+      data: responseData
     });
   } catch (error) {
     console.error('Error fetching certificate:', error);
@@ -111,6 +128,12 @@ export const downloadCertificate = async (req, res) => {
     // Verify authorization
     if (certificate.studentId.toString() !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Unauthorized access' });
+    }
+
+    // If requester is finance_admin and not the student owner, deny download
+    const isFinance = req.user?.adminRole === 'finance_admin';
+    if (isFinance && certificate.studentId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied for finance role' });
     }
 
     if (!certificate.pdfUrl) {
@@ -212,19 +235,29 @@ export const listCertificates = async (req, res) => {
     }).populate('classId', 'title')
       .sort({ issuedDate: -1 });
 
+    const isFinance = req.user?.adminRole === 'finance_admin';
+
     res.json({
       success: true,
-      data: certificates.map(cert => ({
-        certificateId: cert._id,
-        certificateNumber: cert.certificateNumber,
-        courseTitle: cert.certificateData.courseTitle,
-        issuedDate: cert.issuedDate,
-        completionDate: cert.completionDate,
-        finalScore: cert.certificateData.finalScore,
-        downloadCount: cert.downloadCount,
-        isDownloadable: cert.isDownloadable,
-        verificationCode: cert.verificationCode
-      }))
+      data: certificates.map(cert => {
+        const base = {
+          certificateId: cert._id,
+          certificateNumber: cert.certificateNumber,
+          courseTitle: cert.certificateData.courseTitle,
+          issuedDate: cert.issuedDate,
+          completionDate: cert.completionDate,
+          finalScore: cert.certificateData.finalScore,
+          downloadCount: cert.downloadCount,
+          isDownloadable: cert.isDownloadable,
+          verificationCode: cert.verificationCode
+        };
+        if (isFinance && userId !== req.user.id) {
+          // Strip any PII
+          delete base.verificationCode;
+          delete base.isDownloadable;
+        }
+        return base;
+      })
     });
   } catch (error) {
     console.error('Error listing certificates:', error);
@@ -341,18 +374,35 @@ export const exportCertificates = async (req, res) => {
       .populate('studentId', 'firstName lastName email')
       .populate('classId', 'title');
 
+    const isFinance = req.user?.adminRole === 'finance_admin';
+
     if (format === 'csv') {
-      const headers = ['Student Name', 'Email', 'Certificate Number', 'Course', 'Issued Date', 'Final Score', 'Downloads', 'Shares'];
-      const rows = certificates.map(c => [
-        `${c.studentId.firstName} ${c.studentId.lastName}`,
-        c.studentId.email,
-        c.certificateNumber,
-        c.classId.title,
-        c.issuedDate.toLocaleDateString(),
-        c.certificateData.finalScore,
-        c.downloadCount,
-        c.sharedCount
-      ]);
+      // Decide headers and rows based on requester role
+      let headers;
+      let rows;
+      if (isFinance) {
+        headers = ['Certificate Number', 'Course', 'Issued Date', 'Final Score', 'Downloads', 'Shares'];
+        rows = certificates.map(c => [
+          c.certificateNumber,
+          c.classId.title,
+          c.issuedDate.toLocaleDateString(),
+          c.certificateData.finalScore,
+          c.downloadCount,
+          c.sharedCount
+        ]);
+      } else {
+        headers = ['Student Name', 'Email', 'Certificate Number', 'Course', 'Issued Date', 'Final Score', 'Downloads', 'Shares'];
+        rows = certificates.map(c => [
+          `${c.studentId.firstName} ${c.studentId.lastName}`,
+          c.studentId.email,
+          c.certificateNumber,
+          c.classId.title,
+          c.issuedDate.toLocaleDateString(),
+          c.certificateData.finalScore,
+          c.downloadCount,
+          c.sharedCount
+        ]);
+      }
 
       const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
       
@@ -360,9 +410,23 @@ export const exportCertificates = async (req, res) => {
       res.setHeader('Content-Disposition', 'attachment; filename="certificates-export.csv"');
       res.send(csv);
     } else {
+      // JSON export: mask student info for finance_admin
+      let payload = certificates;
+      if (isFinance) {
+        payload = certificates.map(c => ({
+          id: c._id,
+          certificateNumber: c.certificateNumber,
+          courseTitle: c.classId.title,
+          issuedDate: c.issuedDate,
+          finalScore: c.certificateData.finalScore,
+          downloads: c.downloadCount,
+          shares: c.sharedCount,
+        }));
+      }
+
       res.json({
         success: true,
-        data: certificates,
+        data: payload,
         exportDate: new Date()
       });
     }

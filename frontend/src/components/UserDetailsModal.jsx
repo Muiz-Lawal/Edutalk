@@ -111,7 +111,7 @@ export const UserDetailsModal = ({ user, isOpen, onClose, onAction }) => {
           {activeTab === 'activity' && (
             <div className="activity-section">
               {loading ? (
-                <p style={{ textAlign: 'center', padding: '20px' }}>Loading activity...</p>
+                <div className="async-skeleton async-skeleton--list" aria-hidden="true" />
               ) : activity ? (
                 <>
                   {/* Logins */}
@@ -190,7 +190,7 @@ export const UserDetailsModal = ({ user, isOpen, onClose, onAction }) => {
           {activeTab === 'payments' && (
             <div className="payments-section">
               {loading ? (
-                <p style={{ textAlign: 'center', padding: '20px' }}>Loading payments...</p>
+                <div className="async-skeleton async-skeleton--list" aria-hidden="true" />
               ) : activity && activity.payments && activity.payments.length > 0 ? (
                 <div className="payments-list">
                   {activity.payments.map((payment, idx) => (

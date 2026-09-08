@@ -4,6 +4,7 @@ import HostDetailsModal from '../components/HostDetailsModal';
 import HostApprovalModal from '../components/HostApprovalModal';
 import HostSuspensionModal from '../components/HostSuspensionModal';
 import '../styles/admin-hosts.css';
+import { Skeleton } from '../components/AsyncBoundary';
 
 const AdminHosts = () => {
   const {
@@ -182,7 +183,7 @@ const AdminHosts = () => {
                 <td>{host.studentCount || 0}</td>
                 <td>
                   <span style={{ fontWeight: '600' }}>
-                    ⭐ {(host.rating || 0).toFixed(1)}
+                    {(host.rating || 0).toFixed(1)}
                   </span>
                 </td>
                 {showActions && (
@@ -531,7 +532,7 @@ const AdminHosts = () => {
         <p>Manage host approvals, performance, and activity</p>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-message">We couldn’t load host data. Please try again.</div>}
 
       {/* Tab Navigation */}
       <div className="tab-navigation">
@@ -563,7 +564,7 @@ const AdminHosts = () => {
 
       {/* Tab Content */}
       <div className="tab-content">
-        {loading && <div className="loading-spinner">Loading...</div>}
+        {loading && <Skeleton variant="list" />}
 
         {/* All Hosts Tab */}
         {!loading && activeTab === 'all' && (
@@ -701,4 +702,4 @@ const AdminHosts = () => {
   );
 };
 
-export { AdminHosts };
+export default AdminHosts;

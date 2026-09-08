@@ -46,7 +46,7 @@ router.post('/password/change', async (req, res, next) => {
     }
 
     const jwt = await import('jsonwebtoken');
-    const decoded = jwt.default.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.default.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key_here');
     const user = await User.findById(decoded.userId);
 
     if (!user || !user.isAdmin) {

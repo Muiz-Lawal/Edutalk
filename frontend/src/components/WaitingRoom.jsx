@@ -93,7 +93,7 @@ export default function WaitingRoom({ streamId, classId, scheduledTime, hostInfo
       <div className="waiting-room">
         <div className="loading-container">
           <div className="spinner"></div>
-          <p>Loading stream information...</p>
+          <div className="async-skeleton async-skeleton--block" aria-hidden="true" />
         </div>
       </div>
     );

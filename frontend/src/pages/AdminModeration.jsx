@@ -426,7 +426,7 @@ const AdminModeration = () => {
       `}</style>
 
       <div className="moderation-header">
-        <h1>📋 Content Moderation Dashboard</h1>
+        <h1>Content Moderation Dashboard</h1>
         <p>Review and manage flagged classes and content</p>
       </div>
 

@@ -1,80 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { ArrowRight, Info, Sparkles } from 'lucide-react';
 import api from '../utils/api';
+import AsyncBoundary from './AsyncBoundary';
+import Badge from './ui/Badge';
 import '../styles/Dashboard.css';
 
 export default function RecommendationMetrics({ classId }) {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(false);
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError(false);
+      const { data } = await api.get('/analytics/recommendations', { params: { classId } });
+      setMetrics(data);
+    } catch (requestError) {
+      console.error('Error fetching recommendation metrics', requestError);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { if (classId) load(); }, [classId]);
 
-  useEffect(() => {
-    if (!classId) return;
-    setLoading(true);
-    setError(null);
-
-    api.get('/analytics/recommendations', {
-      params: { classId },
-    })
-      .then((response) => {
-        setMetrics(response.data);
-      })
-      .catch((err) => {
-        console.error('Error fetching recommendation metrics:', err);
-        setError('Unable to load recommendation metrics.');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [classId]);
-
-  if (loading) {
-    return <div className="loading">Loading recommendation metrics...</div>;
-  }
-
-  if (error) {
-    return <div className="error">{error}</div>;
-  }
-
-  if (!metrics) {
-    return <div className="error">No recommendation metrics available.</div>;
-  }
-
-  return (
-    <div className="dashboard-card recommendation-metrics-card">
-      <h2>Recommendation Performance</h2>
-      <div className="recommendation-metrics-grid">
-        <div className="metric-card">
-          <div className="metric-value">{metrics.recommendationViews}</div>
-          <div className="metric-label">Recommendation Views</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-value">{metrics.totalRecommendationClicks}</div>
-          <div className="metric-label">Recommendation Clicks</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-value">{metrics.clickThroughRate}%</div>
-          <div className="metric-label">Click-through Rate</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-value">{metrics.hostClassCount}</div>
-          <div className="metric-label">Tracked Classes</div>
-        </div>
-      </div>
-
-      <div className="recommendation-top-classes">
-        <h3>Top Clicked Classes</h3>
-        {metrics.topClasses && metrics.topClasses.length > 0 ? (
-          <ul>
-            {metrics.topClasses.map((item) => (
-              <li key={item.classId}>
-                <strong>{item.title}</strong> — {item.clicks} clicks
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No click data available yet.</p>
-        )}
-      </div>
-    </div>
-  );
+  if (loading || error || !metrics) return <AsyncBoundary loading={loading} error={error} empty={!metrics && !loading && !error} onRetry={load} emptyMessage="Recommendation data will appear as your classes gather activity." />;
+  const cards = [['Recommendation Views', 'Number of times recommended classes were shown.', metrics.recommendationViews ?? 0], ['Recommendation Clicks', 'Number of times students opened a recommended class.', metrics.totalRecommendationClicks ?? 0], ['Click-through Rate', 'Recommendation clicks divided by recommendation views.', metrics.clickThroughRate == null ? '—' : `${metrics.clickThroughRate}%`], ['Tracked Classes', 'Number of host classes included in recommendation tracking.', metrics.hostClassCount ?? 0]];
+  return <section className="dashboard-card recommendation-metrics-card"><div className="analytics-section-header"><h2>Recommendation Performance</h2><span title="How students interact with recommendations"><Info size={16} /></span></div><div className="recommendation-metrics-grid">{cards.map(([label, help, value]) => <div className="metric-card" key={label}><div className="metric-label">{label}<span title={help}><Info size={14} /></span></div><div className="metric-value">{value}</div></div>)}</div><div className="recommendation-top-classes"><div className="analytics-section-header"><h2>Top Clicked Classes</h2></div>{metrics.topClasses?.length ? <div className="recommendation-class-list">{metrics.topClasses.map((item, index) => <div className="recommendation-class-row" key={item.classId}><strong className="recommendation-rank">{index + 1}</strong><div className="recommendation-thumbnail">{item.title?.charAt(0) || 'C'}</div><div className="recommendation-class-title">{item.title}</div><Badge variant="primary">{item.clicks ?? 0} clicks</Badge><span className="recommendation-ctr">{item.ctr == null ? '—' : `${item.ctr}%`} CTR</span></div>)}</div> : <div className="analytics-empty"><Sparkles size={22} /><p>No click data yet — view your classes to build recommendation activity.</p><a href="/host-dashboard">View classes <ArrowRight size={14} /></a></div>}</div></section>;
 }

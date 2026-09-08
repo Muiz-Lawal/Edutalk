@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import '../styles/UserAppeals.css';
+import { ClipboardList } from 'lucide-react';
 
 const UserAppealsPage = () => {
   const { user } = useAuth();
@@ -45,13 +46,13 @@ const UserAppealsPage = () => {
   };
 
   if (loading) {
-    return <div className="appeals-page"><div className="loading">Loading your appeals...</div></div>;
+    return <div className="appeals-page"><div className="async-skeleton async-skeleton--list" aria-hidden="true" /></div>;
   }
 
   return (
     <div className="appeals-page">
       <div className="appeals-header">
-        <h1>📋 My Appeals</h1>
+        <h1><ClipboardList size={24} /> My Appeals</h1>
         <p>Track and manage your content appeals</p>
       </div>
 

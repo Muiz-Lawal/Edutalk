@@ -132,7 +132,7 @@ const VideoPlayerScreen = ({ route, navigation }) => {
 
           {/* Quality Selector */}
           <TouchableOpacity onPress={() => setCurrentQuality(currentQuality)}>
-            <Text style={styles.controlIcon}>⚙️</Text>
+            <Text style={styles.controlIcon}>Settings</Text>
           </TouchableOpacity>
 
           {/* Mute Button */}

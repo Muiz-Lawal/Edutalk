@@ -1,0 +1,327 @@
+/* Shared EduTalk visual system: indigo actions, slate text, restrained surfaces. */
+:root {
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+body,
+button,
+input,
+textarea,
+select { font-family: Inter, sans-serif; }
+
+body { transition: background-color 180ms ease, color 180ms ease; }
+
+button,
+.btn,
+.nav-button { transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease, border-color 150ms ease; }
+button:hover:not(:disabled),
+.btn:hover:not(:disabled),
+.nav-button:hover:not(:disabled) { transform: translateY(-1px); }
+
+.browse-page,
+.class-detail-page,
+.cart-page,
+.enrollment-page,
+.payment-history-page,
+.recordings-page,
+.settings-page,
+.profile-page { background: var(--app-bg) !important; color: var(--app-text); }
+
+.browse-header h1,
+.class-header h1,
+.section h2,
+.class-info h3,
+.recommendation-header h2,
+.price-info h3,
+.payment-history-page h1,
+.cart-page h1,
+.enrollment-header h1 { color: var(--heading) !important; }
+
+.browse-header p,
+.host-name,
+.description,
+.class-status,
+.section p,
+.host-info,
+.daily-rate,
+.cart-line__meta p,
+.payment-history-page__header p { color: var(--app-muted) !important; }
+
+.recommendation-section,
+.class-card,
+.class-main,
+.enrollment-card,
+.cart-line,
+.cart-summary,
+.payment-history-table-wrap,
+.profile-form,
+.profile-access,
+.settings-card { background: var(--app-surface) !important; border: 1px solid var(--border) !important; box-shadow: var(--shadow-sm); }
+
+.class-card { border-radius: var(--radius-md) !important; }
+.class-card:hover { box-shadow: var(--shadow-md) !important; }
+.class-info { background: transparent !important; }
+
+.search-form input,
+.category-btn,
+.days-selector input,
+.cart-line__controls input,
+input,
+textarea,
+select {
+  background: var(--app-surface) !important;
+  color: var(--app-text) !important;
+  border-color: var(--border) !important;
+  border-radius: var(--radius-sm);
+}
+
+.category-btn { color: var(--app-muted) !important; }
+.category-btn.active,
+.search-form button,
+.btn-primary { background: var(--primary) !important; color: #fff !important; border-color: var(--primary) !important; }
+.category-btn.active:hover,
+.search-form button:hover,
+.btn-primary:hover { background: var(--primary-hover) !important; }
+.btn-secondary { background: var(--primary-subtle) !important; color: var(--primary-hover) !important; border: 1px solid transparent; }
+
+.session-item,
+.price-calculation,
+.class-footer,
+.cart-summary__total { background: var(--app-surface-muted) !important; border-color: var(--border) !important; }
+.session-date,
+.price-calculation p,
+.class-footer,
+.stat .label { color: var(--app-text) !important; }
+.session-time,
+.monthly-price,
+.stat .value,
+.price { color: var(--primary) !important; }
+
+.class-header--hero { border-radius: var(--radius-lg) !important; box-shadow: var(--shadow-md); }
+
+:root[data-theme="dark"] .recommendation-section,
+:root[data-theme="dark"] .class-card,
+:root[data-theme="dark"] .class-main,
+:root[data-theme="dark"] .enrollment-card,
+:root[data-theme="dark"] .cart-line,
+:root[data-theme="dark"] .cart-summary,
+:root[data-theme="dark"] .payment-history-table-wrap,
+:root[data-theme="dark"] .profile-dropdown,
+:root[data-theme="dark"] .settings-card {
+  background: var(--app-surface) !important;
+  color: var(--app-text) !important;
+  border-color: var(--app-border) !important;
+}
+
+:root[data-theme="dark"] .class-info h3,
+:root[data-theme="dark"] .recommendation-header h2,
+:root[data-theme="dark"] .section h2,
+:root[data-theme="dark"] .price-info h3 { color: var(--app-text) !important; }
+
+@media (max-width: 768px) {
+  .browse-page,
+  .class-detail-page,
+  .cart-page,
+  .enrollment-page { padding-inline: 1rem !important; }
+  .class-content,
+  .cart-layout { gap: 1rem !important; }
+}
+
+/* Final compatibility layer for legacy page styles. Every application surface
+   uses the same tokens, while status colors remain available to their own
+   components. */
+.hero,
+.hero-content,
+.features,
+.pricing-info,
+.cta-section,
+.landing-page,
+.footer {
+  background-color: transparent;
+}
+
+.hero-content {
+  color: inherit;
+}
+
+.features,
+.pricing-info,
+.landing-page {
+  background: var(--app-bg) !important;
+}
+
+.feature,
+.dashboard-card,
+.stat-card,
+.quick-stat,
+.class-item,
+.analytics-card,
+.metric-card,
+.kpi-card,
+.bundle-card,
+.settings-card,
+.admin-form-card,
+.admin-list-card,
+.admin-content > section,
+.admin-content .card,
+.admin-content .panel,
+.modal-dialog,
+.modal-content,
+.table-container,
+.data-table-container,
+.logs-table-container,
+.filters-section,
+.content-section,
+.preview-section {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.feature h1, .feature h2, .feature h3, .feature h4,
+.dashboard-card h1, .dashboard-card h2, .dashboard-card h3, .dashboard-card h4,
+.stat-card h1, .stat-card h2, .stat-card h3, .stat-card h4,
+.bundle-card h1, .bundle-card h2, .bundle-card h3, .bundle-card h4,
+.admin-content h1, .admin-content h2, .admin-content h3, .admin-content h4,
+.modal-dialog h1, .modal-dialog h2, .modal-dialog h3, .modal-dialog h4 {
+  color: var(--heading);
+}
+
+.feature p, .dashboard-card p, .stat-card p, .bundle-card p,
+.admin-content small, .admin-content .admin-subtitle,
+.modal-dialog p, .modal-dialog small {
+  color: var(--app-muted);
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select,
+.form-input,
+.form-textarea {
+  color: var(--app-text) !important;
+  background: var(--app-surface) !important;
+  border: 1px solid var(--border) !important;
+}
+
+input::placeholder,
+textarea::placeholder { color: var(--muted) !important; opacity: 1; }
+
+table,
+.admin-table,
+.logs-table,
+.data-table {
+  color: var(--app-text);
+  border-color: var(--border);
+}
+
+th { color: var(--heading); background: var(--app-surface-muted); }
+td { color: var(--app-text); border-color: var(--border); }
+tr:hover td { background: var(--primary-subtle); }
+
+.modal-overlay {
+  background: rgba(15, 23, 42, .58) !important;
+  backdrop-filter: blur(3px);
+}
+
+.admin-container,
+.admin-content,
+.admin-management-container,
+.admin-analytics-dashboard {
+  background: var(--app-bg) !important;
+  color: var(--app-text);
+}
+
+.admin-header {
+  background: var(--app-surface) !important;
+  border-color: var(--border) !important;
+}
+
+.admin-sidebar {
+  background: #172554 !important;
+}
+
+.admin-content .btn-primary,
+.admin-content button.btn-primary,
+.admin-login-btn {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border-color: var(--primary) !important;
+}
+
+:root[data-theme="dark"] .hero-content {
+  background: transparent !important;
+}
+
+:root[data-theme="dark"] .feature,
+:root[data-theme="dark"] .dashboard-card,
+:root[data-theme="dark"] .stat-card,
+:root[data-theme="dark"] .quick-stat,
+:root[data-theme="dark"] .class-item,
+:root[data-theme="dark"] .analytics-card,
+:root[data-theme="dark"] .metric-card,
+:root[data-theme="dark"] .kpi-card,
+:root[data-theme="dark"] .bundle-card,
+:root[data-theme="dark"] .admin-form-card,
+:root[data-theme="dark"] .admin-list-card,
+:root[data-theme="dark"] .modal-dialog,
+:root[data-theme="dark"] .modal-content,
+:root[data-theme="dark"] .table-container,
+:root[data-theme="dark"] .filters-section,
+:root[data-theme="dark"] .content-section,
+:root[data-theme="dark"] .preview-section {
+  background: var(--app-surface) !important;
+  color: var(--app-text) !important;
+  border-color: var(--app-border) !important;
+}
+
+:root[data-theme="dark"] th,
+:root[data-theme="dark"] td,
+:root[data-theme="dark"] tr {
+  background: var(--app-surface) !important;
+  color: var(--app-text) !important;
+  border-color: var(--app-border) !important;
+}
+
+:root[data-theme="dark"] tr:hover td {
+  background: var(--primary-subtle) !important;
+}
+
+/* Navigation remains compact and grouped for both student and host roles. */
+.header .nav-primary,
+.header .nav-actions { align-items: center; }
+.header .nav-primary .nav-link,
+.header .nav-actions .nav-link { line-height: 1; }
+.header .nav-actions .notification-badge,
+.header .nav-actions .profile-menu { position: static; flex-shrink: 0; }
+
+.mobile-nav {
+  background: var(--app-surface) !important;
+  color: var(--app-text);
+  border-right: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+.mobile-nav-header { border-bottom-color: var(--border) !important; }
+.mobile-nav-header h2,
+.mobile-nav-section-title,
+.mobile-nav-link,
+.user-email,
+.user-role { color: var(--app-text) !important; }
+.mobile-nav-section { border-bottom-color: var(--border) !important; }
+.mobile-nav-link:hover,
+.mobile-nav-link:active,
+.mobile-nav-link.active { background: var(--primary-subtle) !important; color: var(--primary-hover) !important; border-left-color: var(--primary); }
+.mobile-nav-user { background: var(--app-surface-muted) !important; border: 1px solid var(--border); }
+.mobile-nav-close { color: var(--app-muted); }
+.mobile-nav-close:active { background: var(--primary-subtle); color: var(--primary-hover); }
+
+@media (max-width: 1100px) and (min-width: 769px) {
+  .header .container { gap: 1rem; padding-inline: 1rem; }
+  .header .nav { gap: 8px; }
+  .header .nav-primary { gap: 0; }
+  .header .nav-link { padding-inline: 6px; font-size: 12px; }
+  .header .nav-link svg { width: 15px; height: 15px; }
+}

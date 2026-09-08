@@ -120,7 +120,7 @@ const CertificateGalleryPage = () => {
   if (loading) {
     return (
       <div className="certificate-gallery-page">
-        <div className="certificate-gallery-page__loading">Loading certificates...</div>
+        <div className="async-skeleton async-skeleton--list" aria-hidden="true" />
       </div>
     );
   }
@@ -136,17 +136,18 @@ const CertificateGalleryPage = () => {
 
       {error && (
         <div className="certificate-gallery-page__error">
-          <p>{error}</p>
+          <p>We couldn’t load your certificates. Please try again.</p>
         </div>
       )}
 
       <div className="certificate-gallery-page__container">
         {certificates.length === 0 ? (
           <div className="certificate-gallery-page__empty">
-            <p>🎓 No certificates yet</p>
+            <p>No certificates yet</p>
             <p className="certificate-gallery-page__empty-subtitle">
               Complete your courses to earn certificates
             </p>
+            <a className="btn btn-primary" href="/dashboard">View my learning</a>
           </div>
         ) : (
           <>
