@@ -33,12 +33,23 @@ api.interceptors.response.use(
       const requestUrl = error.config?.url || '';
       const isAdminLoginRequest = requestUrl.includes('/auth/admin/login');
       const isAdminRequest = requestUrl.includes('/admin/');
+      const storedUser = localStorage.getItem('user');
+      let hasAdminSession = localStorage.getItem('activeRole') === 'admin';
+      if (!hasAdminSession && storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          hasAdminSession = Boolean(parsedUser?.isAdmin || parsedUser?.adminRole);
+        } catch {
+          localStorage.removeItem('user');
+        }
+      }
 
       // Failed admin credentials must be handled by AdminLoginPage so the
       // user can correct them without being sent to the public login flow.
       if (!isAdminLoginRequest) {
         localStorage.removeItem('token');
-        window.location.href = isAdminRequest ? '/admin/login' : '/login';
+        localStorage.removeItem('activeRole');
+        window.location.href = isAdminRequest || hasAdminSession ? '/admin/login' : '/login';
       }
     }
     const isTimeout = error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT';
