@@ -3,7 +3,7 @@ import { io as ioClient } from 'socket.io-client';
 let socket = null;
 let notificationHandler = null;
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const SOCKET_URL = API_URL.replace(/\/api\/?$/, '') + '/';
 
 export function initSocket(token) {

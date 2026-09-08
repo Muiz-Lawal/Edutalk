@@ -177,6 +177,17 @@ export const getHostClasses = async (req, res) => {
   }
 };
 
+export const getOwnedClass = async (req, res) => {
+  try {
+    const hostId = req.user.userId || req.user._id || req.user.id;
+    const classDoc = await ClassMVP.findOne({ _id: req.params.id, hostId });
+    if (!classDoc) return res.status(404).json({ message: 'Class not found' });
+    res.json({ class: classDoc });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 /**
  * Update a class (Host only)
  * PUT /api/classes/:id
