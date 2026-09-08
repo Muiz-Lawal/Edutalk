@@ -43,5 +43,24 @@ export function sanitizeUserForRequester(user, requesterRole = null) {
     dateOfBirth: u.dateOfBirth ? u.dateOfBirth : undefined,
   };
 
+  if (u.isHost) {
+    safe.hostBio = u.hostBio;
+    safe.hostDisplayName = u.hostDisplayName;
+    safe.hostHeadline = u.hostHeadline;
+    safe.hostExperience = u.hostExperience;
+    safe.hostLanguages = u.hostLanguages || [];
+    safe.hostCategories = u.hostCategories || [];
+    safe.hostCredentials = u.hostCredentials || [];
+    safe.payoutCountry = u.payoutCountry;
+    safe.payoutMethod = u.payoutMethod;
+    safe.payoutMethods = u.payoutMethods || [];
+    safe.payoutDeferred = Boolean(u.payoutDeferred);
+    safe.hostCommissionAccepted = Boolean(u.hostCommissionAccepted);
+    safe.hostVerified = Boolean(u.hostVerified);
+    safe.totalActiveStudents = u.totalActiveStudents || 0;
+    safe.averageRating = u.averageRating || 0;
+    safe.freeAdmissionSlots = u.freeAdmissionSlots || 0;
+  }
+
   return safe;
 }
