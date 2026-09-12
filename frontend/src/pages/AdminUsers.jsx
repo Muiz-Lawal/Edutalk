@@ -6,6 +6,7 @@ import AdminMessageModal from '../components/AdminMessageModal';
 import '../styles/admin.css';
 import { Skeleton } from '../components/AsyncBoundary';
 import { formatDate } from '../lib/date';
+import { MoreHorizontal, SearchX } from 'lucide-react';
 
 const AdminUsers = () => {
   const { fetchUsers, suspendUser, unsuspendUser, deleteUser, loading, error } = useAdmin();
@@ -27,6 +28,8 @@ const AdminUsers = () => {
   const [messageModalOpen, setMessageModalOpen] = useState(false);
   const [detailsUser, setDetailsUser] = useState(null);
   const [messageUser, setMessageUser] = useState(null);
+  const [actionMenuUser, setActionMenuUser] = useState(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
   const loadUsers = async (page = 1, filters = {}) => {
     const result = await fetchUsers(page, 20, filters);
@@ -69,12 +72,7 @@ const AdminUsers = () => {
   };
 
   const handleDelete = async () => {
-    if (!selectedUser || !reason) {
-      alert('Please enter a reason');
-      return;
-    }
-    
-    if (!window.confirm('Are you sure? This action cannot be undone.')) {
+    if (!selectedUser || deleteConfirmation !== 'DELETE') {
       return;
     }
     
@@ -83,6 +81,7 @@ const AdminUsers = () => {
       setSuccessMessage(`User ${selectedUser.email} deleted`);
       setModalActive(false);
       setReason('');
+      setDeleteConfirmation('');
       loadUsers(1, { search, role, status });
       setTimeout(() => setSuccessMessage(''), 3000);
     }
@@ -92,6 +91,7 @@ const AdminUsers = () => {
     setSelectedUser(user);
     setActionType(type);
     setReason('');
+    setDeleteConfirmation('');
     setModalActive(true);
   };
 
@@ -195,36 +195,18 @@ const AdminUsers = () => {
                   </td>
                   <td>{formatDate(user.createdAt)}</td>
                   <td>
-                    <button
-                      className="btn btn-info btn-sm"
-                      onClick={() => openDetailsModal(user)}
-                      title="View details and activity"
-                    >
-                      Details
-                    </button>
-                    {user.suspendedAt ? (
-                      <button
-                        className="btn btn-success btn-sm"
-                        onClick={() => openModal(user, 'unsuspend')}
-                      >
-                        Unsuspend
+                    <div className="user-actions-menu">
+                      <button className="icon-button" type="button" aria-label={`Actions for ${user.email}`} onClick={() => setActionMenuUser(actionMenuUser === user._id ? null : user._id)}>
+                        <MoreHorizontal size={18} />
                       </button>
-                    ) : (
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => openModal(user, 'suspend')}
-                      >
-                        Suspend
-                      </button>
-                    )}
-                    {!user.bannedAt && (
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => openModal(user, 'delete')}
-                      >
-                        Delete
-                      </button>
-                    )}
+                      {actionMenuUser === user._id && (
+                        <div className="user-actions-popover">
+                          <button type="button" onClick={() => { openDetailsModal(user); setActionMenuUser(null); }}>View details</button>
+                          {user.suspendedAt ? <button type="button" onClick={() => { openModal(user, 'unsuspend'); setActionMenuUser(null); }}>Unsuspend</button> : <button type="button" className="action-warning" onClick={() => { openModal(user, 'suspend'); setActionMenuUser(null); }}>Suspend</button>}
+                          {!user.bannedAt && <button type="button" className="action-danger" onClick={() => { openModal(user, 'delete'); setActionMenuUser(null); }}>Delete</button>}
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -262,13 +244,20 @@ const AdminUsers = () => {
               {(actionType === 'suspend' || actionType === 'delete') && (
                 <div className="form-group">
                   <label>Reason</label>
-                  <textarea
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="Enter reason for this action..."
-                  />
+                  {actionType === 'suspend' ? (
+                    <select value={reason} onChange={(e) => setReason(e.target.value)} required>
+                      <option value="">Select a reason</option>
+                      <option>Policy violation</option>
+                      <option>Payment fraud suspicion</option>
+                      <option>Abuse or harassment</option>
+                      <option>Other</option>
+                    </select>
+                  ) : (
+                    <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Optional audit note" />
+                  )}
                 </div>
               )}
+              {actionType === 'delete' && <div className="form-group"><label>Type DELETE to confirm</label><input value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} /></div>}
               {actionType === 'unsuspend' && (
                 <p>Are you sure you want to unsuspend this user? They will regain access to their account.</p>
               )}
@@ -288,7 +277,7 @@ const AdminUsers = () => {
                 </button>
               )}
               {actionType === 'delete' && (
-                <button className="btn btn-danger" onClick={handleDelete}>
+                <button className="btn btn-danger" onClick={handleDelete} disabled={deleteConfirmation !== 'DELETE'}>
                   Delete User
                 </button>
               )}

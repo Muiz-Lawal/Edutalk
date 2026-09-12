@@ -10,6 +10,7 @@ import PlaybackAnomaly from '../models/PlaybackAnomaly.js';
 import { isTrustedDeviceAllowed, generateTrustedDeviceFingerprint } from '../utils/accessCode.js';
 import { recordingProvider } from '../services/recording-provider.js';
 import { transcribeAudio, summarizeContent, generateChapters } from '../utils/ai.js';
+import { assertFeature, planGateResponse } from '../utils/plan-limits.js';
 
 const PRO_TIERS = new Set(['pro', 'elite']);
 const safeRecording = (recording, progress = null) => ({
@@ -328,6 +329,12 @@ export const getStudentRecordingLibrary = async (req, res) => {
 };
 
 export const updateClassRecordingSettings = async (req, res) => {
+  try {
+    await assertFeature(req.user.userId, 'recording');
+  } catch (error) {
+    if (planGateResponse(error, res)) return;
+    return res.status(500).json({ message: 'Unable to update recording settings.' });
+  }
   const classData = await Class.findOne({ _id: req.params.classId, hostId: req.user.userId }).populate('hostId', 'planTier');
   if (!classData) return res.status(404).json({ message: 'Class not found' });
   if (!PRO_TIERS.has(classData.hostId.planTier)) return res.status(403).json({ message: 'Recordings unlock at Pro' });
@@ -347,6 +354,12 @@ export const updateClassRecordingSettings = async (req, res) => {
 export const startRecording = async (req, res) => {
   try {
     const { sessionId, classId } = req.body;
+    try {
+      await assertFeature(req.user.userId, 'recording');
+    } catch (error) {
+      if (planGateResponse(error, res)) return;
+      return res.status(500).json({ message: 'Unable to start recording.' });
+    }
 
     const { classData, error } = await requireProClass(classId);
     if (error || classData.hostId._id.toString() !== req.user.userId) {
@@ -442,6 +455,12 @@ export const getRecordingList = async (req, res) => {
 };
 
 export const uploadRecording = async (req, res) => {
+  try {
+    await assertFeature(req.user.userId, 'recording');
+  } catch (error) {
+    if (planGateResponse(error, res)) return;
+    return res.status(500).json({ message: 'Unable to upload recording.' });
+  }
   const { sessionId, classId } = req.body;
   const { classData, error } = await requireProClass(classId);
   if (error || classData.hostId._id.toString() !== req.user.userId) {

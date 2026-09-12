@@ -1,0 +1,6 @@
+.locked-feature-card { padding: 24px; text-align: center; }
+.locked-feature-card__icon { width: 48px; height: 48px; margin: 0 auto 12px; display: grid; place-items: center; border-radius: 999px; background: #f1f5f9; color: #94a3b8; }
+.locked-feature-card h3 { margin: 0; color: #0f172a; font-size: 16px; font-weight: 700; }
+.locked-feature-card p { margin: 8px auto 16px; max-width: 440px; color: #475569; font-size: 14px; }
+.locked-feature-card__progress { height: 6px; margin: 0 auto 18px; overflow: hidden; border-radius: 999px; background: #f1f5f9; }
+.locked-feature-card__progress span { display: block; height: 100%; border-radius: inherit; background: #4f46e5; }

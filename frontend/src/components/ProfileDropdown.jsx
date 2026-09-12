@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import '../styles/ProfileDropdown.css';
-import { Award, Bell, BookOpen, Check, CircleHelp, ClipboardList, CreditCard, Gift, GraduationCap, Home, LogOut, Palette, Settings, UserRound } from 'lucide-react';
+import { Award, Bell, BookOpen, Check, CreditCard, Gift, GraduationCap, Home, LogOut, Palette, Settings, UserRound } from 'lucide-react';
 import Badge from './ui/Badge';
 
 const initialsFor = (user) => `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U';

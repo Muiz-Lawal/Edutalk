@@ -8,6 +8,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 // Admin analytics dashboard - Phase 6F
 
 import authRoutes from './routes/authRoutes.js';
+import meRoutes from './routes/meRoutes.js';
 import classMVPRoutes from './routes/classMVPRoutes.js';
 import classRoutes from './routes/classRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
@@ -445,6 +446,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/me', meRoutes);
 app.use('/api/classes/mvp', classMVPRoutes); // MVP class management (must come first)
 app.use('/api/classes', classRoutes); // Full-featured class routes
 app.use('/api/payments', paymentRoutes);

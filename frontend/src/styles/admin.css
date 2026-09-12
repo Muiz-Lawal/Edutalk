@@ -162,6 +162,165 @@
   padding: 25px;
 }
 
+.admin-header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.admin-sidebar-backdrop {
+  display: none;
+}
+
+.admin-profile-dropdown {
+  width: 320px;
+  max-height: calc(100vh - 72px);
+  overflow-y: auto;
+  right: 0;
+  left: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+  padding: 8px;
+}
+
+.admin-menu-label {
+  padding: 4px 12px 6px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.admin-profile-dropdown > a,
+.admin-profile-dropdown > button {
+  min-height: 40px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-profile-dropdown > a:hover,
+.admin-profile-dropdown > button:hover {
+  background: #f8fafc;
+}
+
+.admin-profile-dropdown > a.admin-menu-current {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.user-actions-menu {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.user-actions-popover {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 150px;
+  padding: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, .12);
+}
+
+.user-actions-popover button {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #475569;
+  text-align: left;
+  cursor: pointer;
+}
+
+.user-actions-popover button:hover { background: #f8fafc; }
+.user-actions-popover .action-warning { color: #d97706; }
+.user-actions-popover .action-danger { color: #e11d48; }
+
+.admin-role-pill {
+  display: inline-flex;
+  margin-top: 5px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-role-pill--superadmin,
+.admin-role-pill--super_admin {
+  color: #fff;
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
+}
+
+.admin-role-pill--admin { color: #4f46e5; background: #eef2ff; }
+.admin-role-pill--finance_admin { color: #059669; background: #ecfdf5; }
+.admin-role-pill--moderator { color: #d97706; background: #fffbeb; }
+.admin-role-pill--support { color: #0284c7; background: #f0f9ff; }
+
+@media (max-width: 768px) {
+  .admin-sidebar {
+    position: fixed;
+    z-index: 20;
+    height: 100vh;
+  }
+
+  .admin-sidebar.closed {
+    width: 0;
+    overflow: hidden;
+  }
+
+  .admin-sidebar.open {
+    width: 280px;
+  }
+
+  .admin-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 15;
+    border: 0;
+    background: rgba(15, 23, 42, .35);
+  }
+
+  .admin-content {
+    padding: 16px;
+  }
+}
+
 .admin-content input,
 .admin-content select,
 .admin-content textarea {

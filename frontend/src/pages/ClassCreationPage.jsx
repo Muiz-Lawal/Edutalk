@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Check, Link as LinkIcon, MonitorPlay, Save } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Field, Input, Select, Textarea } from '../components/ui/Field';
+import LockedFeatureCard from '../components/ui/LockedFeatureCard';
 import '../styles/ClassCreationPage.css';
 import AsyncBoundary from '../components/AsyncBoundary';
 
@@ -28,6 +29,16 @@ export default function ClassCreationPage() {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [hostContext, setHostContext] = useState(null);
+
+  useEffect(() => {
+    api.get('/me/host-context').then(({ data }) => setHostContext(data)).catch(() => {
+      setHostContext({ tier: user?.planTier || 'starter', features: { builtinVideo: 'off', recording: 'off', recordingAutoShare: 'off' }, subscribers: 0, nextThreshold: 23 });
+    });
+  }, [user?.planTier]);
+
+  const currentTier = hostContext?.tier || user?.planTier || 'starter';
+  const builtinUnlocked = hostContext?.features?.builtinVideo === 'on' || currentTier !== 'starter';
 
   if (loading) return <main className="class-creation-page"><AsyncBoundary loading loadingVariant="form" /></main>;
   if (!isAuthenticated || !user?.isHost) return <Navigate to="/login" replace />;
@@ -68,13 +79,21 @@ export default function ClassCreationPage() {
       setError('The end date must be after the start date.');
       return;
     }
+    if (form.videoMode === 'external' && !form.externalVideoLink) {
+      setError('Enter the full meeting link, starting with https://');
+      return;
+    }
     if (form.videoMode === 'external' && form.externalVideoLink) {
       try {
         if (new URL(form.externalVideoLink).protocol !== 'https:') throw new Error();
       } catch {
-        setError('External meeting links must use HTTPS.');
+        setError('Enter the full meeting link, starting with https://');
         return;
       }
+    }
+    if (form.videoMode === 'builtin' && !builtinUnlocked) {
+      setError('Built-in video is a Growth feature. Upgrade to unlock it.');
+      return;
     }
     setSaving(true);
     try {
@@ -153,11 +172,50 @@ export default function ClassCreationPage() {
             </div>
           </Card>
 
-          <Card title="Live room" subtitle="Choose how your sessions will be hosted.">
-            <div className="class-form-stack">
-              <Field label="Video mode"><Select value={form.videoMode} onChange={(event) => setField('videoMode', event.target.value)}><option value="external">External link</option><option value="builtin" disabled={(user?.planTier || 'starter') === 'starter'}>Built-in EduTalk room{(user?.planTier || 'starter') === 'starter' ? ' — Growth and above' : ''}</option></Select></Field>
-              {form.videoMode === 'external' && <Field label="Meeting link" help="Use a secure HTTPS Zoom, Meet, or Teams link"><Input type="url" pattern="https://.*" value={form.externalVideoLink} placeholder="https://..." onChange={(event) => setField('externalVideoLink', event.target.value)} /></Field>}
+          <Card title="How sessions run" subtitle="Choose the classroom experience for this class.">
+            <div className="video-mode-choice">
+              {builtinUnlocked ? (
+                <button
+                  type="button"
+                  className={`video-mode-option ${form.videoMode === 'builtin' ? 'selected' : ''}`}
+                  onClick={() => setField('videoMode', 'builtin')}
+                >
+                  <div className="video-mode-option__icon"><MonitorPlay size={20} /></div>
+                  <div className="video-mode-option__content">
+                    <span className="video-mode-option__title">Built-in video classroom</span>
+                    <span className="video-mode-option__caption">HD video, screen share and host controls — no external app for you or your students.</span>
+                  </div>
+                  {form.videoMode === 'builtin' && <Check className="video-mode-option__check" size={16} />}
+                </button>
+              ) : (
+                <div className="video-mode-option video-mode-option--locked">
+                  <LockedFeatureCard
+                    feature="builtinVideo"
+                    tier={currentTier}
+                    subscribers={hostContext?.subscribers || 0}
+                    threshold={hostContext?.nextThreshold || 23}
+                  />
+                </div>
+              )}
+
+              <button
+                type="button"
+                className={`video-mode-option ${form.videoMode === 'external' ? 'selected' : ''}`}
+                onClick={() => setField('videoMode', 'external')}
+              >
+                <div className="video-mode-option__icon"><LinkIcon size={20} /></div>
+                <div className="video-mode-option__content">
+                  <span className="video-mode-option__title">External meeting link</span>
+                  <span className="video-mode-option__caption">Run sessions on Zoom, Google Meet, etc.</span>
+                </div>
+                {form.videoMode === 'external' && <Check className="video-mode-option__check" size={16} />}
+              </button>
             </div>
+            {form.videoMode === 'external' && (
+              <div className="class-form-stack class-form-stack--tight">
+                <Field label="Meeting link" help="Students see this link at session time."><Input type="url" pattern="https://.*" value={form.externalVideoLink} placeholder="https://..." onChange={(event) => setField('externalVideoLink', event.target.value)} /></Field>
+              </div>
+            )}
           </Card>
 
           <div className="class-creation-actions"><Button type="button" variant="secondary" onClick={() => navigate('/host-dashboard')}>Cancel</Button><Button type="submit" loading={saving}><Save size={16} /> Create class</Button></div>

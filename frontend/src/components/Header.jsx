@@ -83,7 +83,7 @@ export default function Header() {
     };
   }, []);
 
-  if (isAuthPage) return null;
+  if (isAuthPage || location.pathname.startsWith('/admin')) return null;
 
   return (
     <header className="header">

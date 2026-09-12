@@ -3,6 +3,8 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAdminPermissions } from '../hooks/useAdminPermissions';
 import { Skeleton } from './AsyncBoundary';
+import { canAccess, firstAllowedSection, sectionForPath } from '../lib/admin-rbac';
+import { showToast } from '../utils/toastManager';
 
 export default function ProtectedRoute({
   children,
@@ -21,7 +23,18 @@ export default function ProtectedRoute({
   }
 
   if (!isAuthenticated) {
+    if (location.pathname.startsWith('/admin/')) {
+      return <Navigate to="/admin/login" replace />;
+    }
     return <Navigate to="/login" replace />;
+  }
+
+  if (requireAdmin && location.pathname.startsWith('/admin/')) {
+    const section = sectionForPath(location.pathname);
+    if (!canAccess(user?.adminRole, section.key)) {
+      showToast({ title: 'Access denied', message: "You don't have access to that area.", type: 'error' });
+      return <Navigate to={firstAllowedSection(user?.adminRole).path} replace />;
+    }
   }
 
   if (location.pathname.startsWith('/moderation') && !isAdmin) {
@@ -42,7 +55,7 @@ export default function ProtectedRoute({
   }
 
   if (requireAdmin && !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/admin/login" replace />;
   }
 
   if (requireAdmin && location.pathname.startsWith('/admin') && !(user?.isAdmin || user?.adminRole)) {

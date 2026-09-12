@@ -1,10 +1,17 @@
 import VideoRoom from '../models/VideoRoom.js';
 import Session from '../models/Session.js';
 import { v4 as uuidv4 } from 'uuid';
+import { assertFeature, planGateResponse } from '../utils/plan-limits.js';
 
 export const createVideoRoom = async (req, res) => {
   try {
     const { classId, sessionId } = req.body;
+    try {
+      await assertFeature(req.user.userId, 'builtinVideo');
+    } catch (error) {
+      if (planGateResponse(error, res)) return;
+      return res.status(500).json({ message: 'Unable to create video room.' });
+    }
 
     // Create unique room ID
     const roomId = `room-${uuidv4()}`;

@@ -10,6 +10,8 @@ import Subscription from '../models/Subscription.js';
 import User from '../models/User.js';
 import { fromZonedTime } from 'date-fns-tz';
 import { getVacationDays, canStartVacation } from '../utils/vacations.js';
+import { assertFeature, planGateResponse } from '../utils/plan-limits.js';
+import { reserveSessionRoom } from '../lib/video-provider.js';
 
 const appearancePalette = ['#4F46E5', '#7C3AED', '#059669', '#D97706', '#E11D48', '#0891B2', '#475569', '#2563EB'];
 const slugify = (value) => value.toLowerCase().replace(/[^\w\s-]/g, '').trim().replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
@@ -84,6 +86,17 @@ export const createClass = async (req, res) => {
       });
       if (!hasOccurrence) return res.status(400).json({ message: 'Fixed classes need at least one scheduled occurrence between their dates' });
     }
+    if (videoMode === 'builtin') {
+      try {
+        await assertFeature(req.user.userId, 'builtinVideo');
+      } catch (error) {
+        if (planGateResponse(error, res)) return;
+        return res.status(500).json({ message: 'Unable to validate video mode.' });
+      }
+    }
+    if (videoMode === 'external' && !externalVideoLink) {
+      return res.status(400).json({ message: 'Enter the full meeting link, starting with https://' });
+    }
     if (videoMode === 'external' && externalVideoLink) {
       try {
         if (new URL(externalVideoLink).protocol !== 'https:') throw new Error('invalid protocol');
@@ -135,7 +148,15 @@ export const createClass = async (req, res) => {
         timezone: session.timezone,
         status: session.status,
       }));
-      await Session.insertMany(sessions);
+      const createdSessions = await Session.insertMany(sessions.map((session) => ({
+        ...session,
+        roomStatus: classData.videoMode === 'builtin' ? 'pending' : undefined,
+      })));
+      if (classData.videoMode === 'builtin') {
+        Promise.all(createdSessions.map((session) => reserveSessionRoom(session))).catch((error) => {
+          console.error('[video] scheduled room reservation failed', error);
+        });
+      }
     }
     
     res.status(201).json({
@@ -349,7 +370,16 @@ export const addBonusSession = async (req, res) => {
   const start = parseISO(startUtc);
   const end = endUtc ? parseISO(endUtc) : new Date(start.getTime() + Number(durationMinutes || 60) * 60000);
   if (Number.isNaN(start.getTime()) || end <= start) return res.status(400).json({ message: 'A valid session time is required' });
-  const session = await Session.create({ classId: classData._id, scheduledStartTime: start, scheduledEndTime: end, timezone: timezone || classData.timezone, scheduleId: null, status: 'scheduled' });
+  if (classData.videoMode === 'builtin') {
+    try {
+      await assertFeature(req.user.userId, 'builtinVideo');
+    } catch (error) {
+      if (planGateResponse(error, res)) return;
+      return res.status(500).json({ message: 'Unable to validate video mode.' });
+    }
+  }
+  const session = await Session.create({ classId: classData._id, scheduledStartTime: start, scheduledEndTime: end, timezone: timezone || classData.timezone, scheduleId: null, status: 'scheduled', roomStatus: classData.videoMode === 'builtin' ? 'pending' : undefined });
+  if (classData.videoMode === 'builtin') reserveSessionRoom(session).catch((error) => console.error('[video] bonus room reservation failed', error));
   res.status(201).json(session);
 };
 
@@ -443,6 +473,24 @@ export const updateClass = async (req, res) => {
       'appearance',
     ];
     const updates = Object.fromEntries(Object.entries(req.body).filter(([key]) => editableFields.includes(key)));
+    if (updates.videoMode === 'builtin') {
+      try {
+        await assertFeature(req.user.userId, 'builtinVideo');
+      } catch (error) {
+        if (planGateResponse(error, res)) return;
+        return res.status(500).json({ message: 'Unable to validate video mode.' });
+      }
+    }
+    if (updates.videoMode === 'external' && !updates.externalVideoLink && !classData.externalVideoLink) {
+      return res.status(400).json({ message: 'Enter the full meeting link, starting with https://' });
+    }
+    if (updates.externalVideoLink && updates.videoMode !== 'builtin') {
+      try {
+        if (new URL(updates.externalVideoLink).protocol !== 'https:') throw new Error('invalid protocol');
+      } catch {
+        return res.status(400).json({ message: 'Enter the full meeting link, starting with https://' });
+      }
+    }
     if (updates.title !== undefined) {
       const cleanTitle = stripTitleCharacters(updates.title);
       updates.title = cleanTitle;
@@ -546,7 +594,17 @@ export const updateClass = async (req, res) => {
           timezone: session.timezone,
           status: 'scheduled',
         }));
-      if (futureSessions.length) await Session.insertMany(futureSessions);
+      if (futureSessions.length) {
+        const createdSessions = await Session.insertMany(futureSessions.map((session) => ({
+          ...session,
+          roomStatus: classData.videoMode === 'builtin' ? 'pending' : undefined,
+        })));
+        if (classData.videoMode === 'builtin') {
+          Promise.all(createdSessions.map((session) => reserveSessionRoom(session))).catch((error) => {
+            console.error('[video] future room reservation failed', error);
+          });
+        }
+      }
     }
     
     res.json({ message: 'Class updated successfully', class: classData });

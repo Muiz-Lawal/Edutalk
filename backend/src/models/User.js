@@ -88,6 +88,11 @@ const userSchema = new mongoose.Schema({
     enum: ['starter', 'growth', 'pro', 'elite'],
     default: 'starter',
   },
+  activatedPlanTier: {
+    type: String,
+    enum: ['starter', 'growth', 'pro', 'elite'],
+    default: 'starter',
+  },
   totalActiveStudents: {
     type: Number,
     default: 0,

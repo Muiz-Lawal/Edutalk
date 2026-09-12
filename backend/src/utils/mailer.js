@@ -58,21 +58,56 @@ const getTransporter = () => nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT || 587),
   secure: process.env.SMTP_SECURE === 'true',
-  auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD } : undefined,
+  auth: process.env.SMTP_USER
+    ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS }
+    : undefined,
 });
+
+const saveMailPreview = async ({ html, text, subject, code, previewName = 'last' }) => {
+  const previewDirectory = path.resolve(process.cwd(), 'tmp', 'mail-previews');
+  await fs.mkdir(previewDirectory, { recursive: true });
+  const previewPath = path.join(previewDirectory, `${previewName}-${Date.now()}.html`);
+  await fs.writeFile(previewPath, html, 'utf8');
+  lastPreview = { html, text, subject, previewPath };
+  console.info(`[mailer:${previewName}] ${subject} | code=${code || 'n/a'} | preview=${previewPath}`);
+  return { previewPath };
+};
+
+const maskAddress = (value) => {
+  if (!value || typeof value !== 'string') return 'unknown';
+  const [localPart, domainPart] = value.split('@');
+  if (!domainPart) return 'unknown';
+  const maskedLocal = localPart.length <= 2 ? `${localPart[0] || ''}*` : `${localPart.slice(0, 2)}***`;
+  return `${maskedLocal}@${domainPart}`;
+};
 
 export const sendMail = async ({ to, subject, html, text, code }) => {
   const provider = process.env.MAIL_PROVIDER || (process.env.SMTP_HOST ? 'smtp' : 'dev');
   if (provider === 'dev') {
-    const previewDirectory = path.resolve(process.cwd(), 'tmp', 'mail-previews');
-    await fs.mkdir(previewDirectory, { recursive: true });
-    const previewPath = path.join(previewDirectory, `last-${Date.now()}.html`);
-    await fs.writeFile(previewPath, html, 'utf8');
-    lastPreview = { html, text, subject, previewPath };
-    console.info(`[mailer:dev] ${subject} | code=${code || 'n/a'} | preview=${previewPath}`);
+    await saveMailPreview({ html, text, subject, code, previewName: 'dev' });
     return { messageId: `dev-${Date.now()}` };
   }
-  return getTransporter().sendMail({ from: process.env.MAIL_FROM || 'EduTalk <no-reply@mail.edutalk.com>', to, subject, html, text });
+
+  try {
+    return await getTransporter().sendMail({
+      from: process.env.MAIL_FROM || 'EduTalk <no-reply@mail.edutalk.com>',
+      to,
+      subject,
+      html,
+      text,
+    });
+  } catch (error) {
+    const redactedRecipient = maskAddress(to);
+    console.warn(`[mailer:smtp-fallback] SMTP send failed for ${redactedRecipient}. Using preview mode in development.`);
+    console.warn(`[mailer:smtp-fallback] ${error?.message || 'Unknown SMTP error'} `);
+
+    if (process.env.NODE_ENV === 'production') {
+      throw error;
+    }
+
+    await saveMailPreview({ html, text, subject, code, previewName: 'smtp-fallback' });
+    return { messageId: `smtp-fallback-${Date.now()}` };
+  }
 };
 
 export const getLastPreview = () => lastPreview;

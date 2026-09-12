@@ -288,6 +288,32 @@ export const requireRole = (...allowedRoles) => {
       res.status(500).json({ error: 'Authentication error' });
     }
   };
+
+};
+
+const ADMIN_SECTION_ROLES = {
+  overview: ['support', 'moderator', 'admin', 'finance_admin', 'superadmin'],
+  support: ['support', 'superadmin'],
+  moderation: ['moderator', 'superadmin'],
+  users: ['admin', 'superadmin'],
+  hosts: ['admin', 'superadmin'],
+  payments: ['finance_admin', 'superadmin'],
+  analytics: ['superadmin'],
+  'audit-logs': ['superadmin'],
+  security: ['superadmin'],
+  settings: ['superadmin'],
+  admins: ['superadmin'],
+  'email-jobs': ['superadmin'],
+};
+
+const normalizeAdminRole = (role) => role === 'superadmin' ? 'super_admin' : role;
+
+export const requireAdminRole = (sectionKey) => (req, res, next) => {
+  const allowedRoles = ADMIN_SECTION_ROLES[sectionKey] || ['superadmin'];
+  if (!req.user?.isAdmin || !allowedRoles.includes(normalizeAdminRole(req.user.adminRole)) && !(normalizeAdminRole(req.user.adminRole) === 'super_admin' && allowedRoles.includes('superadmin'))) {
+    return res.status(403).json({ code: 'forbidden_section', message: 'You do not have access to this admin section.' });
+  }
+  return next();
 };
 
 // Super admin middleware (for sensitive operations like managing admins)
@@ -307,7 +333,7 @@ export const superAdminAuth = async (req, res, next) => {
     }
 
     // Check if super admin
-    if (!user.isAdmin || user.adminRole !== 'superadmin') {
+    if (!user.isAdmin || !['superadmin', 'super_admin'].includes(user.adminRole)) {
       return res.status(403).json({ error: 'Access denied. SuperAdmin privileges required.' });
     }
 

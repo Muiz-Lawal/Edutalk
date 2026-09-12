@@ -65,6 +65,14 @@ const sessionSchema = new mongoose.Schema({
   // Video room token
   videoRoomToken: String,
   videoRoomId: String,
+  hostJoinUrl: String,
+  studentJoinUrl: String,
+  roomStatus: {
+    type: String,
+    enum: ['pending', 'ready'],
+    default: 'pending',
+  },
+  roomError: String,
   
   createdAt: {
     type: Date,

@@ -160,6 +160,17 @@ export const login = async (req, res) => {
 };
 
 import { sanitizeUserForRequester } from '../utils/sanitize.js';
+import { FEATURES, getHostTier, TIER_THRESHOLDS } from '../utils/plan-limits.js';
+
+export const getHostContext = async (req, res) => {
+  const host = await User.findById(req.user.userId).select('isHost activatedPlanTier planTier totalActiveStudents');
+  if (!host?.isHost) return res.status(403).json({ message: 'Host access required' });
+  const tier = await getHostTier(host._id);
+  const index = ['starter', 'growth', 'pro', 'elite'].indexOf(tier);
+  const features = Object.fromEntries(Object.entries(FEATURES).map(([key, values]) => [key, values[index]]));
+  const nextThreshold = ['starter', 'growth', 'pro', 'elite'].map((value) => TIER_THRESHOLDS[value]).find((threshold) => threshold > (host.totalActiveStudents || 0)) || null;
+  return res.json({ tier, features, subscribers: host.totalActiveStudents || 0, nextThreshold });
+};
 
 export const getProfile = async (req, res) => {
   try {
