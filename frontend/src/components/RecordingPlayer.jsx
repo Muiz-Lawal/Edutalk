@@ -1,222 +1,132 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Maximize, Pause, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import Hls from 'hls.js';
 import api from '../utils/api';
 import '../styles/RecordingPlayer.css';
 
-export default function RecordingPlayer({ recordingId }) {
+const fingerprint = () => localStorage.getItem('edutalk:device-fingerprint') || '';
+
+export default function RecordingPlayer({ recordingId, onClose }) {
+  const videoRef = useRef(null);
+  const [recording, setRecording] = useState(null);
   const [playback, setPlayback] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [recording, setRecording] = useState(null);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const [watermarkIndex, setWatermarkIndex] = useState(0);
-  const [transcriptSearch, setTranscriptSearch] = useState('');
-  const videoRef = useRef(null);
+  const retryRef = useRef(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    api.post(`/recordings/play/${recordingId}`, {}, {
-      headers: { 'X-Device-Fingerprint': localStorage.getItem('edutalk:device-fingerprint') || '' },
-    }).then(({ data }) => {
-      if (!cancelled) setPlayback(data);
-    }).catch((requestError) => {
-      if (!cancelled) setError(requestError.response?.data?.message || 'Unable to start secure playback.');
-    }).finally(() => {
-      if (!cancelled) setLoading(false);
-    });
-    api.get(`/recordings/${recordingId}`).then(({ data }) => {
-      if (!cancelled) setRecording(data);
-    }).catch(() => {});
-    return () => { cancelled = true; };
+  const openPlayback = useCallback(async (retry = false) => {
+    setLoading(true);
+    setError('');
+    try {
+      const { data } = await api.post(`/recordings/${recordingId}/play`, {}, {
+        headers: { 'X-Device-Fingerprint': fingerprint() },
+      });
+      retryRef.current = retry;
+      setPlayback(data);
+    } catch (err) {
+      const response = err.response;
+      const code = response?.data?.code;
+      const message = response?.data?.message;
+      setError(code === 'subscription_required' || code === 'subscription_expired'
+        ? 'Your class access has ended. Re-enrol to keep watching this recording.'
+        : code === 'recording_locked' ? 'This recording is not available yet.'
+          : message || 'We could not start this recording. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }, [recordingId]);
 
   useEffect(() => {
-    if (!playback?.streamUrl || !videoRef.current) return undefined;
+    let cancelled = false;
+    openPlayback();
+    api.get(`/recordings/${recordingId}`).then(({ data }) => {
+      if (!cancelled) setRecording(data.data || data);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [recordingId, openPlayback]);
+
+  useEffect(() => {
     const video = videoRef.current;
+    if (!video || !playback?.streamUrl) return undefined;
     let hls;
+    const handleError = () => {
+      if (!retryRef.current) openPlayback(true);
+      else setError('This playback session expired — press play to resume.');
+    };
+    video.addEventListener('error', handleError);
     if (video.canPlayType('application/vnd.apple.mpegurl')) video.src = playback.streamUrl;
     else if (Hls.isSupported()) {
       hls = new Hls();
       hls.loadSource(playback.streamUrl);
       hls.attachMedia(video);
+      hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) handleError(); });
     }
-    return () => hls?.destroy();
-  }, [playback]);
+    return () => { video.removeEventListener('error', handleError); hls?.destroy(); };
+  }, [playback, openPlayback]);
 
   useEffect(() => {
     if (!playback?.watermark?.positions?.length) return undefined;
-    const timer = window.setInterval(() => setWatermarkIndex((index) => (index + 1) % playback.watermark.positions.length), (playback.watermark.intervalSeconds || 20) * 1000);
-    return () => window.clearInterval(timer);
+    const timer = setInterval(() => setWatermarkIndex((index) => (index + 1) % playback.watermark.positions.length), (playback.watermark.intervalSeconds || 20) * 1000);
+    return () => clearInterval(timer);
   }, [playback]);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (!videoRef.current || ['INPUT', 'TEXTAREA'].includes(event.target.tagName)) return;
-      if (event.key === ' ') {
-        event.preventDefault();
-        videoRef.current.paused ? videoRef.current.play() : videoRef.current.pause();
-      } else if (event.key === 'ArrowLeft') {
-        videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 5);
-      } else if (event.key === 'ArrowRight') {
-        videoRef.current.currentTime += 5;
-      } else if (event.key.toLowerCase() === 'j') {
-        videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
-      } else if (event.key.toLowerCase() === 'l') {
-        videoRef.current.currentTime += 10;
-      } else if (event.key.toLowerCase() === 'f') {
-        videoRef.current.requestFullscreen?.();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const jumpToChapter = (timestamp) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = timestamp;
-    }
+  const video = videoRef.current;
+  const togglePlay = () => {
+    if (!video) return;
+    if (video.paused) video.play().catch(() => {}); else video.pause();
+  };
+  const seek = (event) => { if (video) video.currentTime = (Number(event.target.value) / 100) * (video.duration || 0); };
+  const updateProgress = () => {
+    if (!video) return;
+    setProgress(video.duration ? (video.currentTime / video.duration) * 100 : 0);
+    if (video.duration) api.post(`/recordings/${recordingId}/progress`, { position: video.currentTime, percentWatched: (video.currentTime / video.duration) * 100 }).catch(() => {});
+  };
+  const changePlaybackRate = (event) => {
+    const nextRate = Number(event.target.value);
+    setPlaybackRate(nextRate);
+    if (video) video.playbackRate = nextRate;
   };
 
-  const chapters = (recording?.aiTimestamps || []).map((chapter) => ({
-    timestamp: Number(chapter.timestamp ?? chapter.t ?? 0),
-    title: chapter.title || chapter.label || 'Chapter',
-  }));
+  if (loading) return <div className="recording-player-state"><div className="async-skeleton async-skeleton--block" /><p>Preparing secure playback…</p></div>;
+  if (error) return <div className="recording-player-state recording-player-state--error"><strong>Playback unavailable</strong><p>{error}</p><button type="button" className="btn btn-secondary" onClick={() => openPlayback()}><RotateCcw size={16} /> Try again</button>{onClose && <button type="button" className="btn btn-ghost" onClick={onClose}>Close</button>}</div>;
 
-  const transcriptSegments = recording?.transcriptSegments || [];
-  const matchingSegments = transcriptSearch
-    ? transcriptSegments.filter((segment) => segment.text?.toLowerCase().includes(transcriptSearch.toLowerCase()))
-    : [];
-
-  if (loading) {
-    return <div className="async-skeleton async-skeleton--block" aria-hidden="true" />;
-  }
-
-  if (error) {
-    return <div className="error">{error.includes('Renew') ? <><p>{error}</p><a href="/dashboard">Renew to keep watching</a></> : error}</div>;
-  }
-
+  const watermark = playback?.watermark;
+  const watermarkText = [watermark?.name, watermark?.email].filter(Boolean).join(' · ');
   return (
-    <div className="recording-player">
+    <div className="recording-player" onContextMenu={(event) => event.preventDefault()}>
+      {onClose && <button type="button" className="recording-player__close btn btn-ghost" onClick={onClose}>Close</button>}
       <div className="player-main">
-        <div className="video-wrapper" onContextMenu={(event) => event.preventDefault()}>
-          <video
-            ref={videoRef}
-            controls
-            controlsList="nodownload noremoteplayback"
-            disablePictureInPicture
-            onLoadedMetadata={(event) => {
-              if (playback.resumePosition) event.currentTarget.currentTime = playback.resumePosition;
-            }}
-            onTimeUpdate={(event) => {
-              const duration = event.currentTarget.duration || 0;
-              if (duration) api.post(`/recordings/${recordingId}/progress`, { position: event.currentTarget.currentTime, percentWatched: (event.currentTarget.currentTime / duration) * 100 }).catch(() => {});
-            }}
-            className="video-player"
-          />
-          <div className={`watermark watermark--email watermark-position-${watermarkIndex}`}>{playback.watermark.email}</div>
-        </div>
-
-        <div className="video-info">
-          <h2>{recording?.title || 'Session recording'}</h2>
-          <p>{recording?.description}</p>
-          
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="label">Duration:</span>
-              <span className="value">{Math.floor((recording?.durationSeconds || 0) / 60)} minutes</span>
-            </div>
-            <div className="info-item">
-              <span className="label">File Size:</span>
-              <span className="value">Streaming only</span>
-            </div>
-            <div className="info-item">
-              <span className="label">Status:</span>
-              <span className="value">{recording?.status}</span>
-            </div>
+        <div className="video-wrapper">
+          <video ref={videoRef} className="video-player" playsInline disablePictureInPicture
+            onLoadedMetadata={(event) => { if (playback.resumePosition) event.currentTarget.currentTime = playback.resumePosition; }}
+            onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onTimeUpdate={updateProgress} />
+          {watermark?.overlayEnabled !== false && <div className={`watermark watermark-position-${watermarkIndex}`} aria-hidden="true">{watermarkText}</div>}
+          <div className="video-controls">
+            <button type="button" aria-label={playing ? 'Pause' : 'Play'} onClick={togglePlay}>{playing ? <Pause size={18} /> : <Play size={18} />}</button>
+            <input aria-label="Seek recording" type="range" min="0" max="100" value={progress} onChange={seek} />
+            <button type="button" aria-label={muted ? 'Unmute' : 'Mute'} onClick={() => { setMuted(!muted); if (video) video.muted = !muted; }}>{muted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>
+            <select aria-label="Playback speed" value={playbackRate} onChange={changePlaybackRate}>
+              {[0.75, 1, 1.25, 1.5, 2].map((rate) => <option key={rate} value={rate}>{rate}x</option>)}
+            </select>
+            <button type="button" aria-label="Fullscreen" onClick={() => video?.requestFullscreen?.()}><Maximize size={18} /></button>
           </div>
+        </div>
+        <div className="video-info">
+          <p className="eyebrow">Recording</p>
+          <h2>{recording?.title || 'Class recording'}</h2>
+          {recording?.description && <p>{recording.description}</p>}
+          <div className="info-grid"><div><span className="label">Duration</span><span className="value">{Math.floor((recording?.durationSeconds || 0) / 60)} min</span></div><div><span className="label">Access</span><span className="value">Streaming only</span></div><div><span className="label">Status</span><span className="value">Available</span></div></div>
         </div>
       </div>
-
       <aside className="player-sidebar">
-        <div className="sidebar-section">
-          <h3>Transcript</h3>
-          {recording?.transcript && (
-            <input
-              type="search"
-              value={transcriptSearch}
-              onChange={(event) => setTranscriptSearch(event.target.value)}
-              placeholder="Search transcript"
-              aria-label="Search transcript"
-            />
-          )}
-          <div className="transcript">
-            {recording?.transcript ? (
-            <>
-              <p>{transcriptSearch
-                ? recording.transcript.split(/(\s+)/).map((part, index) => (
-                  part.toLowerCase().includes(transcriptSearch.toLowerCase())
-                    ? <mark key={index}>{part}</mark>
-                    : part
-                ))
-                : recording.transcript}</p>
-              {matchingSegments.length > 0 && (
-                <div className="transcript-matches">
-                  {matchingSegments.map((segment, index) => (
-                    <button key={`${segment.start}-${index}`} type="button" onClick={() => jumpToChapter(segment.start)}>
-                      {Math.floor(segment.start / 60)}:{String(Math.floor(segment.start % 60)).padStart(2, '0')} — {segment.text}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
-            ) : (
-              <p className="placeholder">Transcription processing...</p>
-            )}
-          </div>
-        </div>
-
-        <div className="sidebar-section">
-          <h3>Summary</h3>
-          <div className="summary">
-            {recording?.aiSummary ? (
-              <p>{recording.aiSummary}</p>
-            ) : (
-              <p className="placeholder">Summary generating...</p>
-            )}
-          </div>
-        </div>
-
-        <div className="sidebar-section">
-          <h3>Key Takeaways</h3>
-          <ul className="takeaways">
-            {recording?.aiKeyTakeaways?.length > 0 ? (
-              recording.aiKeyTakeaways.map((takeaway, idx) => (
-                <li key={idx}>{takeaway}</li>
-              ))
-            ) : (
-              <li className="placeholder">Extracting key points...</li>
-            )}
-          </ul>
-        </div>
-
-        {chapters.length > 0 && (
-          <div className="sidebar-section">
-            <h3>Chapters</h3>
-            <div className="chapters-list">
-              {chapters.map((chapter, idx) => (
-                <button
-                  key={idx}
-                  className="chapter-btn"
-                  onClick={() => jumpToChapter(chapter.timestamp)}
-                >
-                  <span className="time">
-                    {Math.floor(chapter.timestamp / 60)}:{String(chapter.timestamp % 60).padStart(2, '0')}
-                  </span>
-                  <span className="title">{chapter.title}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="sidebar-section"><h3>Transcript</h3><p>{recording?.transcript || 'Transcript is not available for this recording.'}</p></div>
+        <div className="sidebar-section"><h3>Summary</h3><p>{recording?.aiSummary || 'Summary is not available for this recording.'}</p></div>
+        {recording?.aiKeyTakeaways?.length > 0 && <div className="sidebar-section"><h3>Key takeaways</h3><ul>{recording.aiKeyTakeaways.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
       </aside>
     </div>
   );

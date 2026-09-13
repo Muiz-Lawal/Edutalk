@@ -25,7 +25,7 @@ const upload = multer({
   fileFilter: (req, file, callback) => callback(null, file.mimetype.startsWith('video/')),
 });
 const uploadVideo = (req, res, next) => upload.single('file')(req, res, (error) => {
-  if (error?.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ message: 'Recordings must be 2GB or smaller' });
+  if (error?.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ code: 'file_too_large', message: 'That file is too large — maximum 2 GB.' });
   if (error) return res.status(400).json({ message: 'Upload a valid video file' });
   return next();
 });
@@ -33,6 +33,8 @@ const uploadVideo = (req, res, next) => upload.single('file')(req, res, (error) 
 router.post('/start', authenticateToken, startRecording);
 router.post('/complete', authenticateToken, completeRecording);
 router.post('/play/:recordingId', authenticateToken, playRecording);
+// Student-facing REST shape; retain the legacy route above for existing clients.
+router.post('/:recordingId/play', authenticateToken, playRecording);
 router.post('/:recordingId/progress', authenticateToken, updatePlaybackProgress);
 router.get('/library', authenticateToken, getStudentRecordingLibrary);
 router.post('/upload', authenticateToken, uploadVideo, uploadRecording);

@@ -20,6 +20,7 @@ import { randomUUID } from 'crypto';
 import PaymentChain from '../models/PaymentChain.js';
 import { toCents } from '../utils/pricing.js';
 import Cart from '../models/Cart.js';
+import { backfillStudentRecordingLibrary } from '../services/recordingLibrary.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_example');
 
@@ -342,6 +343,9 @@ export const confirmPayment = async (req, res) => {
         classData.totalEnrolled += 1;
         await classData.save();
       }
+      // Elite recordings are copied into the student's library on activation.
+      // The unique compound index makes this safe for retries and renewals.
+      await backfillStudentRecordingLibrary({ userId: req.user.userId, classId: item.classId });
 
       await PaymentChain.findOneAndUpdate(
         { studentId: req.user.userId, classId: item.classId },

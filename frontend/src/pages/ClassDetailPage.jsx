@@ -10,6 +10,8 @@ import { useCartStore } from '../stores/cartStore';
 import { showToast } from '../utils/toastManager';
 import '../styles/ClassDetail.css';
 import { Skeleton } from '../components/AsyncBoundary';
+import { CalendarDays, LockKeyhole, Play } from 'lucide-react';
+import RecordingPlayer from '../components/RecordingPlayer';
 
 export default function ClassDetailPage() {
   const { classId } = useParams();
@@ -20,11 +22,21 @@ export default function ClassDetailPage() {
   const [error, setError] = useState(false);
   const [selectedDays, setSelectedDays] = useState(1);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [classRecordings, setClassRecordings] = useState([]);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [selectedRecording, setSelectedRecording] = useState(null);
   const addLine = useCartStore((state) => state.addLine);
 
   useEffect(() => {
     fetchClass();
   }, [classId]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    api.get('/recordings/library').then(({ data }) => {
+      setClassRecordings((data.recordings || []).filter((recording) => String(recording.classId?._id || recording.classId) === String(classId)));
+    }).catch(() => setClassRecordings([]));
+  }, [classId, isAuthenticated]);
 
   // Log that user viewed this class
   const { logEvent } = useEventLogger();
@@ -89,8 +101,28 @@ export default function ClassDetailPage() {
           <p className="host-info">{appearance.hostLogo && <img className="class-host-logo" src={appearance.hostLogo} alt="" loading="lazy" />} by {classData.hostId?.firstName} {classData.hostId?.lastName}</p>
           <p className="class-status">{getClassStatus(classData, new Date(), timezone)}</p>
         </div>
+        {classRecordings.length > 0 && <nav className="class-tabs" aria-label="Class sections">
+          <button type="button" className={activeTab === 'overview' ? 'is-active' : ''} onClick={() => setActiveTab('overview')}>Overview</button>
+          <button type="button" className={activeTab === 'recordings' ? 'is-active' : ''} onClick={() => setActiveTab('recordings')}>Recordings <span>{classRecordings.length}</span></button>
+        </nav>}
 
-        <div className="class-content">
+        <div className={`class-content ${activeTab === 'recordings' ? 'class-content--recordings' : ''}`}>
+          {activeTab === 'recordings' ? <section className="section class-recordings" aria-labelledby="class-recordings-title">
+            <h2 id="class-recordings-title">Class recordings</h2>
+            <p className="section-intro">Recordings are available only during your paid access period and stream securely without downloads.</p>
+            <div className="class-recordings__grid">{classRecordings.map((recording) => {
+              const available = recording.isPlayable || (recording.status === 'ready' && recording.isVisible && !recording.isLocked);
+              const locked = recording.subscriptionStatus === 'expired' || recording.subscriptionStatus === 'cancelled';
+              return <article className="class-recording-card" key={recording.id || recording._id}>
+                <div className="class-recording-card__visual"><Play size={24} />{!available && <div className="class-recording-card__lock"><LockKeyhole size={18} /><strong>{locked ? 'Access ended' : 'Not available yet'}</strong></div>}</div>
+                <div><h3>{recording.title || 'Class recording'}</h3><p><CalendarDays size={14} /> {recording.createdAt ? new Date(recording.createdAt).toLocaleDateString() : 'Date not provided'}</p>
+                  {locked && <p className="class-recording-card__notice">Active enrollment includes recordings from live sessions.</p>}
+                  {!locked && !available && <p className="class-recording-card__notice">{recording.status === 'review_hold' ? `In review — available ${recording.reviewHoldUntil ? new Date(recording.reviewHoldUntil).toLocaleString() : 'after review'}.` : 'Your host is still preparing this recording.'}</p>}
+                  <button type="button" className="btn btn-primary" disabled={!available} onClick={() => setSelectedRecording(recording)}>{available ? 'Watch recording' : locked ? 'Re-enrol to watch' : 'Not available yet'}</button>
+                </div>
+              </article>;
+            })}</div>
+          </section> : <>
           <div className="class-main">
             <div className="class-intro">
               {classData.thumbnailImage ? (
@@ -213,8 +245,10 @@ export default function ClassDetailPage() {
               </div>
             </div>
           </aside>
+          </>}
         </div>
       </div>
+      {selectedRecording && <div className="recording-modal" role="dialog" aria-modal="true" aria-label="Recording player"><RecordingPlayer recordingId={selectedRecording.id || selectedRecording._id} onClose={() => setSelectedRecording(null)} /></div>}
     </div>
   );
 }

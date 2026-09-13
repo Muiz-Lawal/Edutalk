@@ -7,10 +7,13 @@ import User from '../models/User.js';
 import Class from '../models/Class.js';
 import PlaybackProgress from '../models/PlaybackProgress.js';
 import PlaybackAnomaly from '../models/PlaybackAnomaly.js';
+import Event from '../models/Event.js';
+import RecordingLibrary from '../models/RecordingLibrary.js';
 import { isTrustedDeviceAllowed, generateTrustedDeviceFingerprint } from '../utils/accessCode.js';
 import { recordingProvider } from '../services/recording-provider.js';
 import { transcribeAudio, summarizeContent, generateChapters } from '../utils/ai.js';
 import { assertFeature, planGateResponse } from '../utils/plan-limits.js';
+import { fanOutRecordingToActiveStudents } from '../services/recordingLibrary.js';
 
 const PRO_TIERS = new Set(['pro', 'elite']);
 const safeRecording = (recording, progress = null) => ({
@@ -36,6 +39,7 @@ const safeRecording = (recording, progress = null) => ({
   aiTimestamps: recording.aiTimestamps || recording.chapters || [],
   aiKeyTakeaways: recording.aiKeyTakeaways || recording.keyTakeaways || [],
   watermarkOverlayEnabled: recording.watermarkOverlayEnabled !== false,
+  hostPlanTier: recording.hostPlanTier,
   progress,
 });
 
@@ -51,9 +55,9 @@ const assertRecordingFeature = async (req, res) => {
 };
 
 const requireProClass = async (classId) => {
-  const classData = await Class.findById(classId).populate('hostId', 'planTier suspendedAt bannedAt');
+  const classData = await Class.findById(classId).populate('hostId', 'planTier activatedPlanTier suspendedAt bannedAt');
   if (!classData) return { error: { status: 404, message: 'Class not found' } };
-  if (!PRO_TIERS.has(classData.hostId?.planTier)) return { error: { status: 404, message: 'Recording not found' } };
+  if (!PRO_TIERS.has(classData.hostId?.activatedPlanTier || classData.hostId?.planTier)) return { error: { status: 404, message: 'Recording not found' } };
   return { classData };
 };
 
@@ -279,51 +283,69 @@ export const deleteRecording = async (req, res) => {
 };
 
 export const playRecording = async (req, res) => {
-  const userId = req.user?.userId;
-  if (!userId) return res.status(401).json({ message: 'Log in to watch this recording' });
-  const user = await User.findById(userId).select('email emailPreferences hostVerified planTier suspendedAt bannedAt');
-  if (!user) return res.status(401).json({ message: 'Log in to watch this recording' });
-  if (!user.emailPreferences?.emailVerified) return res.status(403).json({ message: 'Verify your email before watching recordings' });
-
-  const recording = await Recording.findById(req.params.recordingId);
-  if (!recording || recording.status !== 'ready') return res.status(404).json({ message: 'Recording not found' });
-  const subscription = await Subscription.findOne({ userId, classId: recording.classId, status: 'active' });
-  if (!subscription) {
-    const expired = await Subscription.findOne({ userId, classId: recording.classId, status: 'expired' });
-    return res.status(403).json({ message: expired ? 'Renew to keep watching' : 'You need an active access code for this class' });
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ code: 'authentication_required', message: 'Log in to watch this recording' });
+    const user = await User.findById(userId).select('email firstName lastName emailPreferences');
+    if (!user) return res.status(401).json({ code: 'authentication_required', message: 'Log in to watch this recording' });
+    if (!user.emailPreferences?.emailVerified) return res.status(403).json({ code: 'email_verification_required', message: 'Verify your email before watching recordings' });
+    const recording = await Recording.findById(req.params.recordingId);
+    if (!recording || recording.isDeleted) return res.status(404).json({ code: 'recording_not_found', message: 'Recording not found' });
+    if (!PRO_TIERS.has(recording.hostPlanTier)) return res.status(403).json({ code: 'recording_plan_locked', message: 'This recording is not available on the host plan that created it' });
+    if (recording.status !== 'ready') return res.status(403).json({ code: 'recording_not_ready', message: recording.status === 'review_hold' ? 'This recording is awaiting host review' : 'This recording is still being prepared' });
+    const now = new Date();
+    const session = recording.sessionId
+      ? await Session.findById(recording.sessionId).select('scheduledStartTime startTime')
+      : null;
+    const accessDate = session?.scheduledStartTime || session?.startTime || recording.createdAt || now;
+    const subscription = await Subscription.findOne({
+      userId, classId: recording.classId,
+      $or: [
+        { status: 'active' },
+        { startDate: { $lte: accessDate }, endDate: { $gte: accessDate } },
+      ],
+    }).sort({ endDate: -1 });
+    if (!subscription) return res.status(403).json({ code: 'subscription_required', message: 'You need an active paid period for this class' });
+    if (subscription.accessCodeEmail && subscription.accessCodeEmail.toLowerCase() !== user.email.toLowerCase()) {
+      return res.status(403).json({ code: 'access_code_email_mismatch', message: 'Your access code email does not match this account' });
+    }
+    if (subscription.accessCodeClassId && subscription.accessCodeClassId.toString() !== recording.classId.toString()) {
+      return res.status(403).json({ code: 'access_code_mismatch', message: 'This access code belongs to another class' });
+    }
+    const coversSession = (!subscription.startDate || accessDate >= subscription.startDate)
+      && (!subscription.endDate || accessDate <= subscription.endDate);
+    const activeNow = subscription.status === 'active'
+      && (!subscription.startDate || now >= subscription.startDate)
+      && (!subscription.endDate || now <= subscription.endDate);
+    if (!coversSession && !activeNow) {
+      return res.status(403).json({ code: 'subscription_expired', message: 'Your paid access period has ended. Renew to keep watching' });
+    }
+    const accessCodeCoversSession = (!subscription.accessCodeValidFrom || accessDate >= subscription.accessCodeValidFrom)
+      && (!subscription.accessCodeValidUntil || accessDate <= subscription.accessCodeValidUntil);
+    if (!accessCodeCoversSession && !activeNow) {
+      return res.status(403).json({ code: 'subscription_expired', message: 'Your paid access period has ended. Renew to keep watching' });
+    }
+    if (!recording.isVisible || (recording.releaseAt && recording.releaseAt > now)) return res.status(403).json({ code: 'recording_locked', message: 'This recording is not released yet' });
+    const classData = await Class.findById(recording.classId).populate('hostId', 'suspendedAt bannedAt');
+    if (classData?.hostId?.suspendedAt || classData?.hostId?.bannedAt) return res.status(403).json({ code: 'recording_unavailable', message: 'This recording is temporarily unavailable' });
+    const deviceFingerprint = req.headers['x-device-fingerprint'] || generateTrustedDeviceFingerprint(req.headers['user-agent'], req.ip);
+    if (!isTrustedDeviceAllowed({ trustedFingerprints: subscription.trustedDeviceFingerprints, providedFingerprint: deviceFingerprint, maxDevices: 3 })) {
+      return res.status(403).json({ code: 'device_not_trusted', message: 'This device is not trusted for your access code' });
+    }
+    const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000);
+    const streamUrl = await recordingProvider.createSignedPlaybackUrl(recording.streamUid, expiresAt);
+    const progress = await PlaybackProgress.findOne({ userId, recordingId: recording._id });
+    await PlaybackAnomaly.create({ userId, recordingId: recording._id, ipAddress: req.ip, deviceFingerprint });
+    await Event.create({ userId, action: 'recording_opened', targetType: 'recording', targetId: recording._id, metadata: { classId: recording.classId, hostPlanTier: recording.hostPlanTier }, ip: req.ip, userAgent: req.headers['user-agent'] || '' }).catch(() => {});
+    const positionSeed = crypto.createHash('sha256').update(`${recording._id}:${userId}:${expiresAt.toISOString()}`).digest('hex');
+    return res.json({
+      streamUrl, expiresAt,
+      watermark: { name: `${user.firstName || ''} ${user.lastName || ''}`.trim(), studentName: `${user.firstName || ''} ${user.lastName || ''}`.trim(), email: user.email, overlayEnabled: true, positions: [positionSeed.slice(0, 2), positionSeed.slice(2, 4), positionSeed.slice(4, 6), positionSeed.slice(6, 8)], intervalSeconds: 60, sessionId: `${recording._id}:${userId}:${Date.now()}` },
+      resumePosition: progress?.lastPosition || 0,
+    });
+  } catch (error) {
+    return res.status(500).json({ code: 'recording_playback_failed', message: 'Unable to start playback right now' });
   }
-  if (!subscription.accessCode || subscription.accessCodeClassId?.toString() !== recording.classId.toString()) {
-    return res.status(403).json({ message: 'You need an active access code for this class' });
-  }
-  const { classData, error } = await requireProClass(recording.classId);
-  if (error) return res.status(error.status).json({ message: error.message });
-  const now = new Date();
-  if (subscription.accessCodeEmail?.toLowerCase() !== user.email.toLowerCase()) {
-    return res.status(403).json({ message: 'Your access code email does not match this account' });
-  }
-  const deviceFingerprint = req.headers['x-device-fingerprint'] || generateTrustedDeviceFingerprint(req.headers['user-agent'], req.ip);
-  if (!isTrustedDeviceAllowed({ trustedFingerprints: subscription.trustedDeviceFingerprints, providedFingerprint: deviceFingerprint, maxDevices: 3 })) {
-    return res.status(403).json({ message: 'This device is not trusted for your access code' });
-  }
-  if (now < subscription.accessCodeValidFrom || now > subscription.accessCodeValidUntil || now < subscription.startDate || now > subscription.endDate) {
-    return res.status(403).json({ message: 'Renew to keep watching' });
-  }
-  if (!recording.isVisible || (recording.releaseAt && recording.releaseAt > now)) {
-    return res.status(403).json({ message: 'This recording is not released yet' });
-  }
-  if (classData.hostId?.suspendedAt || classData.hostId?.bannedAt) return res.status(403).json({ message: 'This recording is temporarily unavailable' });
-
-  const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000);
-  const streamUrl = await recordingProvider.createSignedPlaybackUrl(recording.streamUid, expiresAt);
-  const progress = await PlaybackProgress.findOne({ userId, recordingId: recording._id });
-  await PlaybackAnomaly.create({ userId, recordingId: recording._id, ipAddress: req.ip, deviceFingerprint });
-  const positionSeed = crypto.createHash('sha256').update(`${recording._id}:${userId}:${expiresAt.toISOString()}`).digest('hex');
-  return res.json({
-    streamUrl,
-    expiresAt,
-    watermark: { email: user.email, overlayEnabled: recording.watermarkOverlayEnabled !== false, positions: [positionSeed.slice(0, 2), positionSeed.slice(2, 4), positionSeed.slice(4, 6), positionSeed.slice(6, 8)], intervalSeconds: 20, sessionId: `${recording._id}:${userId}:${Date.now()}` },
-    resumePosition: progress?.lastPosition || 0,
-  });
 };
 
 export const updatePlaybackProgress = async (req, res) => {
@@ -333,18 +355,42 @@ export const updatePlaybackProgress = async (req, res) => {
     { lastPosition: Math.max(0, Number(position)), percentWatched: Math.min(100, Math.max(0, Number(percentWatched))), updatedAt: new Date() },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
+  await Event.create({ userId: req.user.userId, action: 'recording_watched', targetType: 'recording', targetId: req.params.recordingId, value: Number(position), metadata: { percentWatched: Number(percentWatched) }, ip: req.ip, userAgent: req.headers['user-agent'] || '' }).catch(() => {});
   res.json({ progress });
 };
 
 export const getStudentRecordingLibrary = async (req, res) => {
-  const subscriptions = await Subscription.find({ userId: req.user.userId }).populate({ path: 'classId', populate: { path: 'hostId', select: 'planTier' } }).select('classId status');
-  const eligibleSubscriptions = subscriptions.filter((subscription) => PRO_TIERS.has(subscription.classId?.hostId?.planTier));
-  const classIds = eligibleSubscriptions.map((subscription) => subscription.classId._id);
-  const recordings = await Recording.find({ classId: { $in: classIds }, isDeleted: false }).populate('classId', 'title').sort({ createdAt: -1 });
+  const subscriptions = await Subscription.find({ userId: req.user.userId }).populate('classId', 'title').select('classId status startDate endDate');
+  const classIds = subscriptions.map((subscription) => subscription.classId?._id).filter(Boolean);
+  const recordings = await Recording.find({ classId: { $in: classIds }, hostPlanTier: { $in: [...PRO_TIERS] }, isDeleted: false })
+    .populate('classId', 'title')
+    .populate('hostId', 'firstName lastName name')
+    .sort({ createdAt: -1 });
   const progress = await PlaybackProgress.find({ userId: req.user.userId, recordingId: { $in: recordings.map((recording) => recording._id) } });
   const progressMap = new Map(progress.map((item) => [String(item.recordingId), item]));
-  const statusMap = new Map(eligibleSubscriptions.map((subscription) => [String(subscription.classId._id), subscription.status]));
-  res.json({ recordings: recordings.map((recording) => ({ ...safeRecording(recording, progressMap.get(String(recording._id)) || null), classTitle: recording.classId?.title, subscriptionStatus: statusMap.get(String(recording.classId?._id || recording.classId)) })) });
+  const subscriptionMap = new Map(subscriptions.map((subscription) => [String(subscription.classId._id), subscription]));
+  const libraryIds = await RecordingLibrary.find({ userId: req.user.userId, recordingId: { $in: recordings.map((r) => r._id) } }).distinct('recordingId');
+  const librarySet = new Set(libraryIds.map(String));
+  res.json({ recordings: recordings.map((recording) => {
+    const subscription = subscriptionMap.get(String(recording.classId?._id || recording.classId));
+    const playable = recording.status === 'ready' && recording.isVisible && (!recording.releaseAt || recording.releaseAt <= new Date());
+    const covered = Boolean(subscription && (!subscription.startDate || subscription.startDate <= new Date()) && (!subscription.endDate || subscription.endDate >= new Date()));
+    const isPlayable = playable && covered;
+    const lockReason = recording.status === 'review_hold' ? 'review_hold' : (!covered ? 'subscription_expired' : (playable ? null : recording.status));
+    return {
+      ...safeRecording(recording, progressMap.get(String(recording._id)) || null),
+      classTitle: recording.classId?.title,
+      hostName: [recording.hostId?.firstName, recording.hostId?.lastName].filter(Boolean).join(' ') || recording.hostId?.name,
+      createdAt: recording.createdAt,
+      subscriptionStatus: subscription?.status,
+      subscriptionCovered: covered,
+      isPlayable,
+      isLocked: !isPlayable,
+      lockReason,
+      lock: { isLocked: !isPlayable, reason: lockReason },
+      libraryShared: librarySet.has(String(recording._id)),
+    };
+  }) });
 };
 
 export const updateClassRecordingSettings = async (req, res) => {
@@ -382,6 +428,7 @@ export const startRecording = async (req, res) => {
       sessionId,
       classId,
       hostId: req.user.userId,
+      hostPlanTier: classData.hostId.activatedPlanTier || classData.hostId.planTier,
       status: 'recording',
       title: `Recording - ${new Date().toISOString()}`,
     });
@@ -424,7 +471,6 @@ export const completeRecording = async (req, res) => {
       },
       { new: true, ...(eventId ? {} : {}) }
     );
-
     // Trigger async AI processing
     const sourceUrl = streamUid ? await recordingProvider.createSignedPlaybackUrl(streamUid, new Date(Date.now() + 60 * 60 * 1000)) : null;
     if (sourceUrl) processRecordingAsync(recording._id, sourceUrl);
@@ -485,7 +531,7 @@ export const uploadRecording = async (req, res) => {
   }
   if (!req.file) return res.status(400).json({ message: 'Choose a video file to upload' });
   if (Number(req.file.size) > 2 * 1024 * 1024 * 1024) {
-    return res.status(413).json({ code: 'file_too_large', message: 'Recordings must be 2GB or smaller' });
+    return res.status(413).json({ code: 'file_too_large', message: 'That file is too large — maximum 2 GB.' });
   }
   const retentionDays = classData.recordingSettings?.retentionDays;
   const releasePolicy = classData.recordingSettings?.releasePolicy || 'immediate';
@@ -494,6 +540,7 @@ export const uploadRecording = async (req, res) => {
     sessionId,
     classId,
     hostId: req.user.userId,
+    hostPlanTier: classData.hostId.activatedPlanTier || classData.hostId.planTier,
     title: `Uploaded recording - ${new Date().toISOString()}`,
     storageUrl: req.file.path,
     fileSize: req.file.size,
@@ -520,6 +567,7 @@ export const publishRecording = async (req, res) => {
   recording.status = 'ready';
   recording.processingProgress = 100;
   await recording.save();
+  await fanOutRecordingToActiveStudents(recording);
   res.json({ recording: safeRecording(recording) });
 };
 
@@ -586,6 +634,7 @@ async function processRecordingAsync(recordingId, videoUrl) {
         recording.releaseAt = holdActive ? recording.reviewHoldUntil : (recording.releaseAt || new Date());
         recording.processingProgress = 100;
         await recording.save();
+        if (!holdActive) await fanOutRecordingToActiveStudents(recording);
         return;
       }
       if (host) {
@@ -605,6 +654,9 @@ async function processRecordingAsync(recordingId, videoUrl) {
       recording.status = 'ready';
       recording.processingProgress = 100;
       await recording.save();
+      if (!recording.reviewHoldUntil || recording.reviewHoldUntil <= new Date()) {
+        await fanOutRecordingToActiveStudents(recording);
+      }
       return;
     } catch (error) {
       const recording = await Recording.findById(recordingId);

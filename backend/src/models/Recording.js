@@ -11,6 +11,13 @@ const recordingSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  // Tier captured when the recording is created.  Playback must not change
+  // when a host later changes plans.
+  hostPlanTier: {
+    type: String,
+    enum: ['starter', 'growth', 'pro', 'elite'],
+    default: 'starter',
+  },
   classId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Class',
