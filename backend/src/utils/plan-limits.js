@@ -39,6 +39,7 @@ export function planGateResponse(error, res) {
   if (error?.code === 'plan_gate') {
     return res.status(403).json({
       code: error.code,
+      message: error.message,
       feature: error.feature,
       currentTier: error.currentTier,
       requiredTier: error.requiredTier,

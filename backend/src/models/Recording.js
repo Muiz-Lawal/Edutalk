@@ -54,7 +54,7 @@ const recordingSchema = new mongoose.Schema({
   // Processing
   status: {
     type: String,
-    enum: ['recording', 'processing', 'ready', 'failed', 'expired'],
+    enum: ['recording', 'processing', 'review_hold', 'ready', 'failed', 'expired'],
     default: 'recording',
   },
   processingProgress: {
@@ -106,6 +106,11 @@ const recordingSchema = new mongoose.Schema({
     default: false,
   },
   releaseAt: Date,
+  reviewHoldUntil: Date,
+  reviewHoldReason: String,
+  autoDeleteEnabled: { type: Boolean, default: false },
+  autoDeleteDays: { type: Number, enum: [30, 90, null], default: null },
+  processedEventIds: { type: [String], default: [] },
   processingError: String,
   retryCount: { type: Number, default: 0 },
   

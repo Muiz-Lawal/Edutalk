@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+import { Camera, Circle, Lock, Mic, MicOff, MonitorUp, PhoneOff, Square, Video, VideoOff } from 'lucide-react';
 import api from '../utils/api';
-import 'C:/Users/abdul/Desktop/class/frontend/src/styles/VideoRoom.css';
+import LockedFeatureCard from './ui/LockedFeatureCard';
+import Modal from './ui/Modal';
+import '../styles/VideoRoom.css';
 
 export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) {
   const [participants, setParticipants] = useState([]);
@@ -13,6 +16,9 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [recordingStatus, setRecordingStatus] = useState('idle');
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [hostContext, setHostContext] = useState(null);
+  const [showRecordingUpgrade, setShowRecordingUpgrade] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [stats, setStats] = useState({});
   const [activeSpeaker, setActiveSpeaker] = useState(null);
@@ -23,6 +29,22 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
   const iceCandidateQueueRef = useRef({}); // { socketId: [RTCIceCandidate, ...], ... }
   const localStreamRef = useRef(null);
   const statsIntervalRef = useRef(null);
+  const recordingTimerRef = useRef(null);
+
+  useEffect(() => {
+    api.get('/me/host-context')
+      .then(({ data }) => setHostContext(data))
+      .catch(() => setHostContext({ tier: 'starter', subscribers: 0, nextThreshold: 23, features: {} }));
+  }, []);
+
+  useEffect(() => {
+    if (recordingStatus === 'recording') {
+      recordingTimerRef.current = window.setInterval(() => setRecordingSeconds((seconds) => seconds + 1), 1000);
+    }
+    return () => {
+      if (recordingTimerRef.current) window.clearInterval(recordingTimerRef.current);
+    };
+  }, [recordingStatus]);
 
   useEffect(() => {
     initializeVideoRoom();
@@ -341,6 +363,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
 
   // Cleanup
   const cleanupVideoRoom = () => {
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     // Clear stats interval
     if (statsIntervalRef.current) {
       clearInterval(statsIntervalRef.current);
@@ -459,36 +482,22 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
   };
 
   const startRecording = async () => {
-    try {
-      setRecordingStatus('recording');
-      const response = await api.post('/recordings/start', {
-        sessionId,
-        classId,
-      });
-      console.log('Recording started:', response.data);
-    } catch (error) {
-      console.error('Failed to start recording:', error);
-      setRecordingStatus('idle');
+    const tier = String(hostContext?.tier || 'starter').toLowerCase();
+    if (!['pro', 'elite'].includes(tier)) {
+      setShowRecordingUpgrade(true);
+      return;
     }
+    setRecordingSeconds(0);
+    setRecordingStatus('recording');
   };
 
   const stopRecording = async () => {
-    try {
-      setRecordingStatus('processing');
-      const mockVideoUrl = 'https://example.com/video.mp4';
-
-      await api.post('/recordings/complete', {
-        recordingId: 'temp-id',
-        videoUrl: mockVideoUrl,
-        duration: 3600,
-      });
-
-      setRecordingStatus('idle');
-    } catch (error) {
-      console.error('Failed to stop recording:', error);
-      setRecordingStatus('idle');
-    }
+    setRecordingStatus('processing');
+    window.setTimeout(() => setRecordingStatus('idle'), 600);
   };
+
+  const formatRecordingTime = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+  const recordingUnlocked = ['pro', 'elite'].includes(String(hostContext?.tier || '').toLowerCase());
 
   const sendChatMessage = async () => {
     if (chatInput.trim() && socketRef.current) {
@@ -534,7 +543,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
               playsInline
               className="video-element"
             />
-            <span className="video-label">📹 You</span>
+            <span className="video-label"><Camera size={14} /> You</span>
           </div>
 
           {/* Remote video tiles */}
@@ -559,7 +568,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
                 ) : (
                   <div className="video-placeholder">Connecting to video...</div>
                 )}
-                <span className="video-label">👤 {participant.email.split('@')[0]}</span>
+                <span className="video-label"><Camera size={14} /> {participant.email.split('@')[0]}</span>
                 {stats[participant.socketId] && (
                   <span className="video-stats">{stats[participant.socketId].bitrate}</span>
                 )}
@@ -581,6 +590,12 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
           <span>{isConnected ? `Connected (${participants.length + 1} participants)` : 'Disconnected'}</span>
         </div>
 
+        {recordingStatus === 'recording' && (
+          <div className="recording-indicator" role="status">
+            <Circle size={10} fill="currentColor" /> Recording {formatRecordingTime(recordingSeconds)}
+          </div>
+        )}
+
         {/* Controls */}
         <div className="controls">
           <button
@@ -588,7 +603,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
             onClick={toggleAudio}
             title="Toggle Audio"
           >
-            🎤 {isAudioEnabled ? 'On' : 'Off'}
+            {isAudioEnabled ? <Mic size={18} /> : <MicOff size={18} />} {isAudioEnabled ? 'On' : 'Off'}
           </button>
 
           <button
@@ -596,7 +611,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
             onClick={toggleVideo}
             title="Toggle Video"
           >
-            🎥 {isVideoEnabled ? 'On' : 'Off'}
+            {isVideoEnabled ? <Video size={18} /> : <VideoOff size={18} />} {isVideoEnabled ? 'On' : 'Off'}
           </button>
 
           <button
@@ -604,15 +619,17 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
             onClick={isScreenSharing ? stopScreenShare : startScreenShare}
             title="Share Screen"
           >
-            📺 {isScreenSharing ? 'Stop' : 'Share'}
+            <MonitorUp size={18} /> {isScreenSharing ? 'Stop' : 'Share'}
           </button>
 
           <button
-            className={`control-btn ${recordingStatus === 'recording' ? 'recording' : ''}`}
+            className={`control-btn ${recordingStatus === 'recording' ? 'recording' : ''} ${recordingStatus === 'processing' ? 'disabled' : ''} ${!recordingUnlocked ? 'locked' : ''}`}
             onClick={recordingStatus === 'idle' ? startRecording : stopRecording}
             title="Record Session"
+            disabled={recordingStatus === 'processing'}
           >
-            ⭕ {recordingStatus}
+            {recordingStatus === 'recording' ? <Square size={17} /> : recordingUnlocked ? <Circle size={18} /> : <Lock size={16} />}
+            {recordingStatus === 'recording' ? `Stop ${formatRecordingTime(recordingSeconds)}` : recordingStatus === 'processing' ? 'Saving' : recordingUnlocked ? 'Record' : 'Record (Pro)'}
           </button>
 
           <button
@@ -620,7 +637,7 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
             onClick={endSession}
             title="End Session"
           >
-            ☎️ Leave
+            <PhoneOff size={18} /> Leave
           </button>
         </div>
       </div>
@@ -646,6 +663,14 @@ export default function VideoRoom({ roomId, sessionId, classId, onSessionEnd }) 
           <button onClick={sendChatMessage}>Send</button>
         </div>
       </div>
+      <Modal open={showRecordingUpgrade} title="Recording is a Pro feature" onClose={() => setShowRecordingUpgrade(false)}>
+        <LockedFeatureCard
+          feature="recording"
+          tier={hostContext?.tier || 'Growth'}
+          subscribers={hostContext?.subscribers || 0}
+          threshold={hostContext?.nextThreshold || 23}
+        />
+      </Modal>
     </div>
   );
 }

@@ -24,6 +24,12 @@ const safeRecording = (recording, progress = null) => ({
   status: recording.status,
   isVisible: recording.isVisible,
   releaseAt: recording.releaseAt,
+  reviewHoldUntil: recording.reviewHoldUntil,
+  holdRemainingSeconds: recording.reviewHoldUntil
+    ? Math.max(0, Math.ceil((new Date(recording.reviewHoldUntil).getTime() - Date.now()) / 1000))
+    : 0,
+  autoDeleteAt: recording.autoDeleteAt,
+  autoDeleteEnabled: recording.autoDeleteEnabled,
   transcript: recording.transcript,
   transcriptSegments: recording.transcriptSegments || [],
   aiSummary: recording.aiSummary || recording.summary,
@@ -32,6 +38,17 @@ const safeRecording = (recording, progress = null) => ({
   watermarkOverlayEnabled: recording.watermarkOverlayEnabled !== false,
   progress,
 });
+
+const assertRecordingFeature = async (req, res) => {
+  try {
+    await assertFeature(req.user.userId, 'recording');
+    return true;
+  } catch (error) {
+    if (planGateResponse(error, res)) return false;
+    res.status(500).json({ message: 'Unable to use recordings.' });
+    return false;
+  }
+};
 
 const requireProClass = async (classId) => {
   const classData = await Class.findById(classId).populate('hostId', 'planTier suspendedAt bannedAt');
@@ -223,6 +240,7 @@ export const getUserRecordings = async (req, res) => {
  */
 export const deleteRecording = async (req, res) => {
   try {
+    if (!await assertRecordingFeature(req, res)) return;
     const { recordingId } = req.params;
     const userId = req.user?.userId;
 
@@ -242,6 +260,7 @@ export const deleteRecording = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden: Only the recording owner can delete this recording' });
     }
 
+    await recordingProvider.deleteRecording(recording.streamUid);
     // Soft delete
     recording.isDeleted = true;
     recording.updatedAt = new Date();
@@ -329,20 +348,16 @@ export const getStudentRecordingLibrary = async (req, res) => {
 };
 
 export const updateClassRecordingSettings = async (req, res) => {
-  try {
-    await assertFeature(req.user.userId, 'recording');
-  } catch (error) {
-    if (planGateResponse(error, res)) return;
-    return res.status(500).json({ message: 'Unable to update recording settings.' });
-  }
+  if (!await assertRecordingFeature(req, res)) return;
   const classData = await Class.findOne({ _id: req.params.classId, hostId: req.user.userId }).populate('hostId', 'planTier');
   if (!classData) return res.status(404).json({ message: 'Class not found' });
   if (!PRO_TIERS.has(classData.hostId.planTier)) return res.status(403).json({ message: 'Recordings unlock at Pro' });
-  const { mode, releasePolicy, retentionDays, watermarkOverlayEnabled } = req.body;
+  const { mode, releasePolicy, retentionDays, autoDeleteDays, watermarkOverlayEnabled } = req.body;
   if (mode && !['auto', 'manual'].includes(mode)) return res.status(400).json({ message: 'Invalid recording mode' });
   if (releasePolicy && !['immediate', '24h'].includes(releasePolicy)) return res.status(400).json({ message: 'Invalid release policy' });
-  if (retentionDays !== undefined && ![30, 90, null].includes(retentionDays)) return res.status(400).json({ message: 'Invalid retention period' });
-  classData.recordingSettings = { ...classData.recordingSettings?.toObject?.(), mode, releasePolicy, retentionDays, watermarkOverlayEnabled };
+  const configuredRetention = autoDeleteDays === undefined ? retentionDays : autoDeleteDays;
+  if (configuredRetention !== undefined && ![30, 90, null].includes(configuredRetention)) return res.status(400).json({ message: 'Invalid retention period' });
+  classData.recordingSettings = { ...classData.recordingSettings?.toObject?.(), mode, releasePolicy, retentionDays: configuredRetention, watermarkOverlayEnabled };
   await classData.save();
   res.json({ settings: classData.recordingSettings });
 };
@@ -354,12 +369,7 @@ export const updateClassRecordingSettings = async (req, res) => {
 export const startRecording = async (req, res) => {
   try {
     const { sessionId, classId } = req.body;
-    try {
-      await assertFeature(req.user.userId, 'recording');
-    } catch (error) {
-      if (planGateResponse(error, res)) return;
-      return res.status(500).json({ message: 'Unable to start recording.' });
-    }
+    if (!await assertRecordingFeature(req, res)) return;
 
     const { classData, error } = await requireProClass(classId);
     if (error || classData.hostId._id.toString() !== req.user.userId) {
@@ -389,18 +399,30 @@ export const startRecording = async (req, res) => {
 
 export const completeRecording = async (req, res) => {
   try {
-    const { recordingId, streamUid, duration } = req.body;
+    if (!await assertRecordingFeature(req, res)) return;
+    const { recordingId, streamUid, duration, eventId: suppliedEventId, providerEventId } = req.body;
+    const eventId = suppliedEventId || providerEventId;
 
     const existing = await Recording.findById(recordingId);
     if (!existing || existing.hostId.toString() !== req.user.userId) return res.status(404).json({ message: 'Recording not found' });
+    if (eventId && existing.processedEventIds.includes(String(eventId))) {
+      return res.json({ message: 'Recording event already processed', recording: safeRecording(existing), idempotent: true });
+    }
+    const classData = await Class.findById(existing.classId);
+    const releasePolicy = classData?.recordingSettings?.releasePolicy || 'immediate';
+    const holdUntil = releasePolicy === '24h' ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null;
+    if (streamUid) await recordingProvider.completeRecording(streamUid);
     const recording = await Recording.findByIdAndUpdate(
       recordingId,
       {
-        status: 'processing',
+        status: holdUntil ? 'review_hold' : 'processing',
         streamUid,
         duration,
+        reviewHoldUntil: holdUntil,
+        releaseAt: holdUntil || new Date(),
+        ...(eventId ? { $addToSet: { processedEventIds: String(eventId) } } : {}),
       },
-      { new: true }
+      { new: true, ...(eventId ? {} : {}) }
     );
 
     // Trigger async AI processing
@@ -455,20 +477,19 @@ export const getRecordingList = async (req, res) => {
 };
 
 export const uploadRecording = async (req, res) => {
-  try {
-    await assertFeature(req.user.userId, 'recording');
-  } catch (error) {
-    if (planGateResponse(error, res)) return;
-    return res.status(500).json({ message: 'Unable to upload recording.' });
-  }
+  if (!await assertRecordingFeature(req, res)) return;
   const { sessionId, classId } = req.body;
   const { classData, error } = await requireProClass(classId);
   if (error || classData.hostId._id.toString() !== req.user.userId) {
     return res.status(error?.status || 403).json({ message: error?.message || 'Only Pro hosts can upload recordings' });
   }
   if (!req.file) return res.status(400).json({ message: 'Choose a video file to upload' });
+  if (Number(req.file.size) > 2 * 1024 * 1024 * 1024) {
+    return res.status(413).json({ code: 'file_too_large', message: 'Recordings must be 2GB or smaller' });
+  }
   const retentionDays = classData.recordingSettings?.retentionDays;
   const releasePolicy = classData.recordingSettings?.releasePolicy || 'immediate';
+  const holdUntil = releasePolicy === '24h' ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null;
   const recording = await Recording.create({
     sessionId,
     classId,
@@ -477,20 +498,27 @@ export const uploadRecording = async (req, res) => {
     storageUrl: req.file.path,
     fileSize: req.file.size,
     fileSizeBytes: req.file.size,
-    status: 'processing',
-    isVisible: releasePolicy === 'immediate',
-    releaseAt: releasePolicy === '24h' ? new Date(Date.now() + 24 * 60 * 60 * 1000) : new Date(),
+    status: holdUntil ? 'review_hold' : 'processing',
+    isVisible: !holdUntil,
+    reviewHoldUntil: holdUntil,
+    releaseAt: holdUntil || new Date(),
     watermarkOverlayEnabled: classData.recordingSettings?.watermarkOverlayEnabled !== false,
+    autoDeleteEnabled: Boolean(retentionDays),
+    autoDeleteDays: retentionDays || null,
     autoDeleteAt: retentionDays ? new Date(Date.now() + retentionDays * 24 * 60 * 60 * 1000) : null,
   });
   return res.status(201).json({ recording: safeRecording(recording), message: 'Recording processing — usually ready within an hour' });
 };
 
 export const publishRecording = async (req, res) => {
+  if (!await assertRecordingFeature(req, res)) return;
   const recording = await Recording.findOne({ _id: req.params.recordingId, hostId: req.user.userId });
   if (!recording) return res.status(404).json({ message: 'Recording not found' });
   recording.isVisible = true;
   recording.releaseAt = new Date();
+  recording.reviewHoldUntil = null;
+  recording.status = 'ready';
+  recording.processingProgress = 100;
   await recording.save();
   res.json({ recording: safeRecording(recording) });
 };
@@ -504,6 +532,7 @@ export const getHostRecordings = async (req, res) => {
 };
 
 export const setRecordingVisibility = async (req, res) => {
+  if (!await assertRecordingFeature(req, res)) return;
   const recording = await Recording.findOne({ _id: req.params.recordingId, hostId: req.user.userId });
   if (!recording) return res.status(404).json({ message: 'Recording not found' });
   recording.isVisible = Boolean(req.body.visible);
@@ -551,7 +580,10 @@ async function processRecordingAsync(recordingId, videoUrl) {
       const used = host?.recordingTranscriptionUsage?.date === today ? host.recordingTranscriptionUsage.minutes || 0 : 0;
       if (used + minutes > cap) {
         console.warn(`[recordings] transcription cap reached for host ${recording.hostId}; skipping enrichment`);
-        recording.status = 'ready';
+        const holdActive = recording.reviewHoldUntil && recording.reviewHoldUntil > new Date();
+        recording.status = holdActive ? 'review_hold' : 'ready';
+        recording.isVisible = !holdActive;
+        recording.releaseAt = holdActive ? recording.reviewHoldUntil : (recording.releaseAt || new Date());
         recording.processingProgress = 100;
         await recording.save();
         return;
