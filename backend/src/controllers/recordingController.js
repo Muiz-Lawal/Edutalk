@@ -476,8 +476,7 @@ export const completeRecording = async (req, res) => {
       return res.json({ message: 'Recording event already processed', recording: safeRecording(existing), idempotent: true });
     }
     const classData = await Class.findById(existing.classId);
-    const releasePolicy = classData?.recordingSettings?.releasePolicy || 'immediate';
-    const holdUntil = releasePolicy === '24h' ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null;
+    const holdUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
     if (streamUid) await recordingProvider.completeRecording(streamUid);
     const recording = await Recording.findByIdAndUpdate(
       recordingId,
@@ -554,8 +553,7 @@ export const uploadRecording = async (req, res) => {
     return res.status(413).json({ code: 'file_too_large', message: 'That file is too large — maximum 2 GB.' });
   }
   const retentionDays = classData.recordingSettings?.retentionDays;
-  const releasePolicy = classData.recordingSettings?.releasePolicy || 'immediate';
-  const holdUntil = releasePolicy === '24h' ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null;
+  const holdUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const recording = await Recording.create({
     sessionId,
     classId,
@@ -581,6 +579,12 @@ export const publishRecording = async (req, res) => {
   if (!await assertRecordingFeature(req, res)) return;
   const recording = await Recording.findOne({ _id: req.params.recordingId, hostId: req.user.userId });
   if (!recording) return res.status(404).json({ message: 'Recording not found' });
+  if (recording.reviewHoldUntil && recording.reviewHoldUntil > new Date()) {
+    return res.status(409).json({
+      code: 'recording_review_hold',
+      message: 'This recording remains unavailable until the 24-hour review hold ends.',
+    });
+  }
   recording.isVisible = true;
   recording.releaseAt = new Date();
   recording.reviewHoldUntil = null;
