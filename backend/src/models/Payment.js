@@ -64,8 +64,18 @@ const paymentSchema = new mongoose.Schema({
   // Stripe details
   stripePaymentIntentId: String,
   stripeChargeId: String,
+  gateway: {
+    type: String,
+    enum: ['stripe', 'paystack'],
+  },
+  gatewayReference: String,
   gatewayEventId: String,
   webhookProcessedAt: Date,
+  activationSource: {
+    type: String,
+    enum: ['confirm', 'webhook'],
+  },
+  activatedAt: Date,
   
   // Payment type
   paymentType: {

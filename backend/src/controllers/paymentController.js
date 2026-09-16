@@ -17,6 +17,7 @@ import { findActiveSubscription, recordContinuationPayment } from '../services/c
 import { calculateRefundSummary } from '../utils/refunds.js';
 import { getAccessWindow, validateEnrollmentDays } from '../utils/enrollmentDays.js';
 import { randomUUID } from 'crypto';
+import crypto from 'crypto';
 import PaymentChain from '../models/PaymentChain.js';
 import { toCents } from '../utils/pricing.js';
 import Cart from '../models/Cart.js';
@@ -43,8 +44,51 @@ export const handleStripeWebhook = async (req, res) => {
       payment.status = event.type === 'payment_intent.succeeded' ? 'completed' : 'failed';
       payment.gatewayEventId = event.id;
       payment.webhookProcessedAt = new Date();
+      payment.gateway = 'stripe';
+      payment.gatewayReference = intent.id;
+      payment.activationSource = 'webhook';
+      payment.activatedAt = payment.status === 'completed' ? new Date() : undefined;
       await payment.save();
     }
+  }
+
+  return res.json({ received: true });
+};
+
+export const handlePaystackWebhook = async (req, res) => {
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) return res.status(503).json({ message: 'Paystack webhook secret is not configured' });
+
+  const signature = req.headers['x-paystack-signature'];
+  const expected = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
+  const providedSignature = Buffer.from(String(signature || ''));
+  const expectedSignature = Buffer.from(expected);
+  if (providedSignature.length !== expectedSignature.length
+    || !crypto.timingSafeEqual(providedSignature, expectedSignature)) {
+    return res.status(400).json({ message: 'Invalid Paystack webhook signature' });
+  }
+
+  let event;
+  try {
+    event = JSON.parse(req.body.toString('utf8'));
+  } catch (error) {
+    return res.status(400).json({ message: 'Invalid Paystack webhook payload' });
+  }
+
+  const reference = event?.data?.reference;
+  if (!reference) return res.json({ received: true });
+
+  const payment = await Payment.findOne({ gatewayReference: reference })
+    || await Payment.findOne({ stripePaymentIntentId: reference });
+  if (payment && payment.gatewayEventId !== event.id) {
+    payment.gateway = 'paystack';
+    payment.gatewayReference = reference;
+    payment.gatewayEventId = event.id;
+    payment.webhookProcessedAt = new Date();
+    payment.status = event.event === 'charge.success' ? 'completed' : 'failed';
+    payment.activationSource = 'webhook';
+    payment.activatedAt = payment.status === 'completed' ? new Date() : undefined;
+    await payment.save();
   }
 
   return res.json({ received: true });
@@ -210,6 +254,10 @@ export const confirmPayment = async (req, res) => {
 
     const existingPayment = await Payment.findOne({
       stripePaymentIntentId: paymentVerification.paymentIntentId || paymentReference || paymentIntentId,
+      gateway: paymentVerification.provider,
+      gatewayReference: paymentVerification.paymentIntentId || paymentReference || paymentIntentId,
+      activationSource: 'confirm',
+      activatedAt: new Date(),
       status: 'completed',
       userId: req.user.userId,
     });

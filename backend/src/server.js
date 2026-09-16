@@ -60,7 +60,7 @@ const io = new Server(server, {
 
 // Export io through socketInstance for other modules to emit events
 import { setIO } from './utils/socketInstance.js';
-import { handleStripeWebhook } from './controllers/paymentController.js';
+import { handlePaystackWebhook, handleStripeWebhook } from './controllers/paymentController.js';
 setIO(io);
 
 // Connect to MongoDB
@@ -444,6 +444,7 @@ app.use(cors({
   credentials: true,
 }));
 app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
+app.post('/api/payments/paystack/webhook', express.raw({ type: 'application/json' }), handlePaystackWebhook);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
