@@ -385,6 +385,7 @@ export const getStudentRecordingLibrary = async (req, res) => {
   const recordings = await Recording.find({ classId: { $in: classIds }, hostPlanTier: { $in: [...PRO_TIERS] }, isDeleted: false })
     .populate('classId', 'title')
     .populate('hostId', 'firstName lastName name')
+    .populate('sessionId', 'scheduledStartTime startTime')
     .sort({ createdAt: -1 });
   const progress = await PlaybackProgress.find({ userId: req.user.userId, recordingId: { $in: recordings.map((recording) => recording._id) } });
   const progressMap = new Map(progress.map((item) => [String(item.recordingId), item]));
@@ -394,7 +395,14 @@ export const getStudentRecordingLibrary = async (req, res) => {
   res.json({ recordings: recordings.map((recording) => {
     const subscription = subscriptionMap.get(String(recording.classId?._id || recording.classId));
     const playable = recording.status === 'ready' && recording.isVisible && (!recording.releaseAt || recording.releaseAt <= new Date());
-    const covered = Boolean(subscription && (!subscription.startDate || subscription.startDate <= new Date()) && (!subscription.endDate || subscription.endDate >= new Date()));
+    const sessionDate = recording.sessionId?.scheduledStartTime || recording.sessionId?.startTime || recording.createdAt;
+    const activeNow = subscription?.status === 'active'
+      && (!subscription.startDate || subscription.startDate <= new Date())
+      && (!subscription.endDate || subscription.endDate >= new Date());
+    const coveredHistoricalPeriod = Boolean(subscription
+      && (!subscription.startDate || subscription.startDate <= sessionDate)
+      && (!subscription.endDate || subscription.endDate >= sessionDate));
+    const covered = activeNow || coveredHistoricalPeriod;
     const isPlayable = playable && covered;
     const lockReason = recording.status === 'review_hold' ? 'review_hold' : (!covered ? 'subscription_expired' : (playable ? null : recording.status));
     return {
@@ -420,7 +428,7 @@ export const updateClassRecordingSettings = async (req, res) => {
   if (!PRO_TIERS.has(classData.hostId.planTier)) return res.status(403).json({ message: 'Recordings unlock at Pro' });
   const { mode, releasePolicy, retentionDays, autoDeleteDays, watermarkOverlayEnabled } = req.body;
   if (mode && !['auto', 'manual'].includes(mode)) return res.status(400).json({ message: 'Invalid recording mode' });
-  if (releasePolicy && !['immediate', '24h'].includes(releasePolicy)) return res.status(400).json({ message: 'Invalid release policy' });
+  if (releasePolicy && releasePolicy !== '24h') return res.status(400).json({ message: 'Recordings always remain in review for 24 hours' });
   const configuredRetention = autoDeleteDays === undefined ? retentionDays : autoDeleteDays;
   if (configuredRetention !== undefined && ![30, 90, null].includes(configuredRetention)) return res.status(400).json({ message: 'Invalid retention period' });
   classData.recordingSettings = { ...classData.recordingSettings?.toObject?.(), mode, releasePolicy, retentionDays: configuredRetention, watermarkOverlayEnabled };
@@ -444,13 +452,19 @@ export const startRecording = async (req, res) => {
     if (classData.videoMode !== 'builtin') {
       return res.status(400).json({ message: 'External-link sessions use the upload recording fallback' });
     }
+    const stream = await recordingProvider.createRecording();
+    const retentionDays = classData.recordingSettings?.retentionDays;
     const recording = new Recording({
       sessionId,
       classId,
       hostId: req.user.userId,
       hostPlanTier: classData.hostId.activatedPlanTier || classData.hostId.planTier,
+      streamUid: stream.streamUid,
       status: 'recording',
       title: `Recording - ${new Date().toISOString()}`,
+      autoDeleteEnabled: Boolean(retentionDays),
+      autoDeleteDays: retentionDays || null,
+      autoDeleteAt: retentionDays ? new Date(Date.now() + retentionDays * 24 * 60 * 60 * 1000) : null,
     });
 
     await recording.save();
@@ -477,6 +491,7 @@ export const completeRecording = async (req, res) => {
     }
     const classData = await Class.findById(existing.classId);
     const holdUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const retentionDays = classData?.recordingSettings?.retentionDays;
     if (streamUid) await recordingProvider.completeRecording(streamUid);
     const recording = await Recording.findByIdAndUpdate(
       recordingId,
@@ -484,6 +499,9 @@ export const completeRecording = async (req, res) => {
         status: holdUntil ? 'review_hold' : 'processing',
         streamUid,
         duration,
+        autoDeleteEnabled: Boolean(retentionDays),
+        autoDeleteDays: retentionDays || null,
+        autoDeleteAt: retentionDays ? new Date(Date.now() + retentionDays * 24 * 60 * 60 * 1000) : null,
         reviewHoldUntil: holdUntil,
         releaseAt: holdUntil || new Date(),
         ...(eventId ? { $addToSet: { processedEventIds: String(eventId) } } : {}),
@@ -675,10 +693,13 @@ async function processRecordingAsync(recordingId, videoUrl) {
       recording.keyTakeaways = recording.aiKeyTakeaways;
       recording.aiModel = process.env.OPENAI_MODEL || 'provider-default';
       recording.aiPromptVersion = 'recordings-v1';
-      recording.status = 'ready';
+      const holdActive = recording.reviewHoldUntil && recording.reviewHoldUntil > new Date();
+      recording.status = holdActive ? 'review_hold' : 'ready';
+      recording.isVisible = !holdActive;
+      recording.releaseAt = holdActive ? recording.reviewHoldUntil : (recording.releaseAt || new Date());
       recording.processingProgress = 100;
       await recording.save();
-      if (!recording.reviewHoldUntil || recording.reviewHoldUntil <= new Date()) {
+      if (!holdActive) {
         await fanOutRecordingToActiveStudents(recording);
       }
       return;
