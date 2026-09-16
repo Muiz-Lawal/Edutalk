@@ -74,6 +74,7 @@ backend.log
 .nyc_output/
 **/*.test.js
 !backend/tests/recordingLifecycle.test.js
+!backend/tests/adminAuth.test.js
 
 # ============================================================================
 # Package Manager

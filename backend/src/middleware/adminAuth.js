@@ -143,24 +143,7 @@ export const adminAuth = async (req, res, next) => {
       }
     }
 
-    // Check 2FA requirement. Allow either a session flag or a short-lived
-    // verification JWT issued by the 2FA login step so the admin app can keep
-    // working when Express sessions are not configured for this route.
-    const hasSession2FA = Boolean(req.session?.verified2FA);
-    const hasBody2FA = Boolean(req.body?.verifying2FA);
-    const header2FAToken = req.headers['x-admin-2fa-token'];
-    let hasHeader2FA = false;
-
-    if (user.twoFAEnabled && header2FAToken) {
-      try {
-        const verified = jwt.verify(header2FAToken, `${JWT_SECRET}:admin-2fa`);
-        hasHeader2FA = verified && verified.userId?.toString() === user._id.toString();
-      } catch (error) {
-        hasHeader2FA = false;
-      }
-    }
-
-    if (user.twoFAEnabled && !hasSession2FA && !hasBody2FA && !hasHeader2FA) {
+    if (user.twoFAEnabled && !hasVerifiedAdminTwoFactor(req, user)) {
       return res.status(401).json({
         error: '2FA verification required',
         requires2FA: true,
@@ -168,17 +151,6 @@ export const adminAuth = async (req, res, next) => {
     }
 
     // Get session and check inactivity
-    console.log('[adminAuth] Token verification:', {
-      userId: decoded.userId,
-      email: decoded.email,
-      tokenLength: token.length,
-      tokenStart: token.substring(0, 50),
-    });
-
-    // Temporarily skip session verification - just verify user is admin and token is valid
-    // Session check was causing issues with token mismatch
-    // TODO: Investigate token storage/retrieval issue
-    
     req.user = user;
     req.userId = user._id;
     
@@ -259,14 +231,32 @@ export const verify2FA = async (req, res, next) => {
       return res.status(400).json({ error: 'Verification code or backup code required' });
     }
 
-    // Mark 2FA as verified in session
-    req.session = req.session || {};
-    req.session.verified2FA = true;
-    req.body.verifying2FA = true;
+    const adminTwoFactorToken = jwt.sign(
+      { userId: user._id.toString(), purpose: 'admin-2fa' },
+      `${JWT_SECRET}:admin-2fa`,
+      { expiresIn: '10m' },
+    );
 
-    next();
+    return res.json({
+      message: '2FA verification successful',
+      adminTwoFactorToken,
+      expiresInSeconds: 600,
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Verification error' });
+    res.status(401).json({ error: 'Verification failed' });
+  }
+};
+
+export const hasVerifiedAdminTwoFactor = (req, user) => {
+  const header2FAToken = req.headers['x-admin-2fa-token'];
+  if (!header2FAToken) return false;
+
+  try {
+    const verified = jwt.verify(header2FAToken, `${JWT_SECRET}:admin-2fa`);
+    return verified?.purpose === 'admin-2fa'
+      && verified.userId?.toString() === user._id.toString();
+  } catch (error) {
+    return false;
   }
 };
 
@@ -351,6 +341,13 @@ export const superAdminAuth = async (req, res, next) => {
     // Check if super admin
     if (!user.isAdmin || !['superadmin', 'super_admin'].includes(user.adminRole)) {
       return res.status(403).json({ error: 'Access denied. SuperAdmin privileges required.' });
+    }
+
+    if (user.twoFAEnabled && !hasVerifiedAdminTwoFactor(req, user)) {
+      return res.status(401).json({
+        error: '2FA verification required',
+        requires2FA: true,
+      });
     }
 
     req.user = user;

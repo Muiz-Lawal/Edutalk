@@ -1,5 +1,5 @@
 import express from 'express';
-import { adminAuth, verify2FA } from '../middleware/adminAuth.js';
+import { adminAuth, hasVerifiedAdminTwoFactor, verify2FA } from '../middleware/adminAuth.js';
 import User from '../models/User.js';
 import {
   generateAdmin2FASecret,
@@ -51,6 +51,13 @@ router.post('/password/change', async (req, res, next) => {
 
     if (!user || !user.isAdmin) {
       return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    if (user.twoFAEnabled && !hasVerifiedAdminTwoFactor(req, user)) {
+      return res.status(401).json({
+        error: '2FA verification required',
+        requires2FA: true,
+      });
     }
 
     req.user = user;
