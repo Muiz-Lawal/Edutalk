@@ -75,6 +75,7 @@ backend.log
 **/*.test.js
 !backend/tests/recordingLifecycle.test.js
 !backend/tests/adminAuth.test.js
+!backend/tests/environment.test.js
 
 # ============================================================================
 # Package Manager

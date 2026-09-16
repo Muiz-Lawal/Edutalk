@@ -38,8 +38,10 @@ import cron from 'node-cron';
 import { getRecordingLifecycleStatus, runRecordingLifecycle } from './services/recordingRetention.js';
 import { recordingProvider } from './services/recording-provider.js';
 import aiModerationService from './services/aiModerationService.js';
+import { validateProductionEnvironment } from './config/environment.js';
 
 dotenv.config();
+validateProductionEnvironment();
 
 const app = express();
 const server = createServer(app);
