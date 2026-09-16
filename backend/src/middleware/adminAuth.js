@@ -143,9 +143,25 @@ export const adminAuth = async (req, res, next) => {
       }
     }
 
-    // Check 2FA requirement
-    if (user.twoFAEnabled && !req.session?.verified2FA && !req.body?.verifying2FA) {
-      return res.status(401).json({ 
+    // Check 2FA requirement. Allow either a session flag or a short-lived
+    // verification JWT issued by the 2FA login step so the admin app can keep
+    // working when Express sessions are not configured for this route.
+    const hasSession2FA = Boolean(req.session?.verified2FA);
+    const hasBody2FA = Boolean(req.body?.verifying2FA);
+    const header2FAToken = req.headers['x-admin-2fa-token'];
+    let hasHeader2FA = false;
+
+    if (user.twoFAEnabled && header2FAToken) {
+      try {
+        const verified = jwt.verify(header2FAToken, `${JWT_SECRET}:admin-2fa`);
+        hasHeader2FA = verified && verified.userId?.toString() === user._id.toString();
+      } catch (error) {
+        hasHeader2FA = false;
+      }
+    }
+
+    if (user.twoFAEnabled && !hasSession2FA && !hasBody2FA && !hasHeader2FA) {
+      return res.status(401).json({
         error: '2FA verification required',
         requires2FA: true,
       });

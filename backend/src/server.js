@@ -35,7 +35,7 @@ import achievementRoutes from './routes/achievementRoutes.js';
 import pointsRoutes from './routes/pointsRoutes.js';
 import emailScheduler from './services/emailScheduler.js';
 import cron from 'node-cron';
-import { purgeExpiredRecordings } from './services/recordingRetention.js';
+import { runRecordingLifecycle } from './services/recordingRetention.js';
 import aiModerationService from './services/aiModerationService.js';
 
 dotenv.config();
@@ -65,7 +65,7 @@ await connectDB();
 
 // Initialize email scheduler
 emailScheduler;
-cron.schedule('15 2 * * *', () => purgeExpiredRecordings().catch((error) => console.error('[recordings] retention job failed', error)));
+cron.schedule('15 2 * * *', () => runRecordingLifecycle().catch((error) => console.error('[recordings] lifecycle job failed', error)));
 
 // Socket.io middleware for authentication
 io.use(async (socket, next) => {

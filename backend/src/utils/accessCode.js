@@ -79,6 +79,27 @@ export const isTrustedDeviceAllowed = ({
     : normalizedTrusted.includes(normalizedProvided);
 };
 
+export const registerTrustedDevice = ({
+  trustedFingerprints = [],
+  providedFingerprint,
+  maxDevices = 3,
+}) => {
+  const normalizedTrusted = normalizeDeviceFingerprintList(trustedFingerprints);
+  const normalizedProvided = String(providedFingerprint || '').trim();
+  if (!validateTrustedDevice(normalizedProvided)) return normalizedTrusted;
+  if (normalizedTrusted.includes(normalizedProvided)) return normalizedTrusted;
+  if (normalizedTrusted.length >= maxDevices) return normalizedTrusted;
+  return [...normalizedTrusted, normalizedProvided];
+};
+
+export const isWithinAccessWindow = ({ date = new Date(), validFrom, validUntil }) => {
+  const target = new Date(date);
+  if (Number.isNaN(target.getTime())) return false;
+  if (validFrom && target < new Date(validFrom)) return false;
+  if (validUntil && target > new Date(validUntil)) return false;
+  return true;
+};
+
 export const bindAccessCodeContext = ({
   email = '',
   classId = '',

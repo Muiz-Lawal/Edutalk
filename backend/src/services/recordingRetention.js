@@ -1,9 +1,44 @@
 import fs from 'fs/promises';
 import Recording from '../models/Recording.js';
 import { recordingProvider } from './recording-provider.js';
+import { fanOutRecordingToActiveStudents } from './recordingLibrary.js';
+
+export const isReviewHoldDue = (recording, now = new Date()) =>
+  recording.status === 'review_hold'
+  && recording.reviewHoldUntil
+  && new Date(recording.reviewHoldUntil) <= now;
+
+export const isRetentionDue = (recording, now = new Date()) =>
+  recording.autoDeleteAt
+  && new Date(recording.autoDeleteAt) <= now
+  && recording.status !== 'expired';
+
+export async function releaseDueRecordingHolds(now = new Date()) {
+  const due = await Recording.find({
+    status: 'review_hold',
+    reviewHoldUntil: { $lte: now },
+    isDeleted: { $ne: true },
+  });
+  let released = 0;
+  for (const recording of due) {
+    recording.status = 'ready';
+    recording.isVisible = true;
+    recording.processingProgress = 100;
+    recording.releaseAt = recording.releaseAt && recording.releaseAt > now ? recording.releaseAt : now;
+    recording.reviewHoldUntil = null;
+    await recording.save();
+    await fanOutRecordingToActiveStudents(recording);
+    released += 1;
+  }
+  return released;
+}
 
 export async function purgeExpiredRecordings(now = new Date()) {
-  const expired = await Recording.find({ autoDeleteAt: { $lte: now }, status: { $ne: 'expired' } });
+  const expired = await Recording.find({
+    autoDeleteAt: { $lte: now },
+    status: { $ne: 'expired' },
+    isDeleted: { $ne: true },
+  });
   let deleted = 0;
   for (const recording of expired) {
     await recordingProvider.deleteRecording(recording.streamUid);
@@ -15,4 +50,10 @@ export async function purgeExpiredRecordings(now = new Date()) {
     deleted += 1;
   }
   return deleted;
+}
+
+export async function runRecordingLifecycle(now = new Date()) {
+  const released = await releaseDueRecordingHolds(now);
+  const deleted = await purgeExpiredRecordings(now);
+  return { released, deleted };
 }

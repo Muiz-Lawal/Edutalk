@@ -9,7 +9,12 @@ import PlaybackProgress from '../models/PlaybackProgress.js';
 import PlaybackAnomaly from '../models/PlaybackAnomaly.js';
 import Event from '../models/Event.js';
 import RecordingLibrary from '../models/RecordingLibrary.js';
-import { isTrustedDeviceAllowed, generateTrustedDeviceFingerprint } from '../utils/accessCode.js';
+import {
+  isTrustedDeviceAllowed,
+  generateTrustedDeviceFingerprint,
+  isWithinAccessWindow,
+  registerTrustedDevice,
+} from '../utils/accessCode.js';
 import { recordingProvider } from '../services/recording-provider.js';
 import { transcribeAudio, summarizeContent, generateChapters } from '../utils/ai.js';
 import { assertFeature, planGateResponse } from '../utils/plan-limits.js';
@@ -312,17 +317,23 @@ export const playRecording = async (req, res) => {
     if (subscription.accessCodeClassId && subscription.accessCodeClassId.toString() !== recording.classId.toString()) {
       return res.status(403).json({ code: 'access_code_mismatch', message: 'This access code belongs to another class' });
     }
-    const coversSession = (!subscription.startDate || accessDate >= subscription.startDate)
-      && (!subscription.endDate || accessDate <= subscription.endDate);
+    const coversSession = isWithinAccessWindow({
+      date: accessDate,
+      validFrom: subscription.startDate,
+      validUntil: subscription.endDate,
+    });
     const activeNow = subscription.status === 'active'
       && (!subscription.startDate || now >= subscription.startDate)
       && (!subscription.endDate || now <= subscription.endDate);
     if (!coversSession && !activeNow) {
       return res.status(403).json({ code: 'subscription_expired', message: 'Your paid access period has ended. Renew to keep watching' });
     }
-    const accessCodeCoversSession = (!subscription.accessCodeValidFrom || accessDate >= subscription.accessCodeValidFrom)
-      && (!subscription.accessCodeValidUntil || accessDate <= subscription.accessCodeValidUntil);
-    if (!accessCodeCoversSession && !activeNow) {
+    const accessCodeCoversSession = isWithinAccessWindow({
+      date: accessDate,
+      validFrom: subscription.accessCodeValidFrom,
+      validUntil: subscription.accessCodeValidUntil,
+    });
+    if (!accessCodeCoversSession) {
       return res.status(403).json({ code: 'subscription_expired', message: 'Your paid access period has ended. Renew to keep watching' });
     }
     if (!recording.isVisible || (recording.releaseAt && recording.releaseAt > now)) return res.status(403).json({ code: 'recording_locked', message: 'This recording is not released yet' });
@@ -331,6 +342,15 @@ export const playRecording = async (req, res) => {
     const deviceFingerprint = req.headers['x-device-fingerprint'] || generateTrustedDeviceFingerprint(req.headers['user-agent'], req.ip);
     if (!isTrustedDeviceAllowed({ trustedFingerprints: subscription.trustedDeviceFingerprints, providedFingerprint: deviceFingerprint, maxDevices: 3 })) {
       return res.status(403).json({ code: 'device_not_trusted', message: 'This device is not trusted for your access code' });
+    }
+    const registeredDevices = registerTrustedDevice({
+      trustedFingerprints: subscription.trustedDeviceFingerprints,
+      providedFingerprint: deviceFingerprint,
+      maxDevices: 3,
+    });
+    if (registeredDevices.length !== (subscription.trustedDeviceFingerprints || []).length) {
+      subscription.trustedDeviceFingerprints = registeredDevices;
+      await subscription.save();
     }
     const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000);
     const streamUrl = await recordingProvider.createSignedPlaybackUrl(recording.streamUid, expiresAt);
