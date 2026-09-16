@@ -3,6 +3,15 @@ import Recording from '../models/Recording.js';
 import { recordingProvider } from './recording-provider.js';
 import { fanOutRecordingToActiveStudents } from './recordingLibrary.js';
 
+const lifecycleState = {
+  lastStartedAt: null,
+  lastCompletedAt: null,
+  lastResult: null,
+  lastError: null,
+};
+
+export const getRecordingLifecycleStatus = () => ({ ...lifecycleState });
+
 export const isReviewHoldDue = (recording, now = new Date()) =>
   recording.status === 'review_hold'
   && recording.reviewHoldUntil
@@ -53,7 +62,16 @@ export async function purgeExpiredRecordings(now = new Date()) {
 }
 
 export async function runRecordingLifecycle(now = new Date()) {
-  const released = await releaseDueRecordingHolds(now);
-  const deleted = await purgeExpiredRecordings(now);
-  return { released, deleted };
+  lifecycleState.lastStartedAt = new Date();
+  lifecycleState.lastError = null;
+  try {
+    const released = await releaseDueRecordingHolds(now);
+    const deleted = await purgeExpiredRecordings(now);
+    lifecycleState.lastResult = { released, deleted };
+    lifecycleState.lastCompletedAt = new Date();
+    return lifecycleState.lastResult;
+  } catch (error) {
+    lifecycleState.lastError = 'Recording lifecycle job failed';
+    throw error;
+  }
 }

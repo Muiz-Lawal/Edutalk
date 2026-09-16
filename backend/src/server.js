@@ -35,7 +35,8 @@ import achievementRoutes from './routes/achievementRoutes.js';
 import pointsRoutes from './routes/pointsRoutes.js';
 import emailScheduler from './services/emailScheduler.js';
 import cron from 'node-cron';
-import { runRecordingLifecycle } from './services/recordingRetention.js';
+import { getRecordingLifecycleStatus, runRecordingLifecycle } from './services/recordingRetention.js';
+import { recordingProvider } from './services/recording-provider.js';
 import aiModerationService from './services/aiModerationService.js';
 
 dotenv.config();
@@ -478,6 +479,25 @@ app.use('/api/analytics', analyticsRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
+});
+
+app.get('/api/health/recordings', async (req, res) => {
+  const lifecycle = getRecordingLifecycleStatus();
+  try {
+    const provider = await recordingProvider.healthCheck();
+    const lifecycleFailed = Boolean(lifecycle.lastError);
+    res.status(lifecycleFailed ? 503 : 200).json({
+      status: lifecycleFailed ? 'degraded' : 'healthy',
+      provider,
+      lifecycle,
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'degraded',
+      provider: { status: 'unhealthy' },
+      lifecycle,
+    });
+  }
 });
 
 // Run aggregation job (dev only) - dynamic import

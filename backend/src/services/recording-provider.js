@@ -32,6 +32,14 @@ export class DevMockProvider {
     if (streamUid) this.deleted.add(streamUid);
     return { streamUid, deleted: true };
   }
+
+  async healthCheck() {
+    return {
+      provider: 'dev-mock',
+      status: 'healthy',
+      checkedAt: new Date().toISOString(),
+    };
+  }
 }
 
 export const recordingProvider = new DevMockProvider();
