@@ -1,10 +1,19 @@
 import axios from 'axios';
 import Stripe from 'stripe';
+import crypto from 'crypto';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_example');
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || '';
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 const PAYSTACK_AUTH_HEADER = PAYSTACK_SECRET_KEY ? `Bearer ${PAYSTACK_SECRET_KEY}` : '';
+
+export const verifyPaystackWebhookSignature = ({ payload, signature, secret }) => {
+  const expected = crypto.createHmac('sha512', secret).update(payload).digest('hex');
+  const providedBuffer = Buffer.from(String(signature || ''));
+  const expectedBuffer = Buffer.from(expected);
+  return providedBuffer.length === expectedBuffer.length
+    && crypto.timingSafeEqual(providedBuffer, expectedBuffer);
+};
 
 export const resolvePaymentGateway = ({ provider, currency = 'USD' }) => {
   const normalizedProvider = String(provider || '').toLowerCase();

@@ -7,7 +7,7 @@ import Stripe from 'stripe';
 import { calculatePrice, calculatePaymentSplit, calculateContinuationPrice, calculatePriceCents, calculateDailyRate, normalizePricingDays } from '../utils/pricing.js';
 import { bindAccessCodeContext, generateAccessCode } from '../utils/accessCode.js';
 import { calculatePayoutLedger } from '../utils/payouts.js';
-import { createGatewayPaymentIntent, verifyGatewayPayment } from '../utils/paymentGateway.js';
+import { createGatewayPaymentIntent, verifyGatewayPayment, verifyPaystackWebhookSignature } from '../utils/paymentGateway.js';
 import {
   calculateCheckoutSummary,
   normalizeCheckoutItems,
@@ -17,11 +17,11 @@ import { findActiveSubscription, recordContinuationPayment } from '../services/c
 import { calculateRefundSummary } from '../utils/refunds.js';
 import { getAccessWindow, validateEnrollmentDays } from '../utils/enrollmentDays.js';
 import { randomUUID } from 'crypto';
-import crypto from 'crypto';
 import PaymentChain from '../models/PaymentChain.js';
 import { toCents } from '../utils/pricing.js';
 import Cart from '../models/Cart.js';
 import { backfillStudentRecordingLibrary } from '../services/recordingLibrary.js';
+import { activatePayment } from '../services/paymentActivation.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_example');
 
@@ -46,8 +46,7 @@ export const handleStripeWebhook = async (req, res) => {
       payment.webhookProcessedAt = new Date();
       payment.gateway = 'stripe';
       payment.gatewayReference = intent.id;
-      payment.activationSource = 'webhook';
-      payment.activatedAt = payment.status === 'completed' ? new Date() : undefined;
+      if (payment.status === 'completed') await activatePayment({ payment, source: 'webhook' });
       await payment.save();
     }
   }
@@ -60,11 +59,7 @@ export const handlePaystackWebhook = async (req, res) => {
   if (!secret) return res.status(503).json({ message: 'Paystack webhook secret is not configured' });
 
   const signature = req.headers['x-paystack-signature'];
-  const expected = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
-  const providedSignature = Buffer.from(String(signature || ''));
-  const expectedSignature = Buffer.from(expected);
-  if (providedSignature.length !== expectedSignature.length
-    || !crypto.timingSafeEqual(providedSignature, expectedSignature)) {
+  if (!verifyPaystackWebhookSignature({ payload: req.body, signature, secret })) {
     return res.status(400).json({ message: 'Invalid Paystack webhook signature' });
   }
 
@@ -86,8 +81,7 @@ export const handlePaystackWebhook = async (req, res) => {
     payment.gatewayEventId = event.id;
     payment.webhookProcessedAt = new Date();
     payment.status = event.event === 'charge.success' ? 'completed' : 'failed';
-    payment.activationSource = 'webhook';
-    payment.activatedAt = payment.status === 'completed' ? new Date() : undefined;
+    if (payment.status === 'completed') await activatePayment({ payment, source: 'webhook' });
     await payment.save();
   }
 
@@ -210,6 +204,25 @@ export const createPaymentIntent = async (req, res) => {
       checkoutId,
     });
 
+    await Payment.create({
+      userId: req.user.userId,
+      userEmail: user.email,
+      classId: normalizedItems[0].classId,
+      amount: checkoutSummary.totalAmount,
+      currency: user.preferredCurrency || 'USD',
+      daysPurchased: checkoutSummary.totalDays,
+      checkoutId,
+      checkoutItems: checkoutSummary.items.map((item) => ({
+        classId: item.classId,
+        days: item.numberOfDays,
+        amount: item.finalAmount,
+      })),
+      gateway: gatewayPayload.provider,
+      gatewayReference: gatewayPayload.paymentIntentId || gatewayPayload.reference,
+      stripePaymentIntentId: gatewayPayload.paymentIntentId || gatewayPayload.reference,
+      status: 'pending',
+    });
+
     res.json({
       ...gatewayPayload,
       amount: checkoutSummary.totalAmount,
@@ -250,6 +263,29 @@ export const confirmPayment = async (req, res) => {
 
     if (paymentVerification.status !== 'succeeded') {
       return res.status(400).json({ message: paymentVerification.message || 'Payment not confirmed' });
+    }
+
+    const verifiedReference = paymentVerification.paymentIntentId || paymentReference || paymentIntentId;
+    const pendingPayment = await Payment.findOne({
+      userId: req.user.userId,
+      gatewayReference: verifiedReference,
+      status: 'pending',
+    });
+    if (pendingPayment) {
+      pendingPayment.status = 'completed';
+      pendingPayment.gateway = paymentVerification.provider;
+      pendingPayment.gatewayReference = verifiedReference;
+      pendingPayment.stripePaymentIntentId = verifiedReference;
+      await activatePayment({ payment: pendingPayment, source: 'confirm' });
+      return res.json({
+        message: 'Payment confirmed successfully',
+        provider: paymentVerification.provider,
+        subscriptions: pendingPayment.subscriptionId ? [{
+          subscriptionId: pendingPayment.subscriptionId,
+          classId: pendingPayment.classId,
+        }] : [],
+        totalAmount: pendingPayment.amount,
+      });
     }
 
     const existingPayment = await Payment.findOne({

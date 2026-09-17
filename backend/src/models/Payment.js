@@ -6,6 +6,7 @@ const paymentSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  userEmail: String,
   classId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Class',
