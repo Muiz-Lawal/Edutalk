@@ -43,6 +43,7 @@ const LiveStreamViewer = React.lazy(() => import('./pages/LiveStreamViewer'));
 const StreamAnalyticsPage = React.lazy(() => import('./pages/StreamAnalyticsPage'));
 const ScheduledStreamsPage = React.lazy(() => import('./pages/ScheduledStreamsPage'));
 const ClassWaitingRoom = React.lazy(() => import('./pages/ClassWaitingRoom'));
+const SessionRoom = React.lazy(() => import('./pages/SessionRoom'));
 
 // Phase 6B - Progress & Certificates
 const StudentProgressPage = React.lazy(() => import('./pages/StudentProgressPage'));
@@ -211,6 +212,14 @@ function App() {
                   <NotificationsPage />
                 </ProtectedRoute>
               }
+            />
+            <Route
+               path="/session/:id"
+               element={
+                 <ProtectedRoute>
+                   <SessionRoom />
+                 </ProtectedRoute>
+               }
             />
             <Route
               path="/video/:roomId"
