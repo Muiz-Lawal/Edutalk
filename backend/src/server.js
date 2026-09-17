@@ -38,6 +38,7 @@ import cron from 'node-cron';
 import { getRecordingLifecycleStatus, runRecordingLifecycle } from './services/recordingRetention.js';
 import { recordingProvider } from './services/recording-provider.js';
 import aiModerationService from './services/aiModerationService.js';
+import sessionEngagementRoutes from './routes/sessionEngagementRoutes.js';
 import { validateProductionEnvironment } from './config/environment.js';
 
 dotenv.config();
@@ -474,6 +475,7 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/points', pointsRoutes);
+app.use('/api/session-engagement', sessionEngagementRoutes);
 
 // Events API (client-side event tracking)
 app.use('/api/events', eventRoutes);

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Camera, CameraOff, ChevronLeft, ChevronRight, CircleHelp, Clock3, Hand, LayoutGrid,
+  ArrowBigUp, Camera, CameraOff, ChevronLeft, ChevronRight, CircleHelp, Clock3, Hand, LayoutGrid,
   Lock, Maximize2, Mic, MicOff, MonitorUp, Network, PanelRight, Phone, Play, Presentation,
   Radio, Settings, Signal, Smile, Users, Video, Volume2, X,
 } from 'lucide-react';
@@ -79,6 +79,16 @@ export default function SessionRoom() {
   const [pinnedId, setPinnedId] = useState(null);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
+  const [questions, setQuestions] = useState([]);
+  const [livePoll, setLivePoll] = useState(null);
+  const [engagementLoaded, setEngagementLoaded] = useState(false);
+  const [engagementError, setEngagementError] = useState('');
+  const [railTab, setRailTab] = useState('chat');
+  const [chatEnabled, setChatEnabled] = useState(true);
+  const [unreadChat, setUnreadChat] = useState(0);
+  const [qaInput, setQaInput] = useState('');
+  const [reaction, setReaction] = useState(null);
+  const [showReactions, setShowReactions] = useState(false);
   const isHost = activeRole === 'host' || searchParams.get('role') === 'host';
   const tier = classData?.hostId?.activatedPlanTier || classData?.hostId?.planTier || 'starter';
   const recordingUnlocked = ['pro', 'elite'].includes(tier);
@@ -103,6 +113,75 @@ export default function SessionRoom() {
   }, [sessionId, isHost]);
 
   useEffect(() => { loadClass(); }, [loadClass]);
+
+  const loadEngagement = useCallback(async () => {
+    try {
+      const { data } = await api.get(`/session-engagement/${sessionId}`);
+      setChatMessages(data.messages || []);
+      setQuestions(data.questions || []);
+      setLivePoll(data.poll || null);
+      setChatEnabled(data.chatEnabled !== false);
+      setEngagementLoaded(true);
+      setEngagementError('');
+    } catch {
+      setEngagementError('We could not load engagement tools. Please retry.');
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (stage === 'room' || stage === 'lobby') loadEngagement();
+  }, [stage, loadEngagement]);
+
+  const postMessage = async (event) => {
+    event.preventDefault();
+    const text = chatInput.trim();
+    if (!text || connectionState === 'reconnecting' || text.length > 500) return;
+    try {
+      const { data } = await api.post(`/session-engagement/${sessionId}/messages`, { text });
+      setChatMessages((items) => [...items, data]);
+      setChatInput('');
+      setUnreadChat(0);
+    } catch { setEngagementError('Your message could not be sent. Please retry.'); }
+  };
+
+  const createQuestion = async (event) => {
+    event.preventDefault();
+    const text = qaInput.trim();
+    if (!text) return;
+    try {
+      const { data } = await api.post(`/session-engagement/${sessionId}/questions`, { text });
+      setQuestions((items) => [...items, data]);
+      setQaInput('');
+    } catch { setEngagementError('Your question could not be sent. Please retry.'); }
+  };
+
+  const voteQuestion = async (questionId) => {
+    try {
+      const { data } = await api.post(`/session-engagement/${sessionId}/questions/${questionId}/vote`);
+      setQuestions((items) => items.map((item) => item._id === questionId ? data : item));
+    } catch { setEngagementError('You already voted for this question.'); }
+  };
+
+  const updateQuestion = async (questionId, status) => {
+    try {
+      const { data } = await api.patch(`/session-engagement/${sessionId}/questions/${questionId}`, { status });
+      setQuestions((items) => items.map((item) => item._id === questionId ? data : item));
+    } catch { setEngagementError('The question could not be updated.'); }
+  };
+
+  const deleteMessage = async (messageId) => {
+    try {
+      const { data } = await api.delete(`/session-engagement/${sessionId}/messages/${messageId}`);
+      setChatMessages((items) => items.map((item) => item._id === messageId ? data : item));
+    } catch { setEngagementError('The message could not be removed.'); }
+  };
+
+  const toggleChatEnabled = async () => {
+    try {
+      const { data } = await api.patch(`/session-engagement/${sessionId}/chat`, { enabled: !chatEnabled });
+      setChatEnabled(data.chatEnabled);
+    } catch { setEngagementError('Chat settings could not be updated.'); }
+  };
 
   const loadDevices = useCallback(async () => {
     try {
@@ -205,6 +284,11 @@ export default function SessionRoom() {
     setRecording((value) => !value);
     if (recording) setRecordingSeconds(0);
   };
+  const sendReaction = (value) => {
+    setReaction(value);
+    setShowReactions(false);
+    window.setTimeout(() => setReaction(null), 2000);
+  };
   const leave = async () => {
     await connectionRef.current?.leave();
     navigate(`/class/${classData?._id || classData?.id || sessionId}`, { state: { toast: 'You left the class' } });
@@ -235,19 +319,20 @@ export default function SessionRoom() {
       {layout === 'sidebar' && <aside className="session-rail">{allParticipants.map((participant) => <ParticipantTile key={participant.id} participant={participant} local={participant.id === 'local'} onPin={setPinnedId} />)}</aside>}
     </main>
     {showSettings && <div className="session-settings"><h2>Settings</h2><label><input type="checkbox" defaultChecked /> Mirror my video</label><label><input type="checkbox" defaultChecked /> Noise suppression</label><p>Shortcuts: M microphone, V camera, C chat, P participants, R raise hand</p></div>}
-    {showChat && <aside className="session-panel"><div><h2>Chat</h2><button type="button" onClick={() => setShowChat(false)}><X size={16} /></button></div><div className="session-panel__body">{chatMessages.map((message, index) => <p key={index}><strong>{message.name}</strong> {message.text}</p>)}</div><form onSubmit={(event) => { event.preventDefault(); if (chatInput.trim()) { setChatMessages([...chatMessages, { name: 'You', text: chatInput }]); setChatInput(''); } }}><input value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Write a message" /><button type="submit">Send</button></form></aside>}
+    {showChat && <aside className="session-panel session-engagement-rail"><div className="session-rail-tabs"><button type="button" className={railTab === 'chat' ? 'is-active' : ''} onClick={() => { setRailTab('chat'); setUnreadChat(0); }}>Chat {unreadChat > 0 && <b>{unreadChat}</b>}</button><button type="button" className={railTab === 'qa' ? 'is-active' : ''} onClick={() => setRailTab('qa')}>Q&amp;A {questions.filter((item) => item.status === 'answered').length > 0 && <b>{questions.filter((item) => item.status === 'answered').length}</b>}</button><button type="button" className={railTab === 'participants' ? 'is-active' : ''} onClick={() => setRailTab('participants')}>Participants</button><button type="button" onClick={() => setShowChat(false)}><X size={16} /></button></div>{engagementError && <div className="session-engagement-error">{engagementError} <button type="button" onClick={loadEngagement}>Retry</button></div>}{!engagementLoaded ? <div className="session-panel__body"><div className="session-skeleton session-skeleton--short" /><div className="session-skeleton session-skeleton--short" /></div> : railTab === 'chat' ? <><div className="session-panel__body">{!chatEnabled && !isHost ? <p className="session-empty">The host disabled chat</p> : chatMessages.map((message) => <article className={`session-message ${String(message.userId) === String(user?._id || user?.id) ? 'session-message--own' : ''}`} key={message._id}><strong>{message.user?.name || 'Participant'} {message.isHost && <small>HOST</small>}</strong><time>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time><p className={message.deletedAt ? 'session-message--removed' : ''}>{message.text}</p>{isHost && !message.deletedAt && <button type="button" onClick={() => deleteMessage(message._id)}>Delete</button>}</article>)}</div>{isHost && <button type="button" className="session-chat-toggle" onClick={toggleChatEnabled}>{chatEnabled ? 'Disable chat' : 'Enable chat'}</button>}{chatEnabled && <form onSubmit={postMessage}><textarea maxLength={500} rows={1} value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder={connectionState === 'reconnecting' ? 'Chat is reconnecting…' : 'Write a message'} disabled={connectionState === 'reconnecting'} /><span>{chatInput.length >= 450 ? `${chatInput.length}/500` : ''}</span><button type="submit">Send</button></form>}</> : railTab === 'qa' ? <><div className="session-panel__body">{questions.filter((item) => item.status !== 'dismissed').sort((a, b) => (b.voteCount || b.upvotes?.length || 0) - (a.voteCount || a.upvotes?.length || 0)).map((question) =>     <article className={`session-question ${question.status === 'answered' ? 'is-answered' : ''}`} key={question._id}><p>{question.text}</p><div><button type="button" onClick={() => voteQuestion(question._id)}><ArrowBigUp size={15} /> {question.voteCount || question.upvotes?.length || 0}</button>{isHost && question.status === 'open' && <button type="button" onClick={() => updateQuestion(question._id, 'answered')}>Mark answered</button>}</div></article>)}</div><form onSubmit={createQuestion}><textarea maxLength={500} value={qaInput} onChange={(event) => setQaInput(event.target.value)} placeholder="Ask a question" /><button type="submit">Ask</button></form></> : <div className="session-panel__body">{allParticipants.map((participant) => <p key={participant.id}>{participant.name} {participant.handRaised && <span className="session-hand-label">Hands raised</span>}</p>)}</div>}</aside>}
     <nav className="session-controls" aria-label="Classroom controls">
       <button type="button" className={audioEnabled ? '' : 'is-active'} onClick={toggleAudio}>{audioEnabled ? <Mic size={20} /> : <MicOff size={20} />}<span>Mic</span></button>
       <button type="button" className={videoEnabled ? '' : 'is-active'} onClick={toggleVideo}>{videoEnabled ? <Camera size={20} /> : <CameraOff size={20} />}<span>Camera</span></button>
       <button type="button" className={screenSharing ? 'is-active' : ''} onClick={toggleScreen}><MonitorUp size={20} /><span>Share</span></button>
       <button type="button" className="is-disabled" title="Coming up next"><Presentation size={20} /><span>Whiteboard</span></button>
       <button type="button" className={recording ? 'is-recording' : ''} onClick={toggleRecording}>{recording ? <Radio size={20} /> : recordingUnlocked ? <Circle size={20} /> : <Lock size={18} />}<span>{recording ? `Record · ${formatTimer(recordingSeconds)}` : 'Record'}</span></button>
-      <button type="button" onClick={() => reactions.forEach(() => {})}><Smile size={20} /><span>Reactions</span></button>
+      <div className="session-reaction-wrap"><button type="button" onClick={() => setShowReactions((value) => !value)}><Smile size={20} /><span>Reactions</span></button>{showReactions && <div className="session-reactions">{['👍', '❤️', '😂', '🎉', '👏', '💡'].map((item) => <button type="button" key={item} onClick={() => sendReaction(item)}>{item}</button>)}<button type="button" onClick={() => { setHandRaised((value) => !value); setShowReactions(false); }}><Hand size={15} /> Raise hand</button></div>}</div>
       <button type="button" className={handRaised ? 'is-active' : ''} onClick={() => setHandRaised((value) => !value)}><Hand size={20} /><span>Raise hand</span></button>
-      <button type="button" className={showChat ? 'is-active' : ''} onClick={() => setShowChat((value) => !value)}><PanelRight size={20} /><span>Chat</span></button>
+      <button type="button" className={showChat ? 'is-active' : ''} onClick={() => setShowChat((value) => !value)}><PanelRight size={20} /><span>Chat {unreadChat > 0 ? `(${unreadChat})` : ''}</span></button>
       <button type="button" className={showParticipants ? 'is-active' : ''} onClick={() => setShowParticipants((value) => !value)}><Users size={20} /><span>Participants {allParticipants.length}</span></button>
       <div className="session-controls__leave">{isHost ? <><button type="button" onClick={leave}>Leave</button><button type="button" className="session-end" onClick={() => setShowEndModal(true)}><Phone size={20} /><span>End for all</span></button></> : <button type="button" className="session-end" onClick={leave}><Phone size={20} /><span>Leave</span></button>}</div>
     </nav>
+    {reaction && <div className="session-floating-reaction" aria-live="polite">{reaction}</div>}
     <Modal open={showRecordingUpgrade} title="Recording is a Pro feature" onClose={() => setShowRecordingUpgrade(false)}><LockedFeatureCard feature="recording" tier={tier} subscribers={classData?.hostId?.totalActiveStudents || 0} threshold={73} /></Modal>
     <Modal open={showEndModal} title="End class for everyone" onClose={() => setShowEndModal(false)}><p>{Math.max(0, allParticipants.length - 1)} students will be disconnected.</p><div className="session-modal-actions"><button type="button" onClick={() => setShowEndModal(false)}>Cancel</button><button type="button" className="session-end" onClick={endForAll}>End for all</button></div></Modal>
   </div>;

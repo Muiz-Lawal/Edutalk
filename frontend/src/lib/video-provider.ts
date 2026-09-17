@@ -42,7 +42,8 @@ export class DevMockProvider implements VideoProvider {
       });
       if (response.ok) {
         const room = await response.json();
-        return { ...room, joinUrlHost: `/session/${sessionId}?role=host`, joinUrlStudent: `/session/${sessionId}` };
+        const created = room.videoRoom || room;
+        return { ...created, roomId: created.roomId, joinUrlHost: `/session/${sessionId}?role=host`, joinUrlStudent: `/session/${sessionId}` };
       }
     } catch {
       // The development provider remains usable when the optional room API is unavailable.
