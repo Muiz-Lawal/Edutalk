@@ -76,6 +76,7 @@ backend.log
 !backend/tests/recordingLifecycle.test.js
 !backend/tests/adminAuth.test.js
 !backend/tests/environment.test.js
+!backend/tests/paymentGateway.test.js
 
 # ============================================================================
 # Package Manager
