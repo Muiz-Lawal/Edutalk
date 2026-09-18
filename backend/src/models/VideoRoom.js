@@ -42,6 +42,14 @@ const videoRoomSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  waitingRoomEnabled: { type: Boolean, default: true },
+  locked: { type: Boolean, default: false },
+  presenterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  coHosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  removedUsers: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    removedUntil: Date,
+  }],
   
   // Participants
   participants: [{
@@ -51,6 +59,10 @@ const videoRoomSchema = new mongoose.Schema({
     joinedAt: Date,
     leftAt: Date,
     isHost: Boolean,
+    role: { type: String, enum: ['host', 'cohost', 'student'], default: 'student' },
+    admittedAt: Date,
+    waiting: { type: Boolean, default: true },
+    removedAt: Date,
     signalingState: {
       type: String,
       enum: ['stable', 'have-local-offer', 'have-remote-offer', 'have-local-pranswer', 'have-remote-pranswer', 'closed'],

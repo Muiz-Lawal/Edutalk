@@ -11,6 +11,7 @@ import { getVideoProvider } from '../lib/video-provider';
 import LockedFeatureCard from '../components/ui/LockedFeatureCard';
 import Modal from '../components/ui/Modal';
 import WhiteboardStage from '../components/WhiteboardStage';
+import ParticipantCommandPanel from '../components/ParticipantCommandPanel';
 import '../styles/SessionRoom.css';
 
 const layouts = ['spotlight', 'grid', 'sidebar'];
@@ -34,12 +35,13 @@ function FriendlyError({ message, onRetry }) {
   return <div className="session-error" role="alert"><CircleHelp size={18} /><div><strong>We couldn’t join this class</strong><p>{message}</p><button type="button" onClick={onRetry}>Retry</button></div></div>;
 }
 
-function ParticipantTile({ participant, local, onPin }) {
+function ParticipantTile({ participant, local, onPin, presenting }) {
   const initials = participant.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
-  return <article className={`session-tile ${participant.speaking ? 'session-tile--speaking' : ''}`}>
+  return <article className={`session-tile ${participant.speaking ? 'session-tile--speaking' : ''} ${presenting ? 'session-tile--presenting' : ''}`}>
     {participant.videoEnabled && participant.stream ? <video className="session-tile__video" ref={(node) => { if (node) node.srcObject = participant.stream; }} autoPlay playsInline muted={local} /> : <div className="session-tile__avatar">{initials}</div>}
     <div className="session-tile__name">{participant.name} {local && '(You)'}</div>
     {participant.isHost && <span className="session-tile__host">HOST</span>}
+    {presenting && <span className="session-tile__presenting">Presenting</span>}
     {participant.handRaised && <span className="session-tile__hand"><Hand size={14} /></span>}
     {!participant.audioEnabled && <span className="session-tile__muted"><MicOff size={14} /></span>}
     <span className={`session-tile__quality session-tile__quality--${participant.quality || 'good'}`}><Signal size={14} /></span>
@@ -91,6 +93,9 @@ export default function SessionRoom() {
   const [reaction, setReaction] = useState(null);
   const [showReactions, setShowReactions] = useState(false);
   const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [roomId, setRoomId] = useState('');
+  const [presenterId, setPresenterId] = useState('');
+  const [handId, setHandId] = useState(null);
   const isHost = activeRole === 'host' || searchParams.get('role') === 'host';
   const tier = classData?.hostId?.activatedPlanTier || classData?.hostId?.planTier || 'starter';
   const recordingUnlocked = ['pro', 'elite'].includes(tier);
@@ -144,6 +149,21 @@ export default function SessionRoom() {
       setChatInput('');
       setUnreadChat(0);
     } catch { setEngagementError('Your message could not be sent. Please retry.'); }
+  };
+  const toggleHand = async () => {
+    try {
+      if (handId) {
+        await api.delete(`/session-engagement/${sessionId}/hands/${handId}`);
+        setHandId(null);
+        setHandRaised(false);
+      } else {
+        const { data } = await api.post(`/session-engagement/${sessionId}/hands`);
+        setHandId(data.id);
+        setHandRaised(true);
+      }
+    } catch {
+      setEngagementError('Your raised hand could not be updated. Please retry.');
+    }
   };
 
   const createQuestion = async (event) => {
@@ -224,6 +244,7 @@ export default function SessionRoom() {
         setVideoEnabled(false);
       }
       const room = await provider.createRoom(sessionId);
+      setRoomId(room.roomId);
       connectionRef.current = await provider.createConnection({
         roomId: room.roomId,
         token: localStorage.getItem('token'),
@@ -249,6 +270,24 @@ export default function SessionRoom() {
   }, [recording]);
 
   useEffect(() => {
+    if (!roomId || (stage !== 'lobby' && stage !== 'room')) return undefined;
+    const checkAdmission = async () => {
+      try {
+        const { data } = await api.get(`/video/rooms/${encodeURIComponent(roomId)}/state`);
+        setPresenterId(data.presenterId || '');
+        setPresenterId(data.presenterId || '');
+        if (data.admitted && stage === 'lobby') setStage('room');
+        if (data.status === 'closed') setError('This class has ended.');
+      } catch {
+        // The room's existing reconnecting state handles transient polling failures.
+      }
+    };
+    const timer = window.setInterval(checkAdmission, 3000);
+    checkAdmission();
+    return () => window.clearInterval(timer);
+  }, [roomId, stage]);
+
+  useEffect(() => {
     const onKey = (event) => {
       if (event.key === 'Escape') { setShowChat(false); setShowWhiteboard(false); setShowSettings(false); return; }
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
@@ -257,7 +296,7 @@ export default function SessionRoom() {
       if (key === 'v') toggleVideo();
       if (key === 'c') setShowChat((value) => !value);
       if (key === 'p') setShowParticipants((value) => !value);
-      if (key === 'r') setHandRaised((value) => !value);
+      if (key === 'r') toggleHand();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -314,15 +353,17 @@ export default function SessionRoom() {
   return <div className="session-room">
     {connectionState === 'reconnecting' && <div className="session-status session-status--warning">Reconnecting…</div>}
     {connectionState === 'connected' && <div className="session-status session-status--connected"><Network size={14} /> Connected</div>}
+    {recording && <div className="session-recording-chip"><Radio size={12} /> Recording · {formatTimer(recordingSeconds)}</div>}
     <header className="session-topbar"><div><span className="session-eyebrow">Live classroom</span><h1>{classData?.title || 'Classroom'}</h1></div><div className="session-topbar__actions"><select aria-label="Layout" value={layout} onChange={(event) => updateLayout(event.target.value)}>{layouts.map((item) => <option value={item} key={item}>{item[0].toUpperCase() + item.slice(1)}</option>)}</select><button type="button" onClick={() => setShowSettings((value) => !value)} aria-label="Settings"><Settings size={18} /></button></div></header>
     <main className={`session-stage session-stage--${layout}`}>
       {layout === 'sidebar' && (showWhiteboard ? <WhiteboardStage sessionId={sessionId} isHost={isHost} layout={layout} onClose={() => setShowWhiteboard(false)} /> : <div className="session-docked-stage"><Presentation size={34} /><span>Shared stage</span><small>Whiteboard and engagement tools will appear here.</small></div>)}
       {layout !== 'sidebar' && showWhiteboard && <WhiteboardStage sessionId={sessionId} isHost={isHost} layout={layout} onClose={() => setShowWhiteboard(false)} />}
-      <section className="session-tiles">{visibleParticipants.map((participant) => <ParticipantTile key={participant.id} participant={participant} local={participant.id === 'local'} onPin={setPinnedId} />)}</section>
+      <section className="session-tiles">{visibleParticipants.map((participant) => <ParticipantTile key={participant.id} participant={participant} local={participant.id === 'local'} presenting={String(participant.id) === String(presenterId)} onPin={setPinnedId} />)}</section>
       {layout === 'grid' && allParticipants.length > 24 && <div className="session-pagination"><button type="button" onClick={() => setPage((value) => Math.max(0, value - 1))}><ChevronLeft size={16} /></button><span>{page + 1} / {Math.ceil(allParticipants.length / 24)}</span><button type="button" onClick={() => setPage((value) => Math.min(Math.ceil(allParticipants.length / 24) - 1, value + 1))}><ChevronRight size={16} /></button></div>}
-      {layout === 'sidebar' && <aside className="session-rail">{allParticipants.map((participant) => <ParticipantTile key={participant.id} participant={participant} local={participant.id === 'local'} onPin={setPinnedId} />)}</aside>}
+      {layout === 'sidebar' && <aside className="session-rail">{allParticipants.map((participant) => <ParticipantTile key={participant.id} participant={participant} local={participant.id === 'local'} presenting={String(participant.id) === String(presenterId)} onPin={setPinnedId} />)}</aside>}
     </main>
     {showSettings && <div className="session-settings"><h2>Settings</h2><label><input type="checkbox" defaultChecked /> Mirror my video</label><label><input type="checkbox" defaultChecked /> Noise suppression</label><p>Shortcuts: M microphone, V camera, C chat, P participants, R raise hand</p></div>}
+    {showParticipants && roomId && <ParticipantCommandPanel roomId={roomId} sessionId={sessionId} isHost={isHost} tier={tier} onClose={() => setShowParticipants(false)} />}
     {showChat && <aside className="session-panel session-engagement-rail"><div className="session-rail-tabs"><button type="button" className={railTab === 'chat' ? 'is-active' : ''} onClick={() => { setRailTab('chat'); setUnreadChat(0); }}>Chat {unreadChat > 0 && <b>{unreadChat}</b>}</button><button type="button" className={railTab === 'qa' ? 'is-active' : ''} onClick={() => setRailTab('qa')}>Q&amp;A {questions.filter((item) => item.status === 'answered').length > 0 && <b>{questions.filter((item) => item.status === 'answered').length}</b>}</button><button type="button" className={railTab === 'participants' ? 'is-active' : ''} onClick={() => setRailTab('participants')}>Participants</button><button type="button" onClick={() => setShowChat(false)}><X size={16} /></button></div>{engagementError && <div className="session-engagement-error">{engagementError} <button type="button" onClick={loadEngagement}>Retry</button></div>}{!engagementLoaded ? <div className="session-panel__body"><div className="session-skeleton session-skeleton--short" /><div className="session-skeleton session-skeleton--short" /></div> : railTab === 'chat' ? <><div className="session-panel__body">{!chatEnabled && !isHost ? <p className="session-empty">The host disabled chat</p> : chatMessages.map((message) => <article className={`session-message ${String(message.userId) === String(user?._id || user?.id) ? 'session-message--own' : ''}`} key={message._id}><strong>{message.user?.name || 'Participant'} {message.isHost && <small>HOST</small>}</strong><time>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time><p className={message.deletedAt ? 'session-message--removed' : ''}>{message.text}</p>{isHost && !message.deletedAt && <button type="button" onClick={() => deleteMessage(message._id)}>Delete</button>}</article>)}</div>{isHost && <button type="button" className="session-chat-toggle" onClick={toggleChatEnabled}>{chatEnabled ? 'Disable chat' : 'Enable chat'}</button>}{chatEnabled && <form onSubmit={postMessage}><textarea maxLength={500} rows={1} value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder={connectionState === 'reconnecting' ? 'Chat is reconnecting…' : 'Write a message'} disabled={connectionState === 'reconnecting'} /><span>{chatInput.length >= 450 ? `${chatInput.length}/500` : ''}</span><button type="submit">Send</button></form>}</> : railTab === 'qa' ? <><div className="session-panel__body">{questions.filter((item) => item.status !== 'dismissed').sort((a, b) => (b.voteCount || b.upvotes?.length || 0) - (a.voteCount || a.upvotes?.length || 0)).map((question) =>     <article className={`session-question ${question.status === 'answered' ? 'is-answered' : ''}`} key={question._id}><p>{question.text}</p><div><button type="button" onClick={() => voteQuestion(question._id)}><ArrowBigUp size={15} /> {question.voteCount || question.upvotes?.length || 0}</button>{isHost && question.status === 'open' && <button type="button" onClick={() => updateQuestion(question._id, 'answered')}>Mark answered</button>}</div></article>)}</div><form onSubmit={createQuestion}><textarea maxLength={500} value={qaInput} onChange={(event) => setQaInput(event.target.value)} placeholder="Ask a question" /><button type="submit">Ask</button></form></> : <div className="session-panel__body">{allParticipants.map((participant) => <p key={participant.id}>{participant.name} {participant.handRaised && <span className="session-hand-label">Hands raised</span>}</p>)}</div>}</aside>}
     <nav className="session-controls" aria-label="Classroom controls">
       <button type="button" className={audioEnabled ? '' : 'is-active'} onClick={toggleAudio}>{audioEnabled ? <Mic size={20} /> : <MicOff size={20} />}<span>Mic</span></button>
@@ -330,8 +371,8 @@ export default function SessionRoom() {
       <button type="button" className={screenSharing ? 'is-active' : ''} onClick={toggleScreen}><MonitorUp size={20} /><span>Share</span></button>
       <button type="button" className={showWhiteboard ? 'is-active' : ''} onClick={() => setShowWhiteboard((value) => !value)}><Presentation size={20} /><span>Whiteboard</span></button>
       <button type="button" className={recording ? 'is-recording' : ''} onClick={toggleRecording}>{recording ? <Radio size={20} /> : recordingUnlocked ? <Circle size={20} /> : <Lock size={18} />}<span>{recording ? `Record · ${formatTimer(recordingSeconds)}` : 'Record'}</span></button>
-      <div className="session-reaction-wrap"><button type="button" onClick={() => setShowReactions((value) => !value)}><Smile size={20} /><span>Reactions</span></button>{showReactions && <div className="session-reactions">{['👍', '❤️', '😂', '🎉', '👏', '💡'].map((item) => <button type="button" key={item} onClick={() => sendReaction(item)}>{item}</button>)}<button type="button" onClick={() => { setHandRaised((value) => !value); setShowReactions(false); }}><Hand size={15} /> Raise hand</button></div>}</div>
-      <button type="button" className={handRaised ? 'is-active' : ''} onClick={() => setHandRaised((value) => !value)}><Hand size={20} /><span>Raise hand</span></button>
+      <div className="session-reaction-wrap"><button type="button" onClick={() => setShowReactions((value) => !value)}><Smile size={20} /><span>Reactions</span></button>{showReactions && <div className="session-reactions">{['👍', '❤️', '😂', '🎉', '👏', '💡'].map((item) => <button type="button" key={item} onClick={() => sendReaction(item)}>{item}</button>)}<button type="button" onClick={() => { toggleHand(); setShowReactions(false); }}><Hand size={15} /> Raise hand</button></div>}</div>
+      <button type="button" className={handRaised ? 'is-active' : ''} onClick={toggleHand}><Hand size={20} /><span>Raise hand</span></button>
       <button type="button" className={showChat ? 'is-active' : ''} onClick={() => setShowChat((value) => !value)}><PanelRight size={20} /><span>Chat {unreadChat > 0 ? `(${unreadChat})` : ''}</span></button>
       <button type="button" className={showParticipants ? 'is-active' : ''} onClick={() => setShowParticipants((value) => !value)}><Users size={20} /><span>Participants {allParticipants.length}</span></button>
       <div className="session-controls__leave">{isHost ? <><button type="button" onClick={leave}>Leave</button><button type="button" className="session-end" onClick={() => setShowEndModal(true)}><Phone size={20} /><span>End for all</span></button></> : <button type="button" className="session-end" onClick={leave}><Phone size={20} /><span>Leave</span></button>}</div>

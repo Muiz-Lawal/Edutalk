@@ -6,6 +6,8 @@ export const FEATURES = {
   builtinVideo: ['off', 'on', 'on', 'on'],
   recording: ['off', 'off', 'on', 'on'],
   recordingAutoShare: ['off', 'off', 'off', 'on'],
+  coHost: ['off', 'off', 'off', 'on'],
+  breakouts: ['off', 'off', 'on', 'on'],
 };
 
 export class FeatureGateError extends Error {
