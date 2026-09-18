@@ -39,6 +39,7 @@ import { getRecordingLifecycleStatus, runRecordingLifecycle } from './services/r
 import { recordingProvider } from './services/recording-provider.js';
 import aiModerationService from './services/aiModerationService.js';
 import sessionEngagementRoutes from './routes/sessionEngagementRoutes.js';
+import sessionWhiteboardRoutes from './routes/sessionWhiteboardRoutes.js';
 import { validateProductionEnvironment } from './config/environment.js';
 
 dotenv.config();
@@ -97,6 +98,19 @@ const participantInfo = new Map(); // socketId -> { userId, email, roomId }
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
+
+  socket.on('whiteboard:join', ({ sessionId } = {}) => {
+    if (sessionId) socket.join(`whiteboard:${sessionId}`);
+  });
+
+  socket.on('whiteboard:leave', ({ sessionId } = {}) => {
+    if (sessionId) socket.leave(`whiteboard:${sessionId}`);
+  });
+
+  socket.on('whiteboard:event', ({ sessionId, event } = {}) => {
+    if (!sessionId || !event || !['stroke', 'permission', 'clear'].includes(event.type)) return;
+    socket.to(`whiteboard:${sessionId}`).emit(`whiteboard:event:${sessionId}`, event);
+  });
 
   // Join a user-specific room for targeted notifications
   try {
@@ -476,6 +490,7 @@ app.use('/api/certificates', certificateRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/points', pointsRoutes);
 app.use('/api/session-engagement', sessionEngagementRoutes);
+app.use('/api/session-whiteboard', sessionWhiteboardRoutes);
 
 // Events API (client-side event tracking)
 app.use('/api/events', eventRoutes);
