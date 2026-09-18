@@ -1,7 +1,7 @@
 import Session from '../models/Session.js';
 import Subscription from '../models/Subscription.js';
 import User from '../models/User.js';
-import { SessionMessage, SessionQuestion, SessionPoll } from '../models/SessionEngagement.js';
+import { SessionMessage, SessionQuestion, SessionPoll, SessionHand } from '../models/SessionEngagement.js';
 
 async function context(req, sessionId) {
   const session = await Session.findById(sessionId).populate('classId', 'hostId');
@@ -22,16 +22,18 @@ export async function getEngagement(req, res) {
   const { sessionId } = req.params;
   const access = await context(req, sessionId);
   if (access.error) return res.status(access.error.status).json(access.error);
-  const [messages, questions, poll] = await Promise.all([
+  const [messages, questions, poll, hands] = await Promise.all([
     SessionMessage.find({ sessionId }).populate('userId', 'firstName lastName avatar').sort({ createdAt: 1 }).limit(200),
     SessionQuestion.find({ sessionId }).populate('userId', 'firstName lastName avatar').sort({ status: 1, createdAt: 1 }),
     SessionPoll.findOne({ sessionId, status: 'live' }),
+    SessionHand.find({ sessionId, loweredAt: null }).populate('userId', 'firstName lastName avatar').sort({ raisedAt: 1 }),
   ]);
   return res.json({
     chatEnabled: access.session.chatEnabled !== false,
     messages: messages.map((item) => ({ ...item.toObject(), user: safeUser(item.userId), userId: item.userId._id })),
     questions: questions.map((item) => ({ ...item.toObject(), user: safeUser(item.userId), userId: item.userId._id, voteCount: item.upvotes.length })),
     poll,
+    hands: hands.map((item) => ({ id: item._id, user: safeUser(item.userId), raisedAt: item.raisedAt })),
     isHost: access.isHost,
   });
 }
@@ -116,4 +118,44 @@ export async function updatePoll(req, res) {
   const update = req.body.action === 'share' ? { resultsShared: true } : { status: 'ended' };
   const poll = await SessionPoll.findOneAndUpdate({ _id: req.params.pollId, sessionId: req.params.sessionId }, update, { new: true });
   return res.json(poll);
+}
+
+export async function raiseHand(req, res) {
+  const access = await context(req, req.params.sessionId);
+  if (access.error) return res.status(access.error.status).json(access.error);
+  const existing = await SessionHand.findOne({ sessionId: req.params.sessionId, userId: req.user.userId, loweredAt: null });
+  if (existing) return res.status(409).json({ message: 'Your hand is already raised' });
+  const hand = await SessionHand.create({ sessionId: req.params.sessionId, userId: req.user.userId });
+  const user = await User.findById(req.user.userId).select('firstName lastName avatar');
+  return res.status(201).json({ id: hand._id, user: safeUser(user), raisedAt: hand.raisedAt });
+}
+
+export async function lowerHand(req, res) {
+  const access = await context(req, req.params.sessionId);
+  if (access.error) return res.status(access.error.status).json(access.error);
+  const hand = await SessionHand.findOneAndUpdate(
+    { _id: req.params.handId, sessionId: req.params.sessionId },
+    { loweredAt: new Date() },
+    { new: true }
+  );
+  if (!hand) return res.status(404).json({ message: 'Hand not found' });
+  return res.json({ success: true });
+}
+
+export async function exportPollCsv(req, res) {
+  const access = await context(req, req.params.sessionId);
+  if (access.error) return res.status(access.error.status).json(access.error);
+  if (!access.isHost) return res.status(403).json({ message: 'Host access required' });
+  const poll = await SessionPoll.findOne({ _id: req.params.pollId, sessionId: req.params.sessionId });
+  if (!poll) return res.status(404).json({ message: 'Poll not found' });
+  const rows = [['Question', poll.question], ['Anonymous', poll.anonymous ? 'Yes' : 'No'], []];
+  rows.push(['Option', 'Votes', ...(poll.anonymous ? [] : ['Responses'])]);
+  for (const option of poll.options) {
+    const votes = poll.voteDetails?.filter((v) => String(v.optionId) === String(option._id)) || [];
+    rows.push([option.label, option.votes, ...(poll.anonymous ? [] : [votes.map((v) => v.userId).join('; ')])]);
+  }
+  const csv = rows.map((row) => row.map((cell) => (String(cell).includes(',') || String(cell).includes('"') ? `"${String(cell).replace(/"/g, '""')}"` : cell)).join(',')).join('\n');
+  res.header('Content-Type', 'text/csv');
+  res.header('Content-Disposition', `attachment; filename="poll-${req.params.pollId}.csv"`);
+  return res.send(csv);
 }
