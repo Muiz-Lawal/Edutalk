@@ -492,12 +492,13 @@ export const completeRecording = async (req, res) => {
     const classData = await Class.findById(existing.classId);
     const holdUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const retentionDays = classData?.recordingSettings?.retentionDays;
-    if (streamUid) await recordingProvider.completeRecording(streamUid);
+    const providerStreamUid = streamUid || existing.streamUid;
+    if (providerStreamUid) await recordingProvider.completeRecording(providerStreamUid);
     const recording = await Recording.findByIdAndUpdate(
       recordingId,
       {
         status: holdUntil ? 'review_hold' : 'processing',
-        streamUid,
+        streamUid: providerStreamUid,
         duration,
         autoDeleteEnabled: Boolean(retentionDays),
         autoDeleteDays: retentionDays || null,
@@ -509,7 +510,7 @@ export const completeRecording = async (req, res) => {
       { new: true, ...(eventId ? {} : {}) }
     );
     // Trigger async AI processing
-    const sourceUrl = streamUid ? await recordingProvider.createSignedPlaybackUrl(streamUid, new Date(Date.now() + 60 * 60 * 1000)) : null;
+    const sourceUrl = providerStreamUid ? await recordingProvider.createSignedPlaybackUrl(providerStreamUid, new Date(Date.now() + 60 * 60 * 1000)) : null;
     if (sourceUrl) processRecordingAsync(recording._id, sourceUrl);
 
     res.json({

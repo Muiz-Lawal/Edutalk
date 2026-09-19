@@ -4,6 +4,8 @@ import Subscription from '../models/Subscription.js';
 import User from '../models/User.js';
 import SessionAudit from '../models/SessionAudit.js';
 import SessionWhiteboard from '../models/SessionWhiteboard.js';
+import { SessionMessage, SessionPoll } from '../models/SessionEngagement.js';
+import Recording from '../models/Recording.js';
 import { v4 as uuidv4 } from 'uuid';
 import { assertFeature, getHostTier, planGateResponse } from '../utils/plan-limits.js';
 
@@ -47,7 +49,15 @@ export const createVideoRoom = async (req, res) => {
     const session = await Session.findById(sessionId).populate('classId', 'hostId videoMode');
     if (!session || !session.classId) return res.status(404).json({ message: 'Session not found' });
     if (session.classId.videoMode !== 'builtin') return res.status(403).json({ message: 'Built-in video is not enabled for this class' });
-    if (String(session.classId.hostId) !== String(req.user.userId)) return res.status(403).json({ message: 'Only the class host can create the room' });
+    const isHost = String(session.classId.hostId) === String(req.user.userId);
+    if (!isHost) {
+      if (!(await activeEnrollment(req.user.userId, session.classId._id, new Date()))) {
+        return res.status(403).json({ code: 'subscription_required', message: 'This class needs an active enrollment' });
+      }
+      const existingRoom = await VideoRoom.findOne({ sessionId, status: { $ne: 'closed' } });
+      if (!existingRoom) return res.status(409).json({ code: 'waiting_for_host', message: 'The host has not opened this class yet' });
+      return res.status(200).json({ message: 'Video room ready', videoRoom: existingRoom });
+    }
     try { await assertFeature(req.user.userId, 'builtinVideo'); } catch (error) {
       if (planGateResponse(error, res)) return;
       return res.status(500).json({ message: 'Unable to create video room.' });
@@ -108,6 +118,16 @@ export const joinVideoRoom = async (req, res) => {
     });
     room.status = 'active';
     await room.save();
+    await Session.findByIdAndUpdate(room.sessionId, {
+      $push: {
+        attendees: {
+          userId: req.user.userId,
+          email: req.user.email,
+          joinedAt: new Date(),
+        },
+      },
+      actualStartTime: room.status === 'active' ? new Date() : undefined,
+    });
     return res.status(waiting ? 202 : 200).json({ message: waiting ? 'Waiting for host admission' : 'Joined video room', waiting, videoRoom: room });
   } catch {
     return res.status(500).json({ message: 'Unable to join this class.' });
@@ -119,6 +139,11 @@ export const leaveVideoRoom = async (req, res) => {
   if (access.error) return res.status(access.error.status).json(access.error);
   if (!(await authorizedViewer(access.room, req.user.userId))) return res.status(403).json({ code: 'subscription_required', message: 'This class needs an active enrollment' });
   await VideoRoom.updateOne({ _id: access.room._id, 'participants.userId': req.user.userId }, { $set: { 'participants.$[entry].leftAt': new Date() } }, { arrayFilters: [{ 'entry.userId': req.user.userId, 'entry.leftAt': null }] });
+  await Session.updateOne(
+    { _id: access.room.sessionId, 'attendees.userId': req.user.userId, 'attendees.leftAt': null },
+    { $set: { 'attendees.$[entry].leftAt': new Date() } },
+    { arrayFilters: [{ 'entry.userId': req.user.userId, 'entry.leftAt': null }] },
+  );
   return res.json({ message: 'Left video room' });
 };
 
@@ -132,6 +157,59 @@ export const closeVideoRoom = async (req, res) => {
   await Session.findByIdAndUpdate(access.room.sessionId, { status: 'completed', actualEndTime: access.room.closedAt });
   await SessionWhiteboard.deleteOne({ sessionId: access.room.sessionId });
   return res.json({ message: 'Video room closed', videoRoom: access.room });
+};
+
+export const getSessionSummary = async (req, res) => {
+  const access = await roomAccess(req.params.roomId, req.user.userId, { hostOnly: true });
+  if (access.error) return res.status(access.error.status).json(access.error);
+  const room = access.room;
+  const session = await Session.findById(room.sessionId).lean();
+  const [messages, polls, recording] = await Promise.all([
+    SessionMessage.countDocuments({ sessionId: room.sessionId }),
+    SessionPoll.countDocuments({ sessionId: room.sessionId }),
+    Recording.findOne({ sessionId: room.sessionId, hostId: room.hostId }).sort({ createdAt: -1 }).lean(),
+  ]);
+  const active = room.participants.filter((participant) => !participant.leftAt && !participant.waiting).length;
+  const peak = Math.max(active, ...room.participants.map((participant) => participant.leftAt ? 0 : 1));
+  const durationSeconds = ((room.closedAt || new Date()) - (session?.actualStartTime || room.createdAt)) / 1000;
+  return res.json({
+    durationSeconds: Math.max(0, Math.round(durationSeconds)),
+    peakParticipants: peak,
+    chatMessages: messages,
+    pollCount: polls,
+    recording: recording ? {
+      status: recording.status,
+      reviewHoldUntil: recording.reviewHoldUntil,
+      releaseAt: recording.releaseAt,
+    } : null,
+  });
+};
+
+export const exportAttendance = async (req, res) => {
+  const access = await roomAccess(req.params.roomId, req.user.userId, { hostOnly: true });
+  if (access.error) return res.status(access.error.status).json(access.error);
+  const room = access.room;
+  const session = await Session.findById(room.sessionId).lean();
+  const rows = [['Name', 'Email', 'Joined At', 'Left At', 'Duration Seconds', 'Role']];
+  const users = await User.find({ _id: { $in: room.participants.map((participant) => participant.userId) } }).select('firstName lastName email').lean();
+  const byId = new Map(users.map((user) => [String(user._id), user]));
+  for (const participant of room.participants) {
+    const user = byId.get(String(participant.userId)) || {};
+    const joined = participant.joinedAt ? new Date(participant.joinedAt) : null;
+    const left = participant.leftAt ? new Date(participant.leftAt) : new Date(room.closedAt || Date.now());
+    rows.push([
+      [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Participant',
+      user.email || participant.email || '',
+      joined?.toISOString() || '',
+      left.toISOString(),
+      joined ? Math.max(0, Math.round((left - joined) / 1000)) : 0,
+      participant.role || (participant.isHost ? 'host' : 'student'),
+    ]);
+  }
+  const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="session-attendance-${room.sessionId}.csv"`);
+  return res.send(csv);
 };
 
 export const getVideoRoomStats = async (req, res) => {

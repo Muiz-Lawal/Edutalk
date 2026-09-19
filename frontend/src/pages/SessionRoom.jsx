@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowBigUp, Camera, CameraOff, ChevronLeft, ChevronRight, CircleHelp, Clock3, Hand, LayoutGrid,
+  ArrowBigUp, Camera, CameraOff, CheckCircle, ChevronLeft, ChevronRight, CircleHelp, Clock3, Hand, LayoutGrid,
   Lock, Maximize2, Mic, MicOff, MonitorUp, Network, PanelRight, Phone, Play, Presentation,
   Radio, Settings, Signal, Smile, Users, Video, Volume2, X,
 } from 'lucide-react';
@@ -78,6 +78,12 @@ export default function SessionRoom() {
   const [showRecordingUpgrade, setShowRecordingUpgrade] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [recordingId, setRecordingId] = useState(null);
+  const [recordingStreamUid, setRecordingStreamUid] = useState(null);
+  const [recordingError, setRecordingError] = useState('');
+  const [sessionSummary, setSessionSummary] = useState(null);
+  const [showSessionSummary, setShowSessionSummary] = useState(false);
+  const [removedFromClass, setRemovedFromClass] = useState(false);
   const [connectionState, setConnectionState] = useState('disconnected');
   const [pinnedId, setPinnedId] = useState(null);
   const [chatInput, setChatInput] = useState('');
@@ -252,8 +258,9 @@ export default function SessionRoom() {
         onParticipants: setParticipants,
       });
       setStage(isHost ? 'room' : 'lobby');
-    } catch {
-      setError('We could not connect you to the classroom. Please retry.');
+    } catch (joinError) {
+      if (joinError?.code === 'removed_from_class') setRemovedFromClass(true);
+      setError(joinError?.code === 'class_full' ? 'This class is full.' : 'We could not connect you to the classroom. Please retry.');
       setStage('error');
     }
   };
@@ -275,9 +282,8 @@ export default function SessionRoom() {
       try {
         const { data } = await api.get(`/video/rooms/${encodeURIComponent(roomId)}/state`);
         setPresenterId(data.presenterId || '');
-        setPresenterId(data.presenterId || '');
         if (data.admitted && stage === 'lobby') setStage('room');
-        if (data.status === 'closed') setError('This class has ended.');
+        if (data.status === 'closed') setStage('ended');
       } catch {
         // The room's existing reconnecting state handles transient polling failures.
       }
@@ -321,10 +327,31 @@ export default function SessionRoom() {
       setScreenSharing(Boolean(stream));
     }
   };
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     if (!recordingUnlocked) { setShowRecordingUpgrade(true); return; }
-    setRecording((value) => !value);
-    if (recording) setRecordingSeconds(0);
+    setRecordingError('');
+    try {
+      if (!recording) {
+        const { data } = await api.post('/recordings/start', {
+          sessionId,
+          classId: classData?._id || classData?.id,
+        });
+        setRecordingId(data.recording?.id || data.recording?._id);
+        setRecordingStreamUid(data.recording?.streamUid || null);
+        setRecording(true);
+        setRecordingSeconds(0);
+      } else {
+        await api.post('/recordings/complete', {
+          recordingId,
+          streamUid: recordingStreamUid,
+          duration: recordingSeconds,
+        });
+        setRecording(false);
+        setRecordingSeconds(0);
+      }
+    } catch {
+      setRecordingError('Recording could not be updated. Please retry.');
+    }
   };
   const sendReaction = (value) => {
     setReaction(value);
@@ -336,15 +363,23 @@ export default function SessionRoom() {
     navigate(`/class/${classData?._id || classData?.id || sessionId}`, { state: { toast: 'You left the class' } });
   };
   const endForAll = async () => {
-    await connectionRef.current?.endForAll();
-    setShowEndModal(false);
-    navigate(`/class/${classData?._id || classData?.id || sessionId}`);
+    try {
+      await connectionRef.current?.endForAll();
+      const { data } = await api.get(`/video/rooms/${encodeURIComponent(roomId)}/summary`);
+      setSessionSummary(data);
+      setShowEndModal(false);
+      setShowSessionSummary(true);
+    } catch {
+      setError('The class could not be ended cleanly. Please retry.');
+    }
   };
   const updateLayout = (value) => { setLayout(value); localStorage.setItem('session-layout', value); };
   const visibleParticipants = layout === 'grid' ? allParticipants.slice(page * 24, page * 24 + 24) : allParticipants;
 
   if (stage === 'loading') return <div className="session-room session-room--center"><div className="session-skeleton" /><div className="session-skeleton session-skeleton--short" /></div>;
+  if (removedFromClass) return <div className="session-room session-room--center"><div className="session-card session-card--blocked"><Lock size={28} /><h1>The host removed you from this class</h1><p>You can try again after the 60-second rejoin cooldown.</p><button type="button" onClick={() => navigate(`/class/${sessionId}`)}>Back to class</button></div></div>;
   if (stage === 'error') return <div className="session-room session-room--center"><FriendlyError message={error} onRetry={loadClass} /></div>;
+  if (stage === 'ended') return <div className="session-room session-room--center"><div className="session-card"><CheckCircle size={28} /><h1>Class ended</h1><p>See you next session!</p><button type="button" onClick={() => navigate(`/class/${classData?._id || classData?.id || sessionId}`)}>Back to class</button></div></div>;
   if (stage === 'blocked') return <div className="session-room session-room--center"><div className="session-card session-card--blocked"><Lock size={28} /><h1>This class needs an active enrollment</h1><p>Join an active enrollment before entering the classroom.</p><button type="button" onClick={() => navigate(`/class/${sessionId}`)}>View class</button></div></div>;
   if (permissionError && stage === 'green') return <div className="session-room session-room--center"><div className="session-card"><CircleHelp size={28} /><h1>Camera and microphone access is blocked</h1><p>Open your browser site settings, allow camera and microphone access for this site, then retry. In Safari, choose Settings for This Website. In Chrome or Edge, select the lock icon beside the address and allow Camera and Microphone.</p><button type="button" onClick={requestPreview}>Retry</button></div></div>;
   if (stage === 'green') return <div className="session-room session-room--center"><div className="session-card session-green-room"><div className="session-preview"><video ref={(node) => { if (node) node.srcObject = previewStream; }} autoPlay muted playsInline /></div><h1>Ready to join?</h1><p>Your camera stays off until you enable it.</p><div className="session-device-grid">{[['camera', 'Camera', 'videoinput'], ['mic', 'Microphone', 'audioinput'], ['speaker', 'Speaker', 'audiooutput']].map(([key, label, kind]) => <label key={key}>{label}<select value={selectedDevices[key]} onChange={(event) => setSelectedDevices({ ...selectedDevices, [key]: event.target.value })}>{devices.filter((device) => device.kind === kind).map((device) => <option value={device.deviceId} key={device.deviceId}>{device.label || label}</option>)}</select></label>)}</div><div className="session-card__actions"><button type="button" className="session-primary" onClick={() => joinRoom(false)}>Join class</button><button type="button" className="session-outline" onClick={() => joinRoom(true)}>Join without camera</button></div></div></div>;
@@ -354,6 +389,7 @@ export default function SessionRoom() {
     {connectionState === 'reconnecting' && <div className="session-status session-status--warning">Reconnecting…</div>}
     {connectionState === 'connected' && <div className="session-status session-status--connected"><Network size={14} /> Connected</div>}
     {recording && <div className="session-recording-chip"><Radio size={12} /> Recording · {formatTimer(recordingSeconds)}</div>}
+    {recordingError && <div className="session-status session-status--warning">{recordingError}</div>}
     <header className="session-topbar"><div><span className="session-eyebrow">Live classroom</span><h1>{classData?.title || 'Classroom'}</h1></div><div className="session-topbar__actions"><select aria-label="Layout" value={layout} onChange={(event) => updateLayout(event.target.value)}>{layouts.map((item) => <option value={item} key={item}>{item[0].toUpperCase() + item.slice(1)}</option>)}</select><button type="button" onClick={() => setShowSettings((value) => !value)} aria-label="Settings"><Settings size={18} /></button></div></header>
     <main className={`session-stage session-stage--${layout}`}>
       {layout === 'sidebar' && (showWhiteboard ? <WhiteboardStage sessionId={sessionId} isHost={isHost} layout={layout} onClose={() => setShowWhiteboard(false)} /> : <div className="session-docked-stage"><Presentation size={34} /><span>Shared stage</span><small>Whiteboard and engagement tools will appear here.</small></div>)}
@@ -380,5 +416,6 @@ export default function SessionRoom() {
     {reaction && <div className="session-floating-reaction" aria-live="polite">{reaction}</div>}
     <Modal open={showRecordingUpgrade} title="Recording is a Pro feature" onClose={() => setShowRecordingUpgrade(false)}><LockedFeatureCard feature="recording" tier={tier} subscribers={classData?.hostId?.totalActiveStudents || 0} threshold={73} /></Modal>
     <Modal open={showEndModal} title="End class for everyone" onClose={() => setShowEndModal(false)}><p>{Math.max(0, allParticipants.length - 1)} students will be disconnected.</p><div className="session-modal-actions"><button type="button" onClick={() => setShowEndModal(false)}>Cancel</button><button type="button" className="session-end" onClick={endForAll}>End for all</button></div></Modal>
+    <Modal open={showSessionSummary} title="Session summary" onClose={() => setShowSessionSummary(false)}><div className="session-summary-grid"><div><span>Duration</span><strong>{formatTimer(sessionSummary?.durationSeconds || 0)}</strong></div><div><span>Peak participants</span><strong>{sessionSummary?.peakParticipants || 0}</strong></div><div><span>Chat messages</span><strong>{sessionSummary?.chatMessages || 0}</strong></div><div><span>Polls</span><strong>{sessionSummary?.pollCount || 0}</strong></div></div>{sessionSummary?.recording && <p>Recording: {sessionSummary.recording.status === 'review_hold' ? `In review — ready in ${Math.ceil(Math.max(0, new Date(sessionSummary.recording.reviewHoldUntil).getTime() - Date.now()) / 3600000)}h` : sessionSummary.recording.status}</p>}<div className="session-modal-actions"><button type="button" onClick={async () => { const response = await api.get(`/video/rooms/${encodeURIComponent(roomId)}/attendance.csv`, { responseType: 'blob' }); const link = document.createElement('a'); link.href = URL.createObjectURL(response.data); link.download = 'session-attendance.csv'; link.click(); URL.revokeObjectURL(link.href); }}>Export attendance</button><button type="button" className="session-primary" onClick={() => navigate(`/class/${classData?._id || classData?.id || sessionId}`)}>Back to class</button></div></Modal>
   </div>;
 }

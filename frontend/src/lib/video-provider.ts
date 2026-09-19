@@ -70,9 +70,16 @@ export class DevMockProvider implements VideoProvider {
     });
     try {
       const response = await request('/video/rooms/join', { method: 'POST', body: JSON.stringify({ roomId: _roomId }) });
-      if (!response.ok) throw new Error('Room join failed');
+      if (!response.ok) {
+        const details = await response.json().catch(() => ({}));
+        const error = new Error(details.message || 'Room join failed');
+        (error as Error & { code?: string; status?: number }).code = details.code;
+        (error as Error & { code?: string; status?: number }).status = response.status;
+        throw error;
+      }
       onStateChange('connected');
-    } catch {
+    } catch (error) {
+      if ((error as Error & { status?: number }).status === 403 || (error as Error & { status?: number }).status === 409) throw error;
       onStateChange('reconnecting');
       onStateChange('connected');
     }
