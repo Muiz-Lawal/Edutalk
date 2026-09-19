@@ -11,6 +11,8 @@ import {
   getRoomState,
   getSessionSummary,
   exportAttendance,
+  getBreakouts,
+  updateBreakouts,
 } from '../controllers/videoController.js';
 import { authenticateToken } from '../middleware/auth.js';
 
@@ -27,5 +29,7 @@ router.get('/rooms/:roomId/state', authenticateToken, getRoomState);
 router.get('/rooms/:roomId/summary', authenticateToken, getSessionSummary);
 router.get('/rooms/:roomId/attendance.csv', authenticateToken, exportAttendance);
 router.patch('/rooms/:roomId/control', authenticateToken, updateRoomControl);
+router.get('/rooms/:roomId/breakouts', authenticateToken, getBreakouts);
+router.patch('/rooms/:roomId/breakouts', authenticateToken, updateBreakouts);
 
 export default router;

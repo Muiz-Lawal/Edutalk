@@ -369,3 +369,11 @@ Comprehensive test cases for the authenticated session room (`/session/[id]`), e
 - `90bd750` Room engagement: moderated chat + Q&A, raise-hand queue, reactions, live polls
 - `c2cb560` Collaborative whiteboard: named cursors, host draw-permission toggle, PNG export to class resources
 - `7936ff4` Complete engagement: raise hand queue, poll CSV export, result visibility
+# Breakout rooms
+
+- [ ] Pro and Elite hosts can create 2–8 rooms with a 5/10/15 minute duration; Growth receives a server-side `403 plan_gate`.
+- [ ] Students cannot create, assign, open, broadcast, or close rooms by changing client state.
+- [ ] Opening rooms exposes the duration countdown; closing starts the 30-second return countdown; state survives refresh/reconnect.
+- [ ] Assignments include only active enrolled participants and can be changed before opening.
+- [ ] Broadcast text is limited to 300 characters and reaches every breakout participant.
+- [ ] Closing returns participants to the main room and archives the breakout state; every action is audit logged.

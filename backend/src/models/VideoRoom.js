@@ -50,6 +50,21 @@ const videoRoomSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     removedUntil: Date,
   }],
+  breakoutRooms: [{
+    name: { type: String, required: true },
+    roomId: { type: String, required: true },
+    durationMinutes: { type: Number, enum: [5, 10, 15], default: 10 },
+    status: { type: String, enum: ['draft', 'open', 'closing', 'closed'], default: 'draft' },
+    openedAt: Date,
+    closesAt: Date,
+    closingAt: Date,
+    participantIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  }],
+  breakoutState: {
+    status: { type: String, enum: ['idle', 'open', 'closing'], default: 'idle' },
+    announcement: String,
+    closeAt: Date,
+  },
   
   // Participants
   participants: [{

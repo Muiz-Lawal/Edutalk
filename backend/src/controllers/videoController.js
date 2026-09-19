@@ -11,6 +11,7 @@ import { assertFeature, getHostTier, planGateResponse } from '../utils/plan-limi
 
 const tierCap = { growth: 25, pro: 50, elite: 75 };
 const removalReasons = new Set(['Accidental join', 'Disruptive', 'Not enrolled']);
+const breakoutDurations = new Set([5, 10, 15]);
 
 async function roomAccess(roomId, userId, { hostOnly = false } = {}) {
   const room = await VideoRoom.findOne({ roomId });
@@ -285,4 +286,66 @@ export const updateRoomControl = async (req, res) => {
   await room.save();
   if (targetUserId) await audit(room, req.user.userId, action, targetUserId, reason);
   return res.json({ videoRoom: room });
+};
+
+async function requireBreakoutAccess(req, res) {
+  const access = await roomAccess(req.params.roomId, req.user.userId, { hostOnly: true });
+  if (access.error) return access;
+  try {
+    await assertFeature(access.room.hostId, 'breakouts');
+  } catch (error) {
+    planGateResponse(error, res);
+    return { error: { status: 403, code: 'plan_gate' } };
+  }
+  return access;
+}
+
+export const getBreakouts = async (req, res) => {
+  const access = await roomAccess(req.params.roomId, req.user.userId);
+  if (access.error) return res.status(access.error.status).json(access.error);
+  try { await assertFeature(access.room.hostId, 'breakouts'); } catch (error) { if (planGateResponse(error, res)) return; throw error; }
+  return res.json({ breakoutRooms: access.room.breakoutRooms || [], breakoutState: access.room.breakoutState || { status: 'idle' }, isHost: access.isHost, isCoHost: access.isCoHost });
+};
+
+export const updateBreakouts = async (req, res) => {
+  const access = await requireBreakoutAccess(req, res);
+  if (access.error) return res.status(access.error.status).json(access.error);
+  const { action, count, durationMinutes, assignments, announcement } = req.body;
+  const room = access.room;
+  if (action === 'create') {
+    const total = Math.max(2, Math.min(8, Number(count)));
+    const duration = Number(durationMinutes);
+    if (!Number.isInteger(total) || !breakoutDurations.has(duration)) return res.status(400).json({ message: 'Choose 2–8 rooms and a 5, 10, or 15 minute duration' });
+    room.breakoutRooms = Array.from({ length: total }, (_, index) => ({
+      name: `Room ${index + 1}`, roomId: `${room.roomId}-breakout-${index + 1}`, durationMinutes: duration, status: 'draft', participantIds: [],
+    }));
+  } else if (action === 'assign') {
+    if (!Array.isArray(assignments)) return res.status(400).json({ message: 'Assignments must be a list' });
+    const ids = new Set((room.participants || []).filter((item) => !item.isHost && !item.leftAt).map((item) => String(item.userId)));
+    for (const assignment of assignments) {
+      const breakout = room.breakoutRooms.id(assignment.breakoutId);
+      if (!breakout || !ids.has(String(assignment.userId))) continue;
+      room.breakoutRooms.forEach((item) => { item.participantIds = item.participantIds.filter((id) => String(id) !== String(assignment.userId)); });
+      breakout.participantIds.push(assignment.userId);
+    }
+  } else if (action === 'open') {
+    if (!room.breakoutRooms?.length) return res.status(409).json({ message: 'Create breakout rooms first' });
+    const now = new Date();
+    room.breakoutRooms.forEach((item) => { item.status = 'open'; item.openedAt = now; item.closesAt = new Date(now.getTime() + item.durationMinutes * 60000); });
+    room.breakoutState = { status: 'open', announcement: '', closeAt: new Date(now.getTime() + Math.max(...room.breakoutRooms.map((item) => item.durationMinutes)) * 60000) };
+  } else if (action === 'broadcast') {
+    const value = String(announcement || '').trim();
+    if (!value || value.length > 300) return res.status(400).json({ message: 'Announcement must be between 1 and 300 characters' });
+    room.breakoutState.announcement = value;
+  } else if (action === 'close') {
+    const closeAt = new Date(Date.now() + 30000);
+    room.breakoutState = { ...(room.breakoutState?.toObject?.() || room.breakoutState || {}), status: 'closing', closeAt };
+    room.breakoutRooms.forEach((item) => { if (item.status === 'open') { item.status = 'closing'; item.closingAt = closeAt; } });
+  } else if (action === 'finish_close') {
+    room.breakoutState = { status: 'idle', announcement: '', closeAt: null };
+    room.breakoutRooms.forEach((item) => { item.status = 'closed'; });
+  } else return res.status(400).json({ message: 'Unsupported breakout action' });
+  await room.save();
+  await audit(room, req.user.userId, `breakout_${action}`, null, undefined, { count: room.breakoutRooms.length });
+  return res.json({ breakoutRooms: room.breakoutRooms, breakoutState: room.breakoutState });
 };
