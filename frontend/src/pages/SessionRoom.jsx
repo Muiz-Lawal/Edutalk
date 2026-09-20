@@ -74,6 +74,7 @@ export default function SessionRoom() {
   const [handRaised, setHandRaised] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [showBreakouts, setShowBreakouts] = useState(false);
+  const [breakoutAssignment, setBreakoutAssignment] = useState(null);
   const [showChat, setShowChat] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
@@ -258,6 +259,7 @@ export default function SessionRoom() {
         token: localStorage.getItem('token'),
         onStateChange: setConnectionState,
         onParticipants: setParticipants,
+        onBreakoutAssignment: setBreakoutAssignment,
       });
       setStage(isHost ? 'room' : 'lobby');
     } catch (joinError) {
@@ -391,6 +393,8 @@ export default function SessionRoom() {
     {connectionState === 'reconnecting' && <div className="session-status session-status--warning">Reconnecting…</div>}
     {connectionState === 'connected' && <div className="session-status session-status--connected"><Network size={14} /> Connected</div>}
     {recording && <div className="session-recording-chip"><Radio size={12} /> Recording · {formatTimer(recordingSeconds)}</div>}
+    {breakoutAssignment?.action === 'open' && <div className="session-breakout-notice"><DoorOpen size={14} /> You are moving to {breakoutAssignment.breakoutName || 'your breakout room'}.</div>}
+    {breakoutAssignment?.action === 'closing' && <div className="session-breakout-notice"><Clock3 size={14} /> Breakouts are closing. You will return to the main room soon.</div>}
     {recordingError && <div className="session-status session-status--warning">{recordingError}</div>}
     <header className="session-topbar"><div><span className="session-eyebrow">Live classroom</span><h1>{classData?.title || 'Classroom'}</h1></div><div className="session-topbar__actions"><select aria-label="Layout" value={layout} onChange={(event) => updateLayout(event.target.value)}>{layouts.map((item) => <option value={item} key={item}>{item[0].toUpperCase() + item.slice(1)}</option>)}</select><button type="button" onClick={() => setShowSettings((value) => !value)} aria-label="Settings"><Settings size={18} /></button></div></header>
     <main className={`session-stage session-stage--${layout}`}>

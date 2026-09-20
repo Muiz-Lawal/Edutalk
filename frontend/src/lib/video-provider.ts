@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { initSocket } from '../utils/socket';
 
 export interface VideoProvider {
   createRoom(sessionId: string): Promise<{ roomId: string; joinUrlHost: string; joinUrlStudent: string }>;
@@ -8,6 +9,7 @@ export interface VideoProvider {
     token: string | null;
     onStateChange: (state: 'connected' | 'reconnecting' | 'disconnected') => void;
     onParticipants: (participants: ProviderParticipant[]) => void;
+    onBreakoutAssignment?: (assignment: { breakoutRoomId: string | null; breakoutName?: string; action: 'open' | 'closing' | 'close' }) => void;
   }): Promise<ProviderConnection>;
 }
 
@@ -60,10 +62,13 @@ export class DevMockProvider implements VideoProvider {
     return navigator.mediaDevices.getUserMedia(constraints);
   }
 
-  async createConnection({ roomId: _roomId, onStateChange, onParticipants }: Parameters<VideoProvider['createConnection']>[0]) {
+  async createConnection({ roomId: _roomId, onStateChange, onParticipants, onBreakoutAssignment }: Parameters<VideoProvider['createConnection']>[0]) {
     let screenStream: MediaStream | null = null;
     const token = localStorage.getItem('token');
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const socket = initSocket(token);
+    const assignmentHandler = (assignment: { breakoutRoomId: string | null; breakoutName?: string; action: 'open' | 'closing' | 'close' }) => onBreakoutAssignment?.(assignment);
+    socket?.on('breakout:assignment', assignmentHandler);
     const request = async (path: string, options: RequestInit = {}) => fetch(`${apiUrl}${path}`, {
       ...options,
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) },
@@ -94,10 +99,12 @@ export class DevMockProvider implements VideoProvider {
         screenStream = null;
       },
       async leave() {
+        socket?.off('breakout:assignment', assignmentHandler);
         await request('/video/rooms/leave', { method: 'POST', body: JSON.stringify({ roomId: _roomId }) });
         onStateChange('disconnected');
       },
       async endForAll() {
+        socket?.off('breakout:assignment', assignmentHandler);
         await request(`/video/rooms/${encodeURIComponent(_roomId)}`, { method: 'DELETE' });
         onStateChange('disconnected');
       },

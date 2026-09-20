@@ -356,6 +356,20 @@ export const updateBreakouts = async (req, res) => {
   } else return res.status(400).json({ message: 'Unsupported breakout action' });
   await room.save();
   await audit(room, req.user.userId, `breakout_${action}`, null, undefined, { count: room.breakoutRooms.length });
+  if (action === 'open' || action === 'close' || action === 'finish_close') {
+    const assigned = new Map();
+    (room.breakoutRooms || []).forEach((breakout) => {
+      (breakout.participantIds || []).forEach((userId) => assigned.set(String(userId), breakout));
+    });
+    (room.participants || []).filter((participant) => !participant.isHost && !participant.leftAt).forEach((participant) => {
+      const breakout = action === 'finish_close' ? null : assigned.get(String(participant.userId));
+      req.app.get('io')?.to(`user:${participant.userId}`).emit('breakout:assignment', {
+        breakoutRoomId: action === 'close' ? null : breakout?.roomId || null,
+        breakoutName: breakout?.name,
+        action: action === 'finish_close' ? 'close' : action === 'close' ? 'closing' : action,
+      });
+    });
+  }
   req.app.get('io')?.to(`breakout:${room.roomId}`).emit('breakout:updated', {
     breakoutRooms: room.breakoutRooms,
     breakoutState: room.breakoutState,
