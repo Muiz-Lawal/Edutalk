@@ -356,5 +356,10 @@ export const updateBreakouts = async (req, res) => {
   } else return res.status(400).json({ message: 'Unsupported breakout action' });
   await room.save();
   await audit(room, req.user.userId, `breakout_${action}`, null, undefined, { count: room.breakoutRooms.length });
+  req.app.get('io')?.to(`breakout:${room.roomId}`).emit('breakout:updated', {
+    breakoutRooms: room.breakoutRooms,
+    breakoutState: room.breakoutState,
+    action,
+  });
   return res.json({ breakoutRooms: room.breakoutRooms, breakoutState: room.breakoutState });
 };

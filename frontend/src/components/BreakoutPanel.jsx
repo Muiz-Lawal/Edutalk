@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { DoorOpen, Megaphone, Plus, Timer, X } from 'lucide-react';
 import api from '../utils/api';
+import { initSocket } from '../utils/socket';
 
 export default function BreakoutPanel({ roomId, tier, onClose }) {
   const [data, setData] = useState(null);
@@ -19,6 +20,17 @@ export default function BreakoutPanel({ roomId, tier, onClose }) {
     }
   }, [roomId]);
   useEffect(() => { load(); const timer = window.setInterval(load, 3000); return () => window.clearInterval(timer); }, [load]);
+  useEffect(() => {
+    const socket = initSocket(localStorage.getItem('token'));
+    if (!socket) return undefined;
+    const onUpdate = (next) => setData((current) => ({ ...(current || {}), ...next }));
+    socket.emit('breakout:subscribe', { roomId });
+    socket.on('breakout:updated', onUpdate);
+    return () => {
+      socket.emit('breakout:unsubscribe', { roomId });
+      socket.off('breakout:updated', onUpdate);
+    };
+  }, [roomId]);
   useEffect(() => {
     if (!data?.breakoutState?.closeAt) return undefined;
     const timer = window.setInterval(() => setSeconds(Math.max(0, Math.ceil((new Date(data.breakoutState.closeAt).getTime() - Date.now()) / 1000))), 1000);

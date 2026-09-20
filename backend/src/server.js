@@ -59,6 +59,7 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+app.set('io', io);
 
 // Export io through socketInstance for other modules to emit events
 import { setIO } from './utils/socketInstance.js';
@@ -110,6 +111,14 @@ io.on('connection', (socket) => {
   socket.on('whiteboard:event', ({ sessionId, event } = {}) => {
     if (!sessionId || !event || !['stroke', 'permission', 'clear'].includes(event.type)) return;
     socket.to(`whiteboard:${sessionId}`).emit(`whiteboard:event:${sessionId}`, event);
+  });
+
+  socket.on('breakout:subscribe', ({ roomId } = {}) => {
+    if (roomId) socket.join(`breakout:${roomId}`);
+  });
+
+  socket.on('breakout:unsubscribe', ({ roomId } = {}) => {
+    if (roomId) socket.leave(`breakout:${roomId}`);
   });
 
   // Join a user-specific room for targeted notifications
