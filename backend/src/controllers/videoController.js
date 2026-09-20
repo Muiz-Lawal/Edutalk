@@ -328,6 +328,15 @@ export const updateBreakouts = async (req, res) => {
       room.breakoutRooms.forEach((item) => { item.participantIds = item.participantIds.filter((id) => String(id) !== String(assignment.userId)); });
       breakout.participantIds.push(assignment.userId);
     }
+  } else if (action === 'auto_assign') {
+    if (!room.breakoutRooms?.length) return res.status(409).json({ message: 'Create breakout rooms first' });
+    const students = (room.participants || [])
+      .filter((item) => !item.isHost && !item.leftAt && !item.waiting)
+      .map((item) => item.userId);
+    room.breakoutRooms.forEach((item) => { item.participantIds = []; });
+    students.forEach((userId, index) => {
+      room.breakoutRooms[index % room.breakoutRooms.length].participantIds.push(userId);
+    });
   } else if (action === 'open') {
     if (!room.breakoutRooms?.length) return res.status(409).json({ message: 'Create breakout rooms first' });
     const now = new Date();
