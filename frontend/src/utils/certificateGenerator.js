@@ -1,3 +1,4 @@
+import api from './api';
 /**
  * PDF Certificate Generator using HTML2PDF library
  * Install: npm install html2pdf.js
@@ -137,20 +138,7 @@ export const generateCertificatePDF = async (certificate) => {
  */
 export const generateCertificateServerSide = async (certificateId, token) => {
   try {
-    const response = await fetch(
-      `http://localhost:5000/api/certificates/${certificateId}/download`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to download certificate (${response.status})`);
-    }
-
-    const blob = await response.blob();
+    const { data: blob } = await api.get(`/certificates/${certificateId}/download`, { responseType: 'blob' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

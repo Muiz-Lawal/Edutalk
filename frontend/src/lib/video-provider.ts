@@ -1,5 +1,17 @@
 /// <reference types="vite/client" />
 import { initSocket } from '../utils/socket';
+import { RealVideoProvider } from './video-providers/real';
+// @ts-ignore Shared JavaScript API client.
+import api from '../utils/api.js';
+
+async function apiRequest(url: string, options: RequestInit = {}) {
+  const response = await api.request({
+    url: url.replace(import.meta.env.VITE_API_URL || 'http://localhost:5000/api', ''),
+    method: options.method || 'GET',
+    data: options.body ? JSON.parse(String(options.body)) : undefined,
+  });
+  return { ok: true, status: response.status, json: async () => response.data };
+}
 
 export interface VideoProvider {
   createRoom(sessionId: string): Promise<{ roomId: string; joinUrlHost: string; joinUrlStudent: string }>;
@@ -23,6 +35,8 @@ export interface ProviderParticipant {
   handRaised?: boolean;
   quality?: 'good' | 'fair' | 'poor';
   stream?: MediaStream;
+  videoTrack?: { play(element: HTMLElement): void; stop?(): void };
+  audioTrack?: { play(element?: HTMLElement): void; stop?(): void };
 }
 
 export interface ProviderConnection {
@@ -30,6 +44,10 @@ export interface ProviderConnection {
   stopScreenShare(): Promise<void>;
   leave(): Promise<void>;
   endForAll(): Promise<void>;
+  switchToBreakout?(roomId: string | null, name?: string): Promise<void>;
+  returnToMainRoom?(): Promise<void>;
+  breakoutRoomId?: string | null;
+  breakoutName?: string | null;
   setLocalState(state: { audioEnabled?: boolean; videoEnabled?: boolean; handRaised?: boolean }): void;
 }
 
@@ -37,7 +55,7 @@ export class DevMockProvider implements VideoProvider {
   async createRoom(sessionId: string) {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/video/rooms`, {
+      const response = await apiRequest(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/video/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ sessionId }),
@@ -69,10 +87,7 @@ export class DevMockProvider implements VideoProvider {
     const socket = initSocket(token);
     const assignmentHandler = (assignment: { breakoutRoomId: string | null; breakoutName?: string; action: 'open' | 'closing' | 'close' }) => onBreakoutAssignment?.(assignment);
     socket?.on('breakout:assignment', assignmentHandler);
-    const request = async (path: string, options: RequestInit = {}) => fetch(`${apiUrl}${path}`, {
-      ...options,
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) },
-    });
+    const request = async (path: string, options: RequestInit = {}) => apiRequest(`${apiUrl}${path}`, options);
     try {
       const response = await request('/video/rooms/join', { method: 'POST', body: JSON.stringify({ roomId: _roomId }) });
       if (!response.ok) {
@@ -89,7 +104,9 @@ export class DevMockProvider implements VideoProvider {
       onStateChange('connected');
     }
     onParticipants([]);
-    return {
+    const connection: ProviderConnection = {
+      breakoutRoomId: null,
+      breakoutName: null,
       async shareScreen() {
         screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
         return screenStream;
@@ -97,6 +114,27 @@ export class DevMockProvider implements VideoProvider {
       async stopScreenShare() {
         screenStream?.getTracks().forEach((track) => track.stop());
         screenStream = null;
+      },
+      async switchToBreakout(roomId, name) {
+        connection.breakoutRoomId = roomId ?? null;
+        connection.breakoutName = name ?? null;
+        onParticipants([
+          {
+            id: 'local',
+            name: 'You',
+            isHost: false,
+            audioEnabled: true,
+            videoEnabled: true,
+            speaking: false,
+            handRaised: false,
+            quality: 'good',
+          },
+        ]);
+      },
+      async returnToMainRoom() {
+        connection.breakoutRoomId = null;
+        connection.breakoutName = null;
+        onParticipants([]);
       },
       async leave() {
         socket?.off('breakout:assignment', assignmentHandler);
@@ -109,14 +147,15 @@ export class DevMockProvider implements VideoProvider {
         onStateChange('disconnected');
       },
       setLocalState() {},
-    } satisfies ProviderConnection;
+    };
+    return connection;
   }
 }
 
 export const videoProvider: VideoProvider = new DevMockProvider();
 
 export function getVideoProvider(): VideoProvider {
-  const configured = (import.meta.env.VITE_VIDEO_PROVIDER || '').trim();
-  if (!configured) return videoProvider;
+  const configured = (import.meta.env.VITE_VIDEO_PROVIDER || '').trim().toLowerCase();
+  if (configured === 'real') return new RealVideoProvider();
   return videoProvider;
 }

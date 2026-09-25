@@ -37,6 +37,7 @@ import emailScheduler from './services/emailScheduler.js';
 import cron from 'node-cron';
 import { getRecordingLifecycleStatus, runRecordingLifecycle } from './services/recordingRetention.js';
 import { recordingProvider } from './services/recording-provider.js';
+import VideoRoom from './models/VideoRoom.js';
 import aiModerationService from './services/aiModerationService.js';
 import sessionEngagementRoutes from './routes/sessionEngagementRoutes.js';
 import sessionWhiteboardRoutes from './routes/sessionWhiteboardRoutes.js';
@@ -138,8 +139,18 @@ io.on('connection', (socket) => {
     if (!roomParticipants.has(roomId)) {
       roomParticipants.set(roomId, []);
     }
+    const existingSocketId = roomParticipants.get(roomId).find((socketId) => String(participantInfo.get(socketId)?.userId) === String(socket.userId));
+    if (existingSocketId) {
+      roomParticipants.set(roomId, roomParticipants.get(roomId).filter((socketId) => socketId !== existingSocketId));
+      participantInfo.delete(existingSocketId);
+    }
     roomParticipants.get(roomId).push(socket.id);
     participantInfo.set(socket.id, { userId: socket.userId, email: socket.email, roomId });
+    await VideoRoom.updateOne(
+      { roomId, 'participants.userId': socket.userId },
+      { $set: { 'participants.$[entry].socketId': socket.id, 'participants.$[entry].connectionStatus': 'online', 'participants.$[entry].disconnectedAt': null, 'participants.$[entry].offlineUntil': null } },
+      { arrayFilters: [{ 'entry.userId': socket.userId }] },
+    );
 
     socket.join(roomId);
     console.log(`User ${socket.id} (${socket.email}) joined room ${roomId}`);
@@ -284,6 +295,11 @@ io.on('connection', (socket) => {
 
     socket.leave(roomId);
     socket.to(roomId).emit('user-left', { socketId: socket.id });
+    VideoRoom.updateOne(
+      { roomId, 'participants.userId': socket.userId },
+      { $set: { 'participants.$[entry].leftAt': new Date(), 'participants.$[entry].connectionStatus': 'left' } },
+      { arrayFilters: [{ 'entry.userId': socket.userId }] },
+    ).catch((error) => console.error('[video] participant leave reconciliation failed', error));
     console.log(`User ${socket.id} left room ${roomId}`);
   });
 
@@ -304,8 +320,22 @@ io.on('connection', (socket) => {
         }
       }
       
-      // Notify others
-      io.to(roomId).emit('user-left', { socketId: socket.id });
+      const disconnectedAt = new Date();
+      const offlineUntil = new Date(disconnectedAt.getTime() + 60 * 1000);
+      VideoRoom.updateOne(
+        { roomId, 'participants.userId': socket.userId },
+        { $set: { 'participants.$[entry].connectionStatus': 'disconnected', 'participants.$[entry].disconnectedAt': disconnectedAt, 'participants.$[entry].offlineUntil': offlineUntil } },
+        { arrayFilters: [{ 'entry.userId': socket.userId, 'entry.leftAt': null }] },
+      ).catch((error) => console.error('[video] participant disconnect reconciliation failed', error));
+      io.to(roomId).emit('participant:offline', { userId: socket.userId, offlineUntil });
+      setTimeout(() => {
+        VideoRoom.updateOne(
+          { roomId, 'participants.userId': socket.userId, 'participants.connectionStatus': 'disconnected', 'participants.offlineUntil': { $lte: new Date() } },
+          { $set: { 'participants.$[entry].leftAt': new Date(), 'participants.$[entry].connectionStatus': 'left' } },
+          { arrayFilters: [{ 'entry.userId': socket.userId, 'entry.connectionStatus': 'disconnected' }] },
+        ).catch((error) => console.error('[video] participant timeout reconciliation failed', error));
+        io.to(roomId).emit('participant:expired', { userId: socket.userId });
+      }, 60 * 1000);
     }
     
     participantInfo.delete(socket.id);

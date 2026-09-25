@@ -17,6 +17,7 @@ import {
 } from '../controllers/recordingController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import multer from 'multer';
+import { auditPrivilegedAction } from '../middleware/privilegedAudit.js';
 
 const router = express.Router();
 const upload = multer({
@@ -31,6 +32,7 @@ const uploadVideo = (req, res, next) => upload.single('file')(req, res, (error) 
 });
 
 router.post('/start', authenticateToken, startRecording);
+router.use(auditPrivilegedAction);
 router.post('/complete', authenticateToken, completeRecording);
 router.post('/play/:recordingId', authenticateToken, playRecording);
 // Student-facing REST shape; retain the legacy route above for existing clients.

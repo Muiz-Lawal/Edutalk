@@ -45,9 +45,12 @@ const videoRoomSchema = new mongoose.Schema({
   waitingRoomEnabled: { type: Boolean, default: true },
   locked: { type: Boolean, default: false },
   presenterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  activePresenterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   coHosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   removedUsers: [{
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    removedAt: { type: Date, default: Date.now },
+    rejoinBlockedUntil: Date,
     removedUntil: Date,
   }],
   breakoutRooms: [{
@@ -68,6 +71,7 @@ const videoRoomSchema = new mongoose.Schema({
   
   // Participants
   participants: [{
+    participantKey: { type: String },
     userId: mongoose.Schema.Types.ObjectId,
     email: String,
     socketId: String,
@@ -77,6 +81,11 @@ const videoRoomSchema = new mongoose.Schema({
     role: { type: String, enum: ['host', 'cohost', 'student'], default: 'student' },
     admittedAt: Date,
     waiting: { type: Boolean, default: true },
+    membership: { type: String, enum: ['main', 'breakout'], default: 'main' },
+    breakoutRoomId: String,
+    connectionStatus: { type: String, enum: ['online', 'disconnected', 'left'], default: 'online' },
+    disconnectedAt: Date,
+    offlineUntil: Date,
     removedAt: Date,
     signalingState: {
       type: String,
@@ -117,6 +126,9 @@ const videoRoomSchema = new mongoose.Schema({
     default: Date.now,
   },
   closedAt: Date,
+  endedAt: Date,
 }, { timestamps: true });
+
+videoRoomSchema.index({ roomId: 1, 'participants.participantKey': 1 }, { unique: true, sparse: true });
 
 export default mongoose.model('VideoRoom', videoRoomSchema);

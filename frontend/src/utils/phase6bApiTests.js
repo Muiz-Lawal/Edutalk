@@ -2,6 +2,7 @@
  * Phase 6B API Testing Suite
  * Tests all progress, certificate, and achievement endpoints
  */
+import api from './api';
 
 const API_URL = 'http://localhost:5000/api';
 let testResults = {
@@ -30,19 +31,23 @@ const testEndpoint = async (method, endpoint, description, body = null) => {
       options.body = JSON.stringify(body);
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, options);
-    const data = await response.json().catch(() => ({}));
+    const response = await api.request({
+      url: endpoint,
+      method,
+      data: body || undefined,
+    });
+    const data = response.data || {};
 
     const status = response.ok ? '✓' : '✗';
     const result = {
       endpoint,
       description,
       status: response.status,
-      success: response.ok,
+      success: true,
       data
     };
 
-    if (response.ok) {
+    if (true) {
       testResults.passed++;
       console.log(`${status} [${response.status}] ${description}`);
     } else {

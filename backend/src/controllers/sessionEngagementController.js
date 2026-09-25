@@ -1,4 +1,5 @@
 import Session from '../models/Session.js';
+import VideoRoom from '../models/VideoRoom.js';
 import Subscription from '../models/Subscription.js';
 import User from '../models/User.js';
 import { SessionMessage, SessionQuestion, SessionPoll, SessionHand } from '../models/SessionEngagement.js';
@@ -7,13 +8,15 @@ async function context(req, sessionId) {
   const session = await Session.findById(sessionId).populate('classId', 'hostId');
   if (!session) return { error: { status: 404, message: 'Session not found' } };
   const isHost = String(session.classId.hostId) === String(req.user.userId);
+  const room = await VideoRoom.findOne({ sessionId }).select('coHosts');
+  const isCoHost = Boolean(room?.coHosts?.some((id) => String(id) === String(req.user.userId)));
   const enrolled = isHost || await Subscription.exists({
     userId: req.user.userId,
     classId: session.classId._id,
     status: 'active',
   });
   if (!enrolled) return { error: { status: 403, code: 'subscription_required', message: 'This class needs an active enrollment' } };
-  return { session, isHost };
+  return { session, isHost, isCoHost };
 }
 
 const safeUser = (user) => ({ id: user._id, name: [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Participant', avatar: user.avatar });
@@ -52,7 +55,7 @@ export async function createMessage(req, res) {
 export async function deleteMessage(req, res) {
   const access = await context(req, req.params.sessionId);
   if (access.error) return res.status(access.error.status).json(access.error);
-  if (!access.isHost) return res.status(403).json({ message: 'Host access required' });
+  if (!access.isHost && !access.isCoHost) return res.status(403).json({ message: 'Host access required' });
   const message = await SessionMessage.findOneAndUpdate({ _id: req.params.messageId, sessionId: req.params.sessionId }, { deletedAt: new Date(), text: 'Message removed by host' }, { new: true });
   if (!message) return res.status(404).json({ message: 'Message not found' });
   return res.json(message);

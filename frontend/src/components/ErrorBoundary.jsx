@@ -43,6 +43,11 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return typeof this.props.fallback === 'function'
+          ? this.props.fallback({ error: this.state.error, reset: this.resetError })
+          : this.props.fallback;
+      }
       return (
         <div className="error-boundary">
           <div className="error-boundary__container">

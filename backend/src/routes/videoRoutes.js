@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   createVideoRoom,
+  issueVideoToken,
   getVideoRoomToken,
   joinVideoRoom,
   leaveVideoRoom,
@@ -15,10 +16,13 @@ import {
   updateBreakouts,
 } from '../controllers/videoController.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { auditPrivilegedAction } from '../middleware/privilegedAudit.js';
 
 const router = express.Router();
 
 router.post('/rooms', authenticateToken, createVideoRoom);
+router.use(auditPrivilegedAction);
+router.post('/token', authenticateToken, issueVideoToken);
 router.get('/rooms/:roomId/token', authenticateToken, getVideoRoomToken);
 router.post('/rooms/join', authenticateToken, joinVideoRoom);
 router.post('/rooms/leave', authenticateToken, leaveVideoRoom);

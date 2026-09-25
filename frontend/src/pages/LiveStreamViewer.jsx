@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import io from 'socket.io-client';
 import HLSPlayer from '../components/HLSPlayer';
 import ViewerChat from '../components/ViewerChat';
@@ -45,9 +45,8 @@ export default function LiveStreamViewer() {
     const fetchStream = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/streams/${streamId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        const response = await api.get(
+          `/live/streams/${streamId}`,
         );
         setStream(response.data);
         setIsLive(response.data.status === 'live');
@@ -77,14 +76,13 @@ export default function LiveStreamViewer() {
   useEffect(() => {
     const trackJoin = async () => {
       try {
-        await axios.post(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${streamId}/viewer-join`,
+        await api.post(
+          `/live/${streamId}/viewer-join`,
           {
             qualitySelected: selectedQuality,
             browser: getBrowserInfo(),
             os: getOSInfo()
           },
-          { headers: { Authorization: `Bearer ${token}` } }
         );
       } catch (err) {
         console.error('Failed to track viewer join:', err);
@@ -166,9 +164,8 @@ export default function LiveStreamViewer() {
   // Fetch chat history
   const fetchChatHistory = async () => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${streamId}/chat?limit=50`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.get(
+        `/live/${streamId}/chat?limit=50`,
       );
       setMessages(response.data || []);
     } catch (err) {
@@ -179,10 +176,9 @@ export default function LiveStreamViewer() {
   // Handle sending message
   const handleSendMessage = async (messageText) => {
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${streamId}/chat`,
+      const response = await api.post(
+        `/live/${streamId}/chat`,
         { message: messageText },
-        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (response.status === 403) {
@@ -214,13 +210,12 @@ export default function LiveStreamViewer() {
   // Track viewer leave
   const handleBeforeUnload = async () => {
     try {
-      await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/live/${streamId}/viewer-leave`,
+      await api.post(
+        `/live/${streamId}/viewer-leave`,
         {
           watchTime,
           engagement: Math.round(engagement)
         },
-        { headers: { Authorization: `Bearer ${token}` } }
       );
     } catch (err) {
       console.error('Failed to track viewer leave:', err);
@@ -247,8 +242,8 @@ export default function LiveStreamViewer() {
     return (
       <div className="livestream-viewer-error">
         <div className="error-message">
-          <h2>⚠️ Unable to Load Stream</h2>
-          <p>We couldn’t load this stream. Please try again.</p>
+          <h2>âš ï¸ Unable to Load Stream</h2>
+          <p>We couldnâ€™t load this stream. Please try again.</p>
           <p style={{ fontSize: '0.9rem', color: '#999' }}>Redirecting to home...</p>
         </div>
       </div>
@@ -314,7 +309,7 @@ export default function LiveStreamViewer() {
           <div className="stat-item">
             <span className="label">Status</span>
             <span className={`status-badge ${isLive ? 'live' : 'ended'}`}>
-              {isLive ? '🔴 Live' : '⚫ Ended'}
+              {isLive ? 'ðŸ”´ Live' : 'âš« Ended'}
             </span>
           </div>
         </div>

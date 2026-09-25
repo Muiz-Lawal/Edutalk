@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import AnalyticsOverview from '../components/AnalyticsOverview';
 import ViewerTimeline from '../components/ViewerTimeline';
 import EngagementMetrics from '../components/EngagementMetrics';
@@ -28,28 +28,16 @@ export default function StreamAnalyticsPage() {
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
 
       // Fetch all analytics data in parallel
       const [overview, timeline, engagement, quality, demographics, retention] =
         await Promise.all([
-          axios.get(`/api/analytics/live/streams/${streamId}`, { headers }),
-          axios.get(`/api/analytics/live/streams/${streamId}/timeline`, {
-            headers,
-          }),
-          axios.get(`/api/analytics/live/streams/${streamId}/engagement`, {
-            headers,
-          }),
-          axios.get(`/api/analytics/live/streams/${streamId}/quality`, {
-            headers,
-          }),
-          axios.get(`/api/analytics/live/streams/${streamId}/demographics`, {
-            headers,
-          }),
-          axios.get(`/api/analytics/live/streams/${streamId}/retention`, {
-            headers,
-          }),
+          api.get(`/api/analytics/live/streams/${streamId}`),
+          api.get(`/api/analytics/live/streams/${streamId}/timeline` ),
+          api.get(`/api/analytics/live/streams/${streamId}/engagement` ),
+          api.get(`/api/analytics/live/streams/${streamId}/quality` ),
+          api.get(`/api/analytics/live/streams/${streamId}/demographics` ),
+          api.get(`/api/analytics/live/streams/${streamId}/retention` ),
         ]);
 
       setAnalytics(overview.data);
@@ -82,8 +70,8 @@ export default function StreamAnalyticsPage() {
     return (
       <div className="stream-analytics-page">
         <div className="analytics-error">
-          <h2>We couldn’t load analytics</h2>
-          <p>We couldn’t load stream analytics. Please try again.</p>
+          <h2>We couldnâ€™t load analytics</h2>
+          <p>We couldnâ€™t load stream analytics. Please try again.</p>
           <button onClick={fetchAnalyticsData} className="btn-retry">
             Retry
           </button>

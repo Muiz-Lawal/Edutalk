@@ -1,17 +1,4 @@
-import axios from 'axios';
-
-const API_BASE = 'http://localhost:5000/api';
-
-// Mock token for testing
-const mockToken = 'mock-jwt-token-for-testing';
-
-const api = axios.create({
-  baseURL: API_BASE,
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${mockToken}`
-  }
-});
+import api from './api';
 
 // Test Results Tracker
 const results = {

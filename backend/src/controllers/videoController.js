@@ -7,11 +7,14 @@ import SessionWhiteboard from '../models/SessionWhiteboard.js';
 import { SessionMessage, SessionPoll } from '../models/SessionEngagement.js';
 import Recording from '../models/Recording.js';
 import { v4 as uuidv4 } from 'uuid';
+import { RtcTokenBuilder, RtcRole } from 'agora-access-token';
 import { assertFeature, getHostTier, planGateResponse } from '../utils/plan-limits.js';
+import { getPeakAttendance, hasParticipantCapacity, isRemovalBlocked, TIER_CAP } from '../utils/videoRoomRules.js';
 
-const tierCap = { growth: 25, pro: 50, elite: 75 };
 const removalReasons = new Set(['Accidental join', 'Disruptive', 'Not enrolled']);
 const breakoutDurations = new Set([5, 10, 15]);
+const coHostActions = new Set(['admit', 'admit_all', 'remove', 'mute', 'stop_camera', 'presenter']);
+const hostOnlyActions = new Set(['lock', 'waiting_room', 'cohost']);
 
 async function roomAccess(roomId, userId, { hostOnly = false } = {}) {
   const room = await VideoRoom.findOne({ roomId });
@@ -24,6 +27,23 @@ async function roomAccess(roomId, userId, { hostOnly = false } = {}) {
 
 async function audit(room, actorId, action, targetId, reason, metadata) {
   await SessionAudit.create({ sessionId: room.sessionId, roomId: room.roomId, actorId, targetId, action, reason, metadata });
+}
+
+function activeParticipants(room) {
+  return (room.participants || []).filter((participant) => !participant.leftAt && participant.connectionStatus !== 'left');
+}
+
+function admittedParticipants(room) {
+  return activeParticipants(room).filter((participant) => !participant.waiting);
+}
+
+function participantFor(room, userId) {
+  return (room.participants || []).find((participant) => String(participant.userId) === String(userId));
+}
+
+export function controlPermission(access, action) {
+  if (access.isHost) return true;
+  return access.isCoHost && coHostActions.has(action);
 }
 
 async function activeEnrollment(userId, classId, sessionDate) {
@@ -72,13 +92,83 @@ export const createVideoRoom = async (req, res) => {
       roomId: `room-${uuidv4()}`,
       hostId: req.user.userId,
       status: 'created',
-      maxParticipants: tierCap[tier] || 25,
+      maxParticipants: Object.prototype.hasOwnProperty.call(TIER_CAP, tier) ? TIER_CAP[tier] : TIER_CAP.starter,
       waitingRoomEnabled: true,
       presenterId: req.user.userId,
+      activePresenterId: req.user.userId,
     });
     return res.status(201).json({ message: 'Video room created', videoRoom: room });
   } catch (error) {
     return res.status(500).json({ message: 'Unable to create video room.' });
+  }
+};
+
+export const issueVideoToken = async (req, res) => {
+  try {
+    const { roomId, sessionId, role, breakoutRoomId } = req.body || {};
+    const requestedRole = role === 'host' ? 'host' : 'student';
+    const vendor = (process.env.VIDEO_PROVIDER_VENDOR || 'agora').toLowerCase();
+
+    const room = roomId
+      ? await VideoRoom.findOne({ roomId })
+      : await VideoRoom.findOne({ sessionId, status: { $ne: 'closed' } });
+
+    if (!room) return res.status(404).json({ message: 'Video room not found' });
+    if (room.status === 'closed') return res.status(409).json({ code: 'session_ended', message: 'This class has ended' });
+    const session = await Session.findById(room.sessionId).lean();
+    if (session?.status === 'completed' || session?.status === 'cancelled') {
+      return res.status(409).json({ code: 'session_ended', message: 'This class has ended' });
+    }
+
+    const isHost = String(room.hostId) === String(req.user.userId);
+    const isCoHost = (room.coHosts || []).some((id) => String(id) === String(req.user.userId));
+    const allowedRole = requestedRole === 'host' ? 'host' : 'student';
+    if (allowedRole === 'host' && !isHost && !isCoHost) {
+      return res.status(403).json({ code: 'host_required', message: 'Host permissions are required to join this room as a host.' });
+    }
+    if (!isHost && !isCoHost && !(await activeEnrollment(req.user.userId, room.classId, new Date()))) {
+      return res.status(403).json({ code: 'subscription_required', message: 'This class needs an active enrollment' });
+    }
+    const alreadyJoined = room.participants.some((participant) =>
+      String(participant.userId) === String(req.user.userId) && !participant.leftAt && !participant.waiting);
+    const activeParticipantCount = admittedParticipants(room).filter((participant) => !participant.isHost).length;
+    if (!isHost && !isCoHost && !alreadyJoined && !hasParticipantCapacity(room, activeParticipantCount)) {
+      return res.status(409).json({ code: 'class_full', message: 'This class is full' });
+    }
+    if (vendor !== 'agora') {
+      return res.status(200).json({ token: null, roomId: room.roomId, sessionId: room.sessionId, provider: vendor, mode: 'mock' });
+    }
+
+    const appId = process.env.VIDEO_APP_ID;
+    const appCertificate = process.env.VIDEO_APP_SECRET;
+    if (!appId || !appCertificate) {
+      return res.status(500).json({ message: 'Video provider credentials are not configured.' });
+    }
+
+    let roomName = room.sessionId.toString();
+    if (breakoutRoomId) {
+      const breakoutIndex = (room.breakoutRooms || []).findIndex((breakout) =>
+        String(breakout._id) === String(breakoutRoomId) || String(breakout.roomId) === String(breakoutRoomId));
+      if (breakoutIndex < 0) return res.status(404).json({ message: 'Breakout room not found' });
+      roomName = `${room.sessionId.toString()}-bo${breakoutIndex + 1}`;
+    }
+    const uid = String(req.user.userId);
+    const expirySeconds = 60 * 60;
+    const tokenRole = RtcRole.PUBLISHER;
+    const token = RtcTokenBuilder.buildTokenWithUid(appId, appCertificate, roomName, uid, tokenRole, Math.floor(Date.now() / 1000) + expirySeconds);
+
+    return res.json({
+      token,
+      roomId: room.roomId,
+      sessionId: room.sessionId,
+      channel: roomName,
+      uid,
+      role: allowedRole,
+      expiresIn: expirySeconds,
+    });
+  } catch (error) {
+    console.error('[video] token issuance failed', error);
+    return res.status(500).json({ message: 'Unable to issue a video token.' });
   }
 };
 
@@ -102,22 +192,44 @@ export const joinVideoRoom = async (req, res) => {
     if (access.error) return res.status(access.error.status).json(access.error);
     const { room, isHost, isCoHost } = access;
     if (room.status === 'closed') return res.status(409).json({ message: 'This class has ended' });
-    const removed = room.removedUsers.find((entry) => String(entry.userId) === String(req.user.userId) && entry.removedUntil > new Date());
-    if (removed) return res.status(403).json({ code: 'removed_from_class', message: 'The host removed you from this class' });
+      const removed = room.removedUsers.find((entry) =>
+        String(entry.userId) === String(req.user.userId)
+        && (entry.rejoinBlockedUntil || entry.removedUntil) > new Date());
+      if (removed) return res.status(403).json({ code: 'removed_from_class', message: 'The host removed you from this class' });
+      if (room.locked && !isHost && !isCoHost) return res.status(409).json({ code: 'room_locked', message: 'The room is locked' });
     if (!isHost && !isCoHost && !(await activeEnrollment(req.user.userId, room.classId, new Date()))) {
       return res.status(403).json({ code: 'subscription_required', message: 'This class needs an active enrollment' });
     }
-    const current = room.participants.find((entry) => String(entry.userId) === String(req.user.userId) && !entry.leftAt);
-    if (current) return res.json({ message: current.waiting ? 'Waiting for host admission' : 'Already joined', waiting: current.waiting, videoRoom: room });
-    const currentCount = room.participants.filter((entry) => !entry.leftAt && !entry.waiting).length;
-    if (!isHost && !isCoHost && currentCount >= room.maxParticipants) return res.status(409).json({ code: 'class_full', message: 'This class is full' });
+    const current = participantFor(room, req.user.userId);
+    if (current && !current.leftAt && current.connectionStatus !== 'left' && current.connectionStatus !== 'disconnected') {
+      return res.json({ message: current.waiting ? 'Waiting for host admission' : 'Already joined', waiting: current.waiting, videoRoom: room });
+    }
+    const currentCount = admittedParticipants(room).filter((entry) => !entry.isHost).length;
+    if (!isHost && !isCoHost && !hasParticipantCapacity(room, currentCount)) return res.status(409).json({ code: 'class_full', message: 'This class is full' });
     const waiting = !isHost && !isCoHost && room.waitingRoomEnabled;
-    room.participants.push({
-      userId: req.user.userId, email: req.user.email, joinedAt: new Date(),
-      isHost, role: isHost ? 'host' : isCoHost ? 'cohost' : 'student',
-      waiting, admittedAt: waiting ? null : new Date(),
-    });
-    room.status = 'active';
+    if (current) {
+      current.email = req.user.email;
+      current.participantKey = `${room.roomId}:${req.user.userId}`;
+      current.leftAt = null;
+      current.joinedAt = current.joinedAt || new Date();
+      current.waiting = waiting;
+      current.admittedAt = waiting ? null : new Date();
+      current.connectionStatus = 'online';
+      current.disconnectedAt = null;
+      current.offlineUntil = null;
+      current.membership = 'main';
+      current.breakoutRoomId = null;
+    } else {
+      room.participants.push({
+        participantKey: `${room.roomId}:${req.user.userId}`,
+        userId: req.user.userId, email: req.user.email, joinedAt: new Date(),
+        isHost, role: isHost ? 'host' : isCoHost ? 'cohost' : 'student',
+        waiting, admittedAt: waiting ? null : new Date(), membership: 'main',
+        connectionStatus: 'online',
+      });
+    }
+    const wasActive = room.status === 'active';
+    if (!waiting) room.status = 'active';
     await room.save();
     await Session.findByIdAndUpdate(room.sessionId, {
       $push: {
@@ -127,7 +239,7 @@ export const joinVideoRoom = async (req, res) => {
           joinedAt: new Date(),
         },
       },
-      actualStartTime: room.status === 'active' ? new Date() : undefined,
+      ...(!waiting && !wasActive ? { actualStartTime: new Date() } : {}),
     });
     return res.status(waiting ? 202 : 200).json({ message: waiting ? 'Waiting for host admission' : 'Joined video room', waiting, videoRoom: room });
   } catch {
@@ -140,6 +252,7 @@ export const leaveVideoRoom = async (req, res) => {
   if (access.error) return res.status(access.error.status).json(access.error);
   if (!(await authorizedViewer(access.room, req.user.userId))) return res.status(403).json({ code: 'subscription_required', message: 'This class needs an active enrollment' });
   await VideoRoom.updateOne({ _id: access.room._id, 'participants.userId': req.user.userId }, { $set: { 'participants.$[entry].leftAt': new Date() } }, { arrayFilters: [{ 'entry.userId': req.user.userId, 'entry.leftAt': null }] });
+  await VideoRoom.updateOne({ _id: access.room._id, 'participants.userId': req.user.userId }, { $set: { 'participants.$[entry].connectionStatus': 'left', 'participants.$[entry].offlineUntil': null } }, { arrayFilters: [{ 'entry.userId': req.user.userId }] });
   await Session.updateOne(
     { _id: access.room.sessionId, 'attendees.userId': req.user.userId, 'attendees.leftAt': null },
     { $set: { 'attendees.$[entry].leftAt': new Date() } },
@@ -152,8 +265,11 @@ export const closeVideoRoom = async (req, res) => {
   const access = await roomAccess(req.params.roomId, req.user.userId);
   if (access.error) return res.status(access.error.status).json(access.error);
   if (!access.isHost) return res.status(403).json({ message: 'Only the host can end the class' });
+  if (access.room.status === 'closed') return res.json({ message: 'Video room already closed', videoRoom: access.room });
   access.room.status = 'closed';
   access.room.closedAt = new Date();
+  access.room.endedAt = access.room.closedAt;
+  await audit(access.room, req.user.userId, 'end_for_all', null);
   await access.room.save();
   await Session.findByIdAndUpdate(access.room.sessionId, { status: 'completed', actualEndTime: access.room.closedAt });
   await SessionWhiteboard.deleteOne({ sessionId: access.room.sessionId });
@@ -171,7 +287,7 @@ export const getSessionSummary = async (req, res) => {
     Recording.findOne({ sessionId: room.sessionId, hostId: room.hostId }).sort({ createdAt: -1 }).lean(),
   ]);
   const active = room.participants.filter((participant) => !participant.leftAt && !participant.waiting).length;
-  const peak = Math.max(active, ...room.participants.map((participant) => participant.leftAt ? 0 : 1));
+  const peak = Math.max(active, getPeakAttendance(session?.attendees || []));
   const durationSeconds = ((room.closedAt || new Date()) - (session?.actualStartTime || room.createdAt)) / 1000;
   return res.json({
     durationSeconds: Math.max(0, Math.round(durationSeconds)),
@@ -242,13 +358,20 @@ export const getRoomState = async (req, res) => {
   if (access.error) return res.status(access.error.status).json(access.error);
   if (!(await authorizedViewer(access.room, req.user.userId))) return res.status(403).json({ code: 'subscription_required', message: 'This class needs an active enrollment' });
   const participant = access.room.participants.find((entry) => String(entry.userId) === String(req.user.userId) && !entry.leftAt);
+  const recording = await Recording.findOne({
+    sessionId: access.room.sessionId,
+    hostId: access.room.hostId,
+    isDeleted: { $ne: true },
+    status: 'recording',
+  }).sort({ createdAt: -1 }).select('startedAt status streamUid');
   return res.json({
     status: access.room.status,
     locked: access.room.locked,
     waitingRoomEnabled: access.room.waitingRoomEnabled,
     waiting: Boolean(participant?.waiting),
     admitted: Boolean(participant && !participant.waiting),
-    presenterId: access.room.presenterId,
+    presenterId: access.room.activePresenterId || access.room.presenterId,
+    recording: recording ? { id: recording._id, status: recording.status, startedAt: recording.startedAt, streamUid: recording.streamUid } : null,
   });
 };
 
@@ -257,24 +380,47 @@ export const updateRoomControl = async (req, res) => {
   if (access.error) return res.status(access.error.status).json(access.error);
   const { action, targetUserId, reason } = req.body;
   const room = access.room;
-  if (!access.isHost && ['lock', 'waiting_room', 'cohost'].includes(action)) return res.status(403).json({ message: 'Only the host can change room security or co-hosts' });
+  if (!controlPermission(access, action) || hostOnlyActions.has(action) && !access.isHost) {
+    return res.status(403).json({ message: 'You do not have permission to perform this room action' });
+  }
   const target = targetUserId && room.participants.find((p) => String(p.userId) === String(targetUserId) && !p.leftAt);
-  if (['admit', 'remove', 'mute', 'stop_camera', 'presenter', 'cohost'].includes(action) && !target) return res.status(404).json({ message: 'Participant not found' });
+  if (action === 'remove' && !target && isRemovalBlocked(room, targetUserId)) {
+    if (!removalReasons.has(reason)) return res.status(400).json({ message: 'Choose a removal reason' });
+    await audit(room, req.user.userId, action, targetUserId, reason);
+    return res.json({ videoRoom: room, idempotent: true });
+  }
+  if (['admit', 'remove', 'mute', 'stop_camera', 'presenter', 'cohost'].includes(action) && !target) {
+    return res.status(404).json({ message: 'Participant not found' });
+  }
+  if (target?.isHost || String(target?.userId) === String(room.hostId)) {
+    return res.status(403).json({ message: 'The host cannot be managed or removed' });
+  }
   if (action === 'admit') {
     if (room.locked) return res.status(409).json({ code: 'room_locked', message: 'The room is locked' });
-    if (room.participants.filter((p) => !p.leftAt && !p.waiting).length >= room.maxParticipants) return res.status(409).json({ code: 'class_full', message: 'This class is full' });
+    if (!target.waiting) return res.json({ videoRoom: room });
+    if (!hasParticipantCapacity(room, admittedParticipants(room).filter((p) => !p.isHost).length)) return res.status(409).json({ code: 'class_full', message: 'This class is full' });
     target.waiting = false; target.admittedAt = new Date();
   } else if (action === 'admit_all') {
     if (room.locked) return res.status(409).json({ code: 'room_locked', message: 'The room is locked' });
-    const available = room.maxParticipants - room.participants.filter((p) => !p.leftAt && !p.waiting).length;
+    const available = room.maxParticipants == null ? Number.MAX_SAFE_INTEGER : Math.max(0, room.maxParticipants - admittedParticipants(room).filter((p) => !p.isHost).length);
     room.participants.filter((p) => p.waiting && !p.leftAt).slice(0, available).forEach((p) => { p.waiting = false; p.admittedAt = new Date(); });
   } else if (action === 'remove') {
     if (!removalReasons.has(reason)) return res.status(400).json({ message: 'Choose a removal reason' });
-    target.leftAt = new Date(); target.removedAt = new Date();
-    room.removedUsers.push({ userId: target.userId, removedUntil: new Date(Date.now() + 60 * 1000) });
+    const now = new Date();
+    const blockedUntil = new Date(now.getTime() + 60 * 1000);
+    target.leftAt = now; target.removedAt = now; target.connectionStatus = 'left'; target.offlineUntil = blockedUntil;
+    if (String(room.activePresenterId || room.presenterId) === String(target.userId)) {
+      room.presenterId = room.hostId;
+      room.activePresenterId = room.hostId;
+    }
+    room.removedUsers = (room.removedUsers || []).filter((entry) => String(entry.userId) !== String(target.userId));
+    room.removedUsers.push({ userId: target.userId, removedAt: now, rejoinBlockedUntil: blockedUntil, removedUntil: blockedUntil });
   } else if (action === 'mute') target.audioEnabled = false;
   else if (action === 'stop_camera') target.videoEnabled = false;
-  else if (action === 'presenter') room.presenterId = target.userId;
+  else if (action === 'presenter') {
+    room.presenterId = target.userId;
+    room.activePresenterId = target.userId;
+  }
   else if (action === 'cohost') {
     if (!access.isHost) return res.status(403).json({ message: 'Only the host can manage co-hosts' });
     try { await assertFeature(room.hostId, 'coHost'); } catch (error) { if (planGateResponse(error, res)) return; throw error; }
@@ -283,8 +429,8 @@ export const updateRoomControl = async (req, res) => {
   } else if (action === 'lock') room.locked = Boolean(req.body.value);
   else if (action === 'waiting_room') room.waitingRoomEnabled = Boolean(req.body.value);
   else return res.status(400).json({ message: 'Unsupported room action' });
+  await audit(room, req.user.userId, action, targetUserId || null, reason);
   await room.save();
-  if (targetUserId) await audit(room, req.user.userId, action, targetUserId, reason);
   return res.json({ videoRoom: room });
 };
 
@@ -326,7 +472,12 @@ export const updateBreakouts = async (req, res) => {
       const breakout = room.breakoutRooms.id(assignment.breakoutId);
       if (!breakout || !ids.has(String(assignment.userId))) continue;
       room.breakoutRooms.forEach((item) => { item.participantIds = item.participantIds.filter((id) => String(id) !== String(assignment.userId)); });
-      breakout.participantIds.push(assignment.userId);
+      if (!breakout.participantIds.some((id) => String(id) === String(assignment.userId))) breakout.participantIds.push(assignment.userId);
+      const participant = participantFor(room, assignment.userId);
+      if (participant) {
+        participant.membership = 'breakout';
+        participant.breakoutRoomId = breakout.roomId;
+      }
     }
   } else if (action === 'auto_assign') {
     if (!room.breakoutRooms?.length) return res.status(409).json({ message: 'Create breakout rooms first' });
@@ -335,7 +486,13 @@ export const updateBreakouts = async (req, res) => {
       .map((item) => item.userId);
     room.breakoutRooms.forEach((item) => { item.participantIds = []; });
     students.forEach((userId, index) => {
-      room.breakoutRooms[index % room.breakoutRooms.length].participantIds.push(userId);
+      const breakout = room.breakoutRooms[index % room.breakoutRooms.length];
+      breakout.participantIds.push(userId);
+      const participant = participantFor(room, userId);
+      if (participant) {
+        participant.membership = 'breakout';
+        participant.breakoutRoomId = breakout.roomId;
+      }
     });
   } else if (action === 'open') {
     if (!room.breakoutRooms?.length) return res.status(409).json({ message: 'Create breakout rooms first' });
@@ -353,9 +510,15 @@ export const updateBreakouts = async (req, res) => {
   } else if (action === 'finish_close') {
     room.breakoutState = { status: 'idle', announcement: '', closeAt: null };
     room.breakoutRooms.forEach((item) => { item.status = 'closed'; });
+    room.participants.forEach((participant) => {
+      if (participant.membership === 'breakout') {
+        participant.membership = 'main';
+        participant.breakoutRoomId = null;
+      }
+    });
   } else return res.status(400).json({ message: 'Unsupported breakout action' });
-  await room.save();
   await audit(room, req.user.userId, `breakout_${action}`, null, undefined, { count: room.breakoutRooms.length });
+  await room.save();
   if (action === 'open' || action === 'close' || action === 'finish_close') {
     const assigned = new Map();
     (room.breakoutRooms || []).forEach((breakout) => {

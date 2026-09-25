@@ -30,6 +30,7 @@ export async function releaseDueRecordingHolds(now = new Date()) {
   });
   let released = 0;
   for (const recording of due) {
+    if (recording.status !== 'review_hold') continue;
     recording.status = 'ready';
     recording.isVisible = true;
     recording.processingProgress = 100;

@@ -45,12 +45,21 @@ const recordingSchema = new mongoose.Schema({
   // Storage
   // These provider/storage identifiers are server-only. Never serialize them to clients.
   streamUid: String,
+  providerRecordingId: String,
+  providerResourceId: String,
+  providerSid: String,
+  providerFileName: String,
+  providerStorageBucket: String,
+  providerStorageRegion: String,
   storageUrl: String,
   videoUrl: String,
   hlsUrl: String,
   dashUrl: String,
   duration: Number,
   durationSeconds: Number,
+  durationMs: Number,
+  startedAt: Date,
+  stoppedAt: Date,
   fileSize: Number,
   fileSizeBytes: Number,
   

@@ -1,5 +1,6 @@
 // Testing utilities for PWA features and performance
 // Import with: import { testAllFeatures } from './testHelpers';
+import api from './api';
 
 export const testHelpers = {
   /**
@@ -57,14 +58,12 @@ export const testHelpers = {
     const results = [];
     for (const endpoint of endpoints) {
       try {
-        const response = await fetch(
-          `http://localhost:5000${endpoint.path}`
-        );
+        const response = await api.get(endpoint.path.replace(/^\/api/, ''));
         results.push({
           endpoint: endpoint.path,
           status: response.status,
-          ok: response.ok,
-          statusText: response.statusText,
+          ok: true,
+          statusText: response.statusText || 'OK',
         });
       } catch (error) {
         results.push({

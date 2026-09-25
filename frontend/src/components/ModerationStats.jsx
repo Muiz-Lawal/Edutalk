@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import '../styles/ModerationStats.css';
 
 const ModerationStats = () => {
@@ -10,7 +10,7 @@ const ModerationStats = () => {
   const fetchStats = async (selectedPeriod) => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/moderation/stats', {
+      const response = await api.get('/moderation/stats', {
         params: { period: selectedPeriod },
       });
       setStats(response.data);

@@ -63,11 +63,15 @@ import { adminAuth, superAdminAuth, requireAdminRole } from '../middleware/admin
 import { exportModerationLogs } from '../controllers/moderationController.js';
 import bulkEmailService from '../services/bulkEmailService.js';
 import User from '../models/User.js';
+import { auditPrivilegedAction } from '../middleware/privilegedAudit.js';
+import { getTelemetrySnapshot } from '../services/telemetryService.js';
 
 const router = express.Router();
 
 // All admin routes require admin authentication
 router.use(adminAuth);
+router.use(auditPrivilegedAction);
+router.get('/telemetry', superAdminAuth, (req, res) => res.json(getTelemetrySnapshot()));
 
 // Dashboard
 router.get('/dashboard/stats', requireAdminRole('overview'), getDashboardStats);

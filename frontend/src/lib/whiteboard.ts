@@ -1,4 +1,6 @@
 import { initSocket } from '../utils/socket.js';
+// @ts-ignore API client is JavaScript shared by the React and TypeScript modules.
+import api from '../utils/api.js';
 
 export type WhiteboardTool = 'select' | 'pen' | 'marker' | 'eraser' | 'rect' | 'ellipse' | 'arrow' | 'line' | 'text' | 'sticky' | 'laser';
 export type WhiteboardPoint = { x: number; y: number };
@@ -17,23 +19,17 @@ export type WhiteboardState = {
   isHost: boolean;
 };
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
 function token() {
   return localStorage.getItem('token');
 }
 
 async function request(sessionId: string, options: RequestInit = {}) {
-  const response = await fetch(`${apiUrl}/session-whiteboard/${sessionId}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token() ? { Authorization: `Bearer ${token()}` } : {}),
-      ...(options.headers || {}),
-    },
+  const response = await api.request({
+    url: `/session-whiteboard/${sessionId}`,
+    method: (options.method || 'GET').toLowerCase(),
+    data: options.body ? JSON.parse(String(options.body)) : undefined,
   });
-  if (!response.ok) throw new Error('Whiteboard request failed');
-  return response.json();
+  return response.data;
 }
 
 export async function loadWhiteboard(sessionId: string): Promise<WhiteboardState> {

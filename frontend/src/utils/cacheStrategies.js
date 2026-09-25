@@ -1,18 +1,26 @@
 /**
+ * Architectural exception: these helpers run in the browser Cache API/service
+ * worker path and must use the native Fetch API so Request/Response objects
+ * and opaque cache entries remain intact. App API calls use utils/api.js.
+ *
  * Cache-first strategy: Return cached response if available, fall back to network
  */
+const nativeFetch = typeof window !== 'undefined'
+  ? window.fetch.bind(window)
+  : globalThis.fetch.bind(globalThis);
+
 export const cacheFirst = async (request, cacheName) => {
   const cached = await caches.match(request);
   if (cached) {
     return cached;
   }
-  
+
   try {
-    const response = await fetch(request);
+    const response = await nativeFetch(request);
     if (!response || response.status !== 200) {
       return response;
     }
-    
+
     const cache = await caches.open(cacheName);
     cache.put(request, response.clone());
     return response;
@@ -27,11 +35,11 @@ export const cacheFirst = async (request, cacheName) => {
  */
 export const networkFirst = async (request, cacheName) => {
   try {
-    const response = await fetch(request);
+    const response = await nativeFetch(request);
     if (!response || response.status !== 200) {
       return response;
     }
-    
+
     const cache = await caches.open(cacheName);
     cache.put(request, response.clone());
     return response;
@@ -50,23 +58,23 @@ export const networkFirst = async (request, cacheName) => {
  */
 export const staleWhileRevalidate = async (request, cacheName) => {
   const cached = await caches.match(request);
-  
-  const fetchPromise = fetch(request).then((response) => {
+
+  const fetchPromise = nativeFetch(request).then((response) => {
     if (!response || response.status !== 200) {
       return response;
     }
-    
+
     const cache = caches.open(cacheName).then((c) => {
       c.put(request, response.clone());
       return response;
     });
-    
+
     return cache;
   }).catch((error) => {
     console.error('Stale-while-revalidate fetch failed:', error);
     return cached;
   });
-  
+
   return cached || fetchPromise;
 };
 

@@ -29,7 +29,11 @@ const safeRecording = (recording, progress = null) => ({
   description: recording.description,
   thumbnail: recording.thumbnail,
   durationSeconds: recording.durationSeconds || recording.duration || 0,
-  status: recording.status,
+  durationMs: recording.durationMs || Math.round((recording.durationSeconds || recording.duration || 0) * 1000),
+  startedAt: recording.startedAt,
+  stoppedAt: recording.stoppedAt,
+  providerRecordingId: undefined,
+  status: recording.isDeleted ? 'deleted' : recording.status,
   isVisible: recording.isVisible,
   releaseAt: recording.releaseAt,
   reviewHoldUntil: recording.reviewHoldUntil,
@@ -249,7 +253,6 @@ export const getUserRecordings = async (req, res) => {
  */
 export const deleteRecording = async (req, res) => {
   try {
-    if (!await assertRecordingFeature(req, res)) return;
     const { recordingId } = req.params;
     const userId = req.user?.userId;
 
@@ -452,7 +455,18 @@ export const startRecording = async (req, res) => {
     if (classData.videoMode !== 'builtin') {
       return res.status(400).json({ message: 'External-link sessions use the upload recording fallback' });
     }
-    const stream = await recordingProvider.createRecording();
+    const existing = await Recording.findOne({ sessionId, isDeleted: { $ne: true } }).sort({ createdAt: -1 });
+    if (existing && ['recording', 'processing', 'review_hold'].includes(existing.status)) {
+      return res.status(200).json({ message: 'Recording already active', recording: safeRecording(existing), idempotent: true });
+    }
+    if (existing && existing.status === 'ready') {
+      await recordingProvider.deleteRecording(existing.streamUid);
+      existing.isDeleted = true;
+      existing.status = 'expired';
+      await existing.save();
+    }
+    const startedAt = new Date();
+    const stream = await recordingProvider.createRecording({ sessionId, classId, hostId: req.user.userId });
     const retentionDays = classData.recordingSettings?.retentionDays;
     const recording = new Recording({
       sessionId,
@@ -460,7 +474,11 @@ export const startRecording = async (req, res) => {
       hostId: req.user.userId,
       hostPlanTier: classData.hostId.activatedPlanTier || classData.hostId.planTier,
       streamUid: stream.streamUid,
+      providerRecordingId: stream.providerRecordingId || stream.streamUid,
+      providerResourceId: stream.providerResourceId,
+      providerSid: stream.providerSid,
       status: 'recording',
+      startedAt,
       title: `Recording - ${new Date().toISOString()}`,
       autoDeleteEnabled: Boolean(retentionDays),
       autoDeleteDays: retentionDays || null,
@@ -480,7 +498,6 @@ export const startRecording = async (req, res) => {
 
 export const completeRecording = async (req, res) => {
   try {
-    if (!await assertRecordingFeature(req, res)) return;
     const { recordingId, streamUid, duration, eventId: suppliedEventId, providerEventId } = req.body;
     const eventId = suppliedEventId || providerEventId;
 
@@ -490,16 +507,28 @@ export const completeRecording = async (req, res) => {
       return res.json({ message: 'Recording event already processed', recording: safeRecording(existing), idempotent: true });
     }
     const classData = await Class.findById(existing.classId);
-    const holdUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    if (['processing', 'review_hold', 'ready', 'expired'].includes(existing.status)) {
+      return res.json({ message: 'Recording already stopped', recording: safeRecording(existing), idempotent: true });
+    }
+    const stoppedAt = new Date();
+    const holdUntil = new Date(stoppedAt.getTime() + 24 * 60 * 60 * 1000);
     const retentionDays = classData?.recordingSettings?.retentionDays;
     const providerStreamUid = streamUid || existing.streamUid;
-    if (providerStreamUid) await recordingProvider.completeRecording(providerStreamUid);
+    const providerResult = providerStreamUid ? await recordingProvider.completeRecording(providerStreamUid) : {};
+    const completedStreamUid = providerResult.streamUid || providerStreamUid;
     const recording = await Recording.findByIdAndUpdate(
       recordingId,
       {
-        status: holdUntil ? 'review_hold' : 'processing',
-        streamUid: providerStreamUid,
+        status: 'processing',
+        streamUid: completedStreamUid,
+        providerRecordingId: providerResult.providerRecordingId || existing.providerRecordingId,
+        providerResourceId: providerResult.providerResourceId || existing.providerResourceId,
+        providerSid: providerResult.providerSid || existing.providerSid,
+        providerFileName: providerResult.providerFileName || existing.providerFileName,
         duration,
+        durationSeconds: Number(duration || 0),
+        durationMs: Number(duration || 0) * 1000,
+        stoppedAt,
         autoDeleteEnabled: Boolean(retentionDays),
         autoDeleteDays: retentionDays || null,
         autoDeleteAt: retentionDays ? new Date(Date.now() + retentionDays * 24 * 60 * 60 * 1000) : null,
@@ -510,8 +539,10 @@ export const completeRecording = async (req, res) => {
       { new: true, ...(eventId ? {} : {}) }
     );
     // Trigger async AI processing
-    const sourceUrl = providerStreamUid ? await recordingProvider.createSignedPlaybackUrl(providerStreamUid, new Date(Date.now() + 60 * 60 * 1000)) : null;
-    if (sourceUrl) processRecordingAsync(recording._id, sourceUrl);
+    if (completedStreamUid && providerResult.status !== 'processing') {
+      const sourceUrl = await recordingProvider.createSignedPlaybackUrl(completedStreamUid, new Date(Date.now() + 60 * 60 * 1000));
+      if (sourceUrl) processRecordingAsync(recording._id, sourceUrl);
+    }
 
     res.json({
       message: 'Recording processing started',
@@ -528,7 +559,7 @@ export const getRecording = async (req, res) => {
 
     const recording = await Recording.findById(recordingId);
 
-    if (!recording) {
+    if (!recording || recording.isDeleted) {
       return res.status(404).json({ message: 'Recording not found' });
     }
 
@@ -617,8 +648,8 @@ export const publishRecording = async (req, res) => {
 export const getHostRecordings = async (req, res) => {
   const classData = await Class.findOne({ _id: req.params.classId, hostId: req.user.userId }).populate('hostId', 'planTier');
   if (!classData) return res.status(404).json({ message: 'Class not found' });
-  if (!PRO_TIERS.has(classData.hostId.planTier)) return res.status(403).json({ message: 'Recordings unlock at Pro' });
-  const recordings = await Recording.find({ classId: classData._id, isDeleted: false }).sort({ createdAt: -1 });
+  if (!PRO_TIERS.has(classData.hostId.activatedPlanTier || classData.hostId.planTier)) return res.status(403).json({ message: 'Recordings unlock at Pro' });
+  const recordings = await Recording.find({ classId: classData._id }).sort({ createdAt: -1 });
   res.json({ recordings: recordings.map((recording) => safeRecording(recording)) });
 };
 

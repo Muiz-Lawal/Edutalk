@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AdminProvider } from './context/AdminContext';
 import Header from './components/Header';
@@ -103,6 +103,7 @@ function App() {
           <AdminProvider>
             <Header />
             <Suspense fallback={<LoadingSpinner />}>
+              <RouteSegmentBoundary>
               <Routes>
                 {/* Root Routes */}
                 <Route path="/" element={<LandingPage />} />
@@ -482,6 +483,7 @@ function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
              </Routes>
+             </RouteSegmentBoundary>
            </Suspense>
             
            {/* PWA Components - Added safely outside routes */}
@@ -494,6 +496,20 @@ function App() {
          </AdminProvider>
        </AuthProvider>
      </Router>
+    </ErrorBoundary>
+  );
+}
+
+function RouteSegmentBoundary({ children }) {
+  const location = useLocation();
+  const segment = location.pathname.startsWith('/admin') ? 'admin'
+    : location.pathname.startsWith('/session') ? 'room'
+      : location.pathname.startsWith('/host') || location.pathname.startsWith('/go-live') || location.pathname.startsWith('/analytics') ? 'host'
+        : location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/class') || location.pathname.startsWith('/student') ? 'student'
+          : 'public';
+  return (
+    <ErrorBoundary key={segment}>
+      {children}
     </ErrorBoundary>
   );
 }
