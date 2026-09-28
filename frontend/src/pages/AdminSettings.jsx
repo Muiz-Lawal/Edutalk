@@ -120,7 +120,7 @@ export const AdminSettings = () => {
       </div>
 
       <div className="settings-content">
-        {loading && <Skeleton variant="form" />}
+        {loading && !(activeTab === 'audit' && auditLogs) && <Skeleton variant="form" />}
 
         {!loading && activeTab === 'commission' && commissionSettings && (
           <CommissionRateCard
@@ -143,7 +143,7 @@ export const AdminSettings = () => {
           />
         )}
 
-        {!loading && activeTab === 'audit' && auditLogs && (
+        {activeTab === 'audit' && auditLogs && (
           <AuditLogViewer logs={auditLogs} />
         )}
       </div>

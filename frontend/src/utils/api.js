@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { recordClientTelemetry, setTelemetryTransport } from '../lib/telemetry';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const retryableMethods = new Set(['get', 'head', 'options']);
@@ -32,6 +33,69 @@ export function friendlyError(error) {
 }
 
 const api = axios.create({ baseURL: API_URL, timeout: 10000 });
+const sleep = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+
+async function fetch(input, options = {}) {
+  const method = (options.method || input?.method || 'GET').toUpperCase();
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 10000);
+  const sourceSignal = options.signal || (input instanceof Request ? input.signal : null);
+  const abortFromSource = () => controller.abort();
+  if (sourceSignal?.aborted) controller.abort();
+  else sourceSignal?.addEventListener('abort', abortFromSource, { once: true });
+  const headers = new Headers(options.headers || (input instanceof Request ? input.headers : undefined));
+  const url = input instanceof Request ? input.url : String(input);
+  let token = null;
+  try {
+    token = localStorage.getItem('token') || localStorage.getItem('tempToken');
+  } catch {
+    token = null;
+  }
+  if (token && url.startsWith(API_URL) && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  let attempt = 0;
+  try {
+    while (true) {
+      try {
+        const response = await window.fetch(input, {
+          ...options,
+          headers,
+          signal: controller.signal,
+        });
+        if (retryableMethods.has(method.toLowerCase()) && response.status >= 500 && attempt === 0) {
+          attempt += 1;
+          await sleep(1000);
+          continue;
+        }
+        return response;
+      } catch (error) {
+        if (retryableMethods.has(method.toLowerCase()) && attempt === 0 && !controller.signal.aborted) {
+          attempt += 1;
+          await sleep(1000);
+          continue;
+        }
+        if (sourceSignal?.aborted) {
+          throw friendlyError({ code: 'ERR_CANCELED' });
+        }
+        if (controller.signal.aborted) {
+          throw new ApiError('The request timed out. Please try again.', { code: 'ETIMEDOUT', cause: error });
+        }
+        throw friendlyError(error);
+      }
+    }
+  } finally {
+    window.clearTimeout(timer);
+    sourceSignal?.removeEventListener('abort', abortFromSource);
+  }
+}
+
+api.fetchResponse = fetch;
+
+setTelemetryTransport((snapshot) => {
+  api.post('/telemetry', snapshot).catch(() => console.error('Telemetry delivery failed'));
+});
 
 // Use this for requests whose lifecycle is tied to a component. It prevents
 // late responses from updating unmounted screens while retaining the client
@@ -39,11 +103,16 @@ const api = axios.create({ baseURL: API_URL, timeout: 10000 });
 export async function request(config, { signal, timeout = 10000 } = {}) {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), timeout);
-  if (signal) signal.addEventListener('abort', () => controller.abort(), { once: true });
+  const abortRequest = () => controller.abort();
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else signal.addEventListener('abort', abortRequest, { once: true });
+  }
   try {
     return await api.request({ ...config, signal: controller.signal });
   } finally {
     window.clearTimeout(timer);
+    signal?.removeEventListener('abort', abortRequest);
   }
 }
 
@@ -61,12 +130,19 @@ api.interceptors.response.use(
   async (error) => {
     const config = error.config || {};
     const method = (config.method || 'get').toLowerCase();
-    if (retryableMethods.has(method) && (!error.response || error.response.status >= 500) && !config.__retried) {
+    const requestUrl = config.url || '';
+    if (
+      retryableMethods.has(method)
+      && (!error.response || error.response.status >= 500)
+      && !config.__retried
+      && error.code !== 'ERR_CANCELED'
+      && !requestUrl.includes('/telemetry')
+    ) {
       config.__retried = true;
+      await sleep(1000);
       return api.request(config);
     }
     if (error.response?.status === 401) {
-      const requestUrl = config.url || '';
       const isAdminLoginRequest = requestUrl.includes('/auth/admin/login');
       const isAdminRequest = requestUrl.includes('/admin/');
       if (!isAdminLoginRequest) {
@@ -74,7 +150,13 @@ api.interceptors.response.use(
         window.location.href = isAdminRequest ? '/admin/login' : '/login';
       }
     }
-    console.error('API request failed', { url: config.url, status: error.response?.status, error });
+    if (!requestUrl.includes('/telemetry')) {
+      const lowerUrl = requestUrl.toLowerCase();
+      if (lowerUrl.includes('quote')) recordClientTelemetry('quote_failures', { status: error.response?.status || 0 });
+      if (lowerUrl.includes('/video/') && (!error.response || error.response.status >= 500)) {
+        recordClientTelemetry('provider_failures', { status: error.response?.status || 0 });
+      }
+    }
     return Promise.reject(friendlyError(error));
   },
 );

@@ -36,7 +36,6 @@ const HostApprovalModal = ({ host, action, onClose, onSuccess }) => {
       onSuccess();
     } catch (err) {
       setError(err.message || `Failed to ${isApprove ? 'approve' : 'reject'} host`);
-      console.error('Error:', err);
     } finally {
       setLoading(false);
     }

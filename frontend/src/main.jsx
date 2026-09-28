@@ -8,6 +8,9 @@ import '@fontsource/inter/700.css';
 import '@fontsource/inter/800.css';
 import './i18n/i18n'; // Initialize i18n
 import App from './App.jsx';
+import { installProductionErrorSanitizer } from './lib/telemetry';
+
+if (import.meta.env.PROD) installProductionErrorSanitizer();
 
 let storedTheme = 'system';
 try {

@@ -57,11 +57,17 @@ export async function clearWhiteboard(sessionId: string) {
 export function subscribeWhiteboard(sessionId: string, onEvent: (event: { type: string; stroke?: WhiteboardStroke; studentsCanDraw?: boolean }) => void) {
   const socket = initSocket(token());
   if (!socket) return () => {};
-  socket.emit('whiteboard:join', { sessionId });
   const handler = (event: { type: string; stroke?: WhiteboardStroke; studentsCanDraw?: boolean }) => onEvent(event);
+  const joinAndResync = () => {
+    socket.emit('whiteboard:join', { sessionId });
+    onEvent({ type: 'resync' });
+  };
   socket.on(`whiteboard:event:${sessionId}`, handler);
+  socket.on('connect', joinAndResync);
+  if (socket.connected) joinAndResync();
   return () => {
     socket.off(`whiteboard:event:${sessionId}`, handler);
+    socket.off('connect', joinAndResync);
     socket.emit('whiteboard:leave', { sessionId });
   };
 }

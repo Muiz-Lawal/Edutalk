@@ -40,16 +40,27 @@ const adminLogSchema = new mongoose.Schema({
       'room_participant_removed',
       'room_presenter_changed',
       'room_cohost_changed',
+      'room_control_changed',
+      'room_breakouts_changed',
       'room_ended_for_all',
       'recording_deleted',
       'privileged_action',
+      'admin_created',
+      'admin_updated',
+      'admin_password_changed',
+      'moderation_approved',
+      'moderation_rejected',
+      'commission_settings_updated',
+      'COMMISSION_UPDATED',
+      'FEATURE_TOGGLED',
+      'update_email_template',
       'admin_deleted',
     ],
   },
   targetType: {
     type: String,
     required: true,
-    enum: ['User', 'Host', 'Class', 'Content', 'Payment', 'Settings', 'Room', 'Recording', 'Payout', 'Processor', 'Plan', 'Verification'],
+    enum: ['User', 'Host', 'Class', 'Content', 'Payment', 'Settings', 'Setting', 'Admin', 'Room', 'Recording', 'Payout', 'Processor', 'Plan', 'Verification'],
   },
   targetId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -83,6 +94,7 @@ const adminLogSchema = new mongoose.Schema({
 
 // Index for common queries
 adminLogSchema.index({ adminId: 1, createdAt: -1 });
+adminLogSchema.index({ adminEmail: 1, createdAt: -1 });
 adminLogSchema.index({ action: 1, createdAt: -1 });
 adminLogSchema.index({ targetId: 1, createdAt: -1 });
 adminLogSchema.index({ createdAt: -1 });

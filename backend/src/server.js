@@ -41,6 +41,7 @@ import VideoRoom from './models/VideoRoom.js';
 import aiModerationService from './services/aiModerationService.js';
 import sessionEngagementRoutes from './routes/sessionEngagementRoutes.js';
 import sessionWhiteboardRoutes from './routes/sessionWhiteboardRoutes.js';
+import telemetryRoutes from './routes/telemetryRoutes.js';
 import { validateProductionEnvironment } from './config/environment.js';
 
 dotenv.config();
@@ -530,6 +531,7 @@ app.use('/api/achievements', achievementRoutes);
 app.use('/api/points', pointsRoutes);
 app.use('/api/session-engagement', sessionEngagementRoutes);
 app.use('/api/session-whiteboard', sessionWhiteboardRoutes);
+app.use('/api/telemetry', telemetryRoutes);
 
 // Events API (client-side event tracking)
 app.use('/api/events', eventRoutes);

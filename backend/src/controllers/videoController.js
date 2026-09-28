@@ -264,6 +264,7 @@ export const leaveVideoRoom = async (req, res) => {
 export const closeVideoRoom = async (req, res) => {
   const access = await roomAccess(req.params.roomId, req.user.userId);
   if (access.error) return res.status(access.error.status).json(access.error);
+  req.auditContext = { sessionId: access.room.sessionId };
   if (!access.isHost) return res.status(403).json({ message: 'Only the host can end the class' });
   if (access.room.status === 'closed') return res.json({ message: 'Video room already closed', videoRoom: access.room });
   access.room.status = 'closed';
@@ -380,6 +381,7 @@ export const updateRoomControl = async (req, res) => {
   if (access.error) return res.status(access.error.status).json(access.error);
   const { action, targetUserId, reason } = req.body;
   const room = access.room;
+  req.auditContext = { sessionId: room.sessionId };
   if (!controlPermission(access, action) || hostOnlyActions.has(action) && !access.isHost) {
     return res.status(403).json({ message: 'You do not have permission to perform this room action' });
   }
@@ -458,6 +460,7 @@ export const updateBreakouts = async (req, res) => {
   if (access.error) return res.status(access.error.status).json(access.error);
   const { action, count, durationMinutes, assignments, announcement } = req.body;
   const room = access.room;
+  req.auditContext = { sessionId: room.sessionId };
   if (action === 'create') {
     const total = Math.max(2, Math.min(8, Number(count)));
     const duration = Number(durationMinutes);

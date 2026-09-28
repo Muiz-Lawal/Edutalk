@@ -44,7 +44,6 @@ const HostSuspensionModal = ({ host, action, onClose, onSuccess }) => {
       onSuccess();
     } catch (err) {
       setError(err.message || `Failed to ${isSuspend ? 'suspend' : 'unsuspend'} host`);
-      console.error('Error:', err);
     } finally {
       setLoading(false);
     }

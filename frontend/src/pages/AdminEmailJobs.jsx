@@ -153,7 +153,7 @@ export default function AdminEmailJobs() {
                 <div><strong>Subject:</strong> {selectedJob.subject}</div>
                 <div><strong>Status:</strong> {selectedJob.status}</div>
                 <div><strong>Attempts:</strong> {selectedJob.attempts}</div>
-                <div><strong>Last Error:</strong> <span style={{color:'#c00'}}>{selectedJob.lastError || 'None'}</span></div>
+                <div><strong>Delivery issue:</strong> <span style={{color:'#c00'}}>{selectedJob.lastError ? 'The email could not be sent. Retry the job.' : 'None'}</span></div>
                 <div style={{marginTop:8}}><strong>Payload / Template Data</strong></div>
                 <pre className="job-modal__pre">{JSON.stringify(selectedJob.data || { body: selectedJob.body }, null, 2)}</pre>
                 {selectedJob.body && (

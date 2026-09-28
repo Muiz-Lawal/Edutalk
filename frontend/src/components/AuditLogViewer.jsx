@@ -1,75 +1,52 @@
 import React, { useState, useEffect } from 'react';
+import { ClipboardList, Download } from 'lucide-react';
 import { useAdmin } from '../context/AdminContext';
 
 const AuditLogViewer = ({ logs: initialLogs }) => {
   const { fetchAuditLogs, exportAuditLogsPhase5G, loading } = useAdmin();
   const [logs, setLogs] = useState(initialLogs?.logs || []);
-  const [filteredLogs, setFilteredLogs] = useState(logs);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const pageSize = 50;
+  const [totalLogs, setTotalLogs] = useState(initialLogs?.total || 0);
+  const [loadError, setLoadError] = useState('');
   
   // Filters
   const [actionFilter, setActionFilter] = useState('');
   const [adminFilter, setAdminFilter] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  const [statusFilter, setStatusFilter] = useState('');
 
-  // Get unique values for filters
-  const uniqueActions = [...new Set(logs.map(l => l.action))];
-  const uniqueAdmins = [...new Set(logs.map(l => l.adminEmail))];
-  const uniqueStatuses = [...new Set(logs.map(l => l.status))];
-
-  // Apply filters
   useEffect(() => {
-    let filtered = logs;
+    let active = true;
+    const loadLogs = async () => {
+      setLoadError('');
+      const result = await fetchAuditLogs(currentPage, pageSize, {
+        action: actionFilter.trim(),
+        adminEmail: adminFilter.trim(),
+        startDate: dateRange.start,
+        endDate: dateRange.end,
+      });
+      if (!active) return;
+      if (result?.logs) {
+        setLogs((current) => currentPage === 1 ? result.logs : [...current, ...result.logs]);
+        setTotalLogs(result.total || 0);
+      } else {
+        setLoadError('Audit logs could not be loaded. Please retry.');
+      }
+    };
+    loadLogs();
+    return () => { active = false; };
+  }, [fetchAuditLogs, currentPage, pageSize, actionFilter, adminFilter, dateRange.start, dateRange.end]);
 
-    if (actionFilter) {
-      filtered = filtered.filter(l => l.action === actionFilter);
-    }
+  const totalPages = Math.ceil(totalLogs / pageSize);
 
-    if (adminFilter) {
-      filtered = filtered.filter(l => l.adminEmail === adminFilter);
-    }
-
-    if (statusFilter) {
-      filtered = filtered.filter(l => l.status === statusFilter);
-    }
-
-    if (dateRange.start) {
-      const startDate = new Date(dateRange.start);
-      filtered = filtered.filter(l => new Date(l.createdAt) >= startDate);
-    }
-
-    if (dateRange.end) {
-      const endDate = new Date(dateRange.end);
-      endDate.setHours(23, 59, 59);
-      filtered = filtered.filter(l => new Date(l.createdAt) <= endDate);
-    }
-
-    setFilteredLogs(filtered);
-    setCurrentPage(1);
-  }, [logs, actionFilter, adminFilter, dateRange, statusFilter]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredLogs.length / pageSize);
-  const paginatedLogs = filteredLogs.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-
-  const handleLoadMore = async () => {
-    const nextPage = currentPage + 1;
-    const data = await fetchAuditLogs(nextPage, 50);
-    if (data?.logs) {
-      setLogs([...logs, ...data.logs]);
-    }
+  const handleLoadMore = () => {
+    if (currentPage < totalPages) setCurrentPage((page) => page + 1);
   };
 
   const handleExport = async () => {
     const filters = {
       action: actionFilter,
       adminEmail: adminFilter,
-      status: statusFilter,
       startDate: dateRange.start,
       endDate: dateRange.end
     };
@@ -79,28 +56,25 @@ const AuditLogViewer = ({ logs: initialLogs }) => {
   const handleClearFilters = () => {
     setActionFilter('');
     setAdminFilter('');
-    setStatusFilter('');
     setDateRange({ start: '', end: '' });
+    setCurrentPage(1);
   };
 
-  const getActionIcon = (action) => {
-    const icons = {
-      'host_approved': '✅',
-      'host_rejected': '❌',
-      'host_suspended': '🔒',
-      'content_rejected': '🚫',
-      'content_approved': '✓',
-      'user_suspended': '🔘',
-      'commission_updated': 'Commission',
-      'feature_toggled': '🚩',
-      'template_updated': '📧',
-    };
-    return icons[action] || '📝';
+  const formatTimestamp = (value) => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(new Date(value));
+    const part = (type) => parts.find((item) => item.type === type)?.value || '';
+    return `${part('month')} ${part('day')}, ${part('year')} ${part('hour')}:${part('minute')}`;
   };
 
   const getStatusBadgeClass = (status) => {
     return `badge badge-${status.toLowerCase()}`;
   };
+  const formatAuditValue = (value) => (
+    typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)
+  );
 
   return (
     <div className="audit-log-viewer">
@@ -115,50 +89,26 @@ const AuditLogViewer = ({ logs: initialLogs }) => {
         <div className="filter-grid">
           <div className="filter-group">
             <label>Action</label>
-            <select
+            <input
+              type="search"
+              aria-label="Filter by action type"
               value={actionFilter}
-              onChange={(e) => setActionFilter(e.target.value)}
+              onChange={(event) => { setActionFilter(event.target.value); setCurrentPage(1); }}
+              placeholder="Action type"
               disabled={loading}
-            >
-              <option value="">All Actions</option>
-              {uniqueActions.map(action => (
-                <option key={action} value={action}>
-                  {action}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div className="filter-group">
-            <label>Admin</label>
-            <select
+            <label>Actor</label>
+            <input
+              type="search"
+              aria-label="Filter by actor"
               value={adminFilter}
-              onChange={(e) => setAdminFilter(e.target.value)}
+              onChange={(e) => { setAdminFilter(e.target.value); setCurrentPage(1); }}
+              placeholder="Name or email"
               disabled={loading}
-            >
-              <option value="">All Admins</option>
-              {uniqueAdmins.map(admin => (
-                <option key={admin} value={admin}>
-                  {admin}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              disabled={loading}
-            >
-              <option value="">All Statuses</option>
-              {uniqueStatuses.map(status => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div className="filter-group">
@@ -166,7 +116,7 @@ const AuditLogViewer = ({ logs: initialLogs }) => {
             <input
               type="date"
               value={dateRange.start}
-              onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+              onChange={(e) => { setDateRange({ ...dateRange, start: e.target.value }); setCurrentPage(1); }}
               disabled={loading}
             />
           </div>
@@ -176,7 +126,7 @@ const AuditLogViewer = ({ logs: initialLogs }) => {
             <input
               type="date"
               value={dateRange.end}
-              onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+              onChange={(e) => { setDateRange({ ...dateRange, end: e.target.value }); setCurrentPage(1); }}
               disabled={loading}
             />
           </div>
@@ -192,47 +142,50 @@ const AuditLogViewer = ({ logs: initialLogs }) => {
             <button
               onClick={handleExport}
               className="btn btn-primary btn-sm"
-              disabled={loading || filteredLogs.length === 0}
+              disabled={loading || totalLogs === 0}
             >
-              📥 Export CSV
+              <Download size={15} /> Export CSV
             </button>
           </div>
         </div>
 
         <div className="filter-summary">
-          Showing {paginatedLogs.length} of {filteredLogs.length} logs
+          Showing {logs.length} of {totalLogs} logs
         </div>
       </div>
 
+      {loadError && <p role="alert">{loadError}</p>}
       <div className="logs-table-container">
         <table className="logs-table">
           <thead>
             <tr>
               <th>Timestamp</th>
-              <th>Admin</th>
+              <th>Actor</th>
               <th>Action</th>
               <th>Target</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {paginatedLogs.length > 0 ? (
-              paginatedLogs.map((log, index) => (
-                <tr key={index} className={`log-row status-${log.status}`}>
+            {logs.length > 0 ? (
+              logs.map((log) => (
+                <tr key={log._id} className={`log-row status-${log.status}`}>
                   <td className="timestamp">
-                    {new Date(log.createdAt).toLocaleString()}
+                    {formatTimestamp(log.createdAt)}
                   </td>
                   <td className="admin">
-                    {log.adminEmail}
+                    {log.adminEmail || log.actorEmail || 'System administrator'}
                   </td>
                   <td className="action">
-                    <span className="action-icon">{getActionIcon(log.action)}</span>
+                    <span className="action-icon"><ClipboardList size={15} /></span>
                     {log.action}
                   </td>
                   <td className="target">
                     <div className="target-info">
                       <span className="target-type">{log.targetType}</span>
-                      <span className="target-id">{log.targetId}</span>
+                      <span className="target-id">{log.targetId || log.details?.metadata?.target || '—'}</span>
+                      {log.details?.previousValue !== undefined && log.details?.newValue !== undefined
+                        && <span className="target-change">{formatAuditValue(log.details.previousValue)} → {formatAuditValue(log.details.newValue)}</span>}
                     </div>
                   </td>
                   <td>
@@ -266,7 +219,7 @@ const AuditLogViewer = ({ logs: initialLogs }) => {
       )}
 
       <div className="log-info">
-        <h4>💡 Audit Log Information</h4>
+        <h4>Audit Log Information</h4>
         <ul>
           <li><strong>Timestamp:</strong> When the action was performed (UTC)</li>
           <li><strong>Admin:</strong> Email of the administrator who performed the action</li>

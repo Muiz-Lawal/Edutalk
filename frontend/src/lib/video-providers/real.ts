@@ -3,6 +3,7 @@ import type { IAgoraRTCClient, IAgoraRTCRemoteUser, ILocalAudioTrack, ILocalVide
 import type { ProviderConnection, ProviderParticipant, VideoProvider } from '../video-provider';
 // @ts-ignore Shared JavaScript API client.
 import api from '../../utils/api.js';
+import { recordClientTelemetry } from '../telemetry';
 
 type ProviderError = Error & { code?: string; status?: number };
 
@@ -225,6 +226,9 @@ export class RealVideoProvider implements VideoProvider {
       const providerError = error as ProviderError;
       if (providerError.status === 403 || providerError.status === 409) throw error;
       onStateChange('reconnecting');
+      recordClientTelemetry('provider_failures', {
+        errorName: error instanceof Error ? error.name : 'Error',
+      });
       throw new Error('We could not connect your camera to the class. Check your connection and retry.');
     }
 

@@ -1964,6 +1964,7 @@ export const getPaymentSummary = async (req, res) => {
 export const getCommissionSettings = async (req, res) => {
   try {
     let settings = await AdminSettings.findOne({ key: 'commission_rates' });
+    const previousRates = settings?.value || null;
 
     if (!settings) {
       // Default settings
@@ -2009,6 +2010,7 @@ export const updateCommissionSettings = async (req, res) => {
     } else {
       settings.value = commissionRates || settings.value;
     }
+    req.auditChange = { previousValue: previousRates, newValue: settings.value };
 
     await settings.save();
 
@@ -2588,6 +2590,7 @@ export const updateCommissionRate = async (req, res) => {
     const oldRate = rates[tier];
     rates[tier] = rate / 100;
     settings.value = rates;
+    req.auditChange = { previousValue: { [tier]: oldRate }, newValue: { [tier]: rates[tier] } };
     settings.updatedAt = new Date();
     settings.updatedBy = adminId;
     await settings.save();
@@ -2709,7 +2712,9 @@ export const toggleFeatureFlag = async (req, res) => {
       return res.status(404).json({ error: 'Feature flag not found' });
     }
 
+    const previousValue = flag.enabled;
     flag.enabled = enabled;
+    req.auditChange = { previousValue, newValue: enabled };
     settings.updatedAt = new Date();
     settings.updatedBy = adminId;
     await settings.save();
@@ -2729,21 +2734,37 @@ export const toggleFeatureFlag = async (req, res) => {
 // Get audit logs
 export const getAuditLogs = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
-    const skip = (page - 1) * limit;
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 20));
+    const query = {};
+    const action = String(req.query.action || '').trim();
+    const actor = String(req.query.actor || req.query.adminEmail || '').trim();
+    const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+    const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
 
-    const logs = await AdminLog.find({})
+    if (action) query.action = { $regex: action.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+    if (actor) query.adminEmail = { $regex: actor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+    if (startDate && Number.isFinite(startDate.getTime())) {
+      query.createdAt = { ...(query.createdAt || {}), $gte: startDate };
+    }
+    if (endDate && Number.isFinite(endDate.getTime())) {
+      endDate.setUTCHours(23, 59, 59, 999);
+      query.createdAt = { ...(query.createdAt || {}), $lte: endDate };
+    }
+
+    const [logs, total] = await Promise.all([
+      AdminLog.find(query)
       .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await AdminLog.countDocuments({});
+      .skip((page - 1) * limit)
+      .limit(limit),
+      AdminLog.countDocuments(query),
+    ]);
 
     res.json({
       logs,
       total,
-      page: parseInt(page),
-      limit: parseInt(limit)
+      page,
+      limit,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -2753,18 +2774,34 @@ export const getAuditLogs = async (req, res) => {
 // Export audit logs
 export const exportAuditLogs = async (req, res) => {
   try {
-    const logs = await AdminLog.find({}).sort({ createdAt: -1 });
+    const query = {};
+    const action = String(req.body?.action || '').trim();
+    const actor = String(req.body?.actor || req.body?.adminEmail || '').trim();
+    const startDate = req.body?.startDate ? new Date(req.body.startDate) : null;
+    const endDate = req.body?.endDate ? new Date(req.body.endDate) : null;
+    if (action) query.action = { $regex: action.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+    if (actor) query.adminEmail = { $regex: actor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+    if (startDate && Number.isFinite(startDate.getTime())) query.createdAt = { $gte: startDate };
+    if (endDate && Number.isFinite(endDate.getTime())) {
+      endDate.setUTCHours(23, 59, 59, 999);
+      query.createdAt = { ...(query.createdAt || {}), $lte: endDate };
+    }
+    const logs = await AdminLog.find(query).sort({ createdAt: -1 });
+    const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
     const csv = [
-      ['Timestamp', 'Admin', 'Action', 'Target', 'Status'].join(','),
+      ['Timestamp', 'Actor', 'Action', 'Target type', 'Target', 'Before', 'After', 'Status'].map(csvCell).join(','),
       ...logs.map(log =>
         [
-          log.createdAt.toISOString(),
+          log.createdAt?.toISOString?.() || '',
           log.adminEmail,
           log.action,
+          log.targetType,
           log.targetId || 'N/A',
+          JSON.stringify(log.details?.previousValue ?? ''),
+          JSON.stringify(log.details?.newValue ?? ''),
           log.status
-        ].join(',')
+        ].map(csvCell).join(',')
       )
     ].join('\n');
 

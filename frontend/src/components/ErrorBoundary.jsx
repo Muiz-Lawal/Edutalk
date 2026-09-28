@@ -1,5 +1,7 @@
 import React from 'react';
 import '../styles/ErrorBoundary.css';
+import api from '../utils/api';
+import { getRecentTelemetry, recordClientTelemetry } from '../lib/telemetry';
 
 const isDevelopment = import.meta.env.DEV;
 
@@ -9,8 +11,6 @@ class ErrorBoundary extends React.Component {
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null,
-      errorCount: 0
     };
   }
 
@@ -19,25 +19,27 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    this.setState(prevState => ({
-      error,
-      errorInfo,
-      errorCount: prevState.errorCount + 1
-    }));
-
-    // Log to console for debugging
-    console.error('Error caught by boundary:', error);
-    console.error('Error info:', errorInfo);
-
-    // Optionally send to error tracking service (Sentry, etc.)
-    // this.reportToErrorTracking(error, errorInfo);
+    this.setState({ error });
+    recordClientTelemetry('client_errors', {
+      errorName: error?.name || 'Error',
+      routeSegment: this.props.segment || 'app',
+    });
+    if (isDevelopment) {
+      console.error('Page error stack:', error?.stack, errorInfo?.componentStack);
+    } else {
+      console.error('Unhandled page error');
+    }
+    api.post('/telemetry/errors', {
+      errorName: error?.name || 'Error',
+      routeSegment: this.props.segment || 'app',
+      recent: getRecentTelemetry(20),
+    }).catch(() => console.error('Error report delivery failed'));
   }
 
   resetError = () => {
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null
     });
   };
 
@@ -49,45 +51,20 @@ class ErrorBoundary extends React.Component {
           : this.props.fallback;
       }
       return (
-        <div className="error-boundary">
+        <div className={`error-boundary ${this.props.segment === 'room' ? 'error-boundary--dark' : ''}`}>
           <div className="error-boundary__container">
-            <div className="error-boundary__icon">⚠️</div>
-            <h1 className="error-boundary__title">Something went wrong</h1>
+            <h1 className="error-boundary__title">Something went wrong on this page</h1>
             <p className="error-boundary__message">
-              We encountered an unexpected error. Please try again or contact support if the problem persists.
+              Something went wrong. Please try again.
             </p>
-
-            {isDevelopment && this.state.error && (
-              <details className="error-boundary__details">
-                <summary>Error Details (Development Only)</summary>
-                <pre className="error-boundary__error-stack">
-                  {this.state.error.toString()}
-                  {'\n\n'}
-                  {this.state.errorInfo?.componentStack}
-                </pre>
-              </details>
-            )}
-
             <div className="error-boundary__actions">
               <button
                 className="error-boundary__button error-boundary__button--primary"
                 onClick={this.resetError}
               >
-                Try Again
-              </button>
-              <button
-                className="error-boundary__button error-boundary__button--secondary"
-                onClick={() => window.location.href = '/'}
-              >
-                Go Home
+                Retry
               </button>
             </div>
-
-            {this.state.errorCount > 3 && (
-              <p className="error-boundary__warning">
-                Multiple errors detected. Please refresh the page or clear your browser cache.
-              </p>
-            )}
           </div>
         </div>
       );

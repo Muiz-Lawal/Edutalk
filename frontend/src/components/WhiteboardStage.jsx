@@ -45,8 +45,22 @@ export default function WhiteboardStage({ sessionId, isHost, layout, onClose }) 
   const [width, setWidth] = useState(widths[0]);
   const [studentsCanDraw, setStudentsCanDrawState] = useState(false);
   const [error, setError] = useState('');
+  const [boardStale, setBoardStale] = useState(false);
   const [history, setHistory] = useState([]);
   const [redo, setRedo] = useState([]);
+
+  const refreshBoard = useCallback(async () => {
+    setBoardStale(true);
+    try {
+      const state = await loadWhiteboard(sessionId);
+      setStrokes(state.strokes || []);
+      setStudentsCanDrawState(Boolean(state.studentsCanDraw));
+      setError('');
+      setBoardStale(false);
+    } catch {
+      setError('We could not refresh the whiteboard. Please retry.');
+    }
+  }, [sessionId]);
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -66,19 +80,15 @@ export default function WhiteboardStage({ sessionId, isHost, layout, onClose }) 
   }, [strokes]);
 
   useEffect(() => {
-    let active = true;
-    loadWhiteboard(sessionId).then((state) => {
-      if (!active) return;
-      setStrokes(state.strokes || []);
-      setStudentsCanDrawState(Boolean(state.studentsCanDraw));
-    }).catch(() => setError('We could not load the whiteboard. Please retry.'));
+    refreshBoard();
     const unsubscribe = subscribeWhiteboard(sessionId, (event) => {
+      if (event.type === 'resync') refreshBoard();
       if (event.type === 'stroke' && event.stroke) setStrokes((items) => items.some((item) => item.id === event.stroke.id) ? items : [...items, event.stroke]);
       if (event.type === 'clear') setStrokes([]);
       if (event.type === 'permission') setStudentsCanDrawState(Boolean(event.studentsCanDraw));
     });
-    return () => { active = false; unsubscribe(); };
-  }, [sessionId]);
+    return () => { unsubscribe(); };
+  }, [sessionId, refreshBoard]);
 
   useEffect(() => {
     redraw();
@@ -92,7 +102,7 @@ export default function WhiteboardStage({ sessionId, isHost, layout, onClose }) 
     return { x: ((event.clientX - rect.left) / rect.width) * 1000, y: ((event.clientY - rect.top) / rect.height) * 600 };
   };
   const startDrawing = (event) => {
-    if (tool === 'select' || (!isHost && !studentsCanDraw)) return;
+    if (boardStale || tool === 'select' || (!isHost && !studentsCanDraw)) return;
     drawingRef.current = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, tool, color, width, points: [pointFromEvent(event)] };
     canvasRef.current.setPointerCapture(event.pointerId);
   };
@@ -134,10 +144,10 @@ export default function WhiteboardStage({ sessionId, isHost, layout, onClose }) 
       {colors.map((swatch) => <button key={swatch} type="button" className={`whiteboard-swatch ${color === swatch ? 'is-active' : ''}`} style={{ background: swatch }} onClick={() => setColor(swatch)} aria-label={`Color ${swatch}`} />)}
       {widths.map((size) => <button key={size} type="button" className={`whiteboard-width ${width === size ? 'is-active' : ''}`} onClick={() => setWidth(size)} aria-label={`Thickness ${size}`}><i style={{ width: size + 4, height: size + 4 }} /></button>)}
       <button type="button" onClick={undo} title="Undo"><Undo2 size={17} /></button><button type="button" onClick={() => setRedo([])} title="Redo"><Redo2 size={17} /></button>
-      {isHost && <button type="button" onClick={async () => { try { await clearWhiteboard(sessionId); setStrokes([]); } catch { setError('The board could not be cleared.'); } }} title="Clear board"><Trash2 size={17} /></button>}
+      {isHost && <button type="button" disabled={boardStale} onClick={async () => { if (boardStale) return; try { await clearWhiteboard(sessionId); setStrokes([]); } catch { setError('The board could not be cleared.'); } }} title="Clear board"><Trash2 size={17} /></button>}
     </div>
-    <div className="whiteboard-stage-actions">{isHost && <label><input type="checkbox" checked={studentsCanDraw} onChange={async (event) => { const value = event.target.checked; setStudentsCanDrawState(value); try { await setStudentsCanDraw(sessionId, value); } catch { setError('Drawing permissions could not be updated.'); } }} /> Students can draw</label>}{isHost && <button type="button" onClick={exportPng}>Export PNG</button>}{isHost && <button type="button" onClick={onClose}>Close</button>}</div>
-    {error && <div className="whiteboard-error" role="alert">{error}</div>}
+    <div className="whiteboard-stage-actions">{isHost && <label><input type="checkbox" checked={studentsCanDraw} disabled={boardStale} onChange={async (event) => { if (boardStale) return; const value = event.target.checked; setStudentsCanDrawState(value); try { await setStudentsCanDraw(sessionId, value); } catch { setError('Drawing permissions could not be updated.'); } }} /> Students can draw</label>}{isHost && <button type="button" onClick={exportPng}>Export PNG</button>}{isHost && <button type="button" onClick={onClose}>Close</button>}</div>
+    {error && <div className="whiteboard-error" role="alert">{error} <button type="button" onClick={refreshBoard}>Retry</button></div>}
     <canvas ref={canvasRef} onPointerDown={startDrawing} onPointerMove={continueDrawing} onPointerUp={finishDrawing} onPointerCancel={finishDrawing} />
   </section>;
 }

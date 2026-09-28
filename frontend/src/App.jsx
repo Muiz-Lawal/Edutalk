@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AdminProvider } from './context/AdminContext';
 import Header from './components/Header';
 import ProtectedRoute from './components/ProtectedRoute';
+import ConnectionStatus from './components/ConnectionStatus';
 
 // Loading component for lazy-loaded routes
 const LoadingSpinner = () => (
@@ -102,6 +103,7 @@ function App() {
         <AuthProvider>
           <AdminProvider>
             <Header />
+            <ConnectionStatus />
             <Suspense fallback={<LoadingSpinner />}>
               <RouteSegmentBoundary>
               <Routes>
@@ -502,13 +504,18 @@ function App() {
 
 function RouteSegmentBoundary({ children }) {
   const location = useLocation();
+  const studentSegments = [
+    '/dashboard', '/class', '/student', '/profile', '/settings', '/cart', '/checkout',
+    '/enrollment', '/payment-history', '/recordings', '/notifications', '/progress',
+    '/certificates', '/achievements', '/leaderboard', '/points', '/bundles', '/discounts',
+  ];
   const segment = location.pathname.startsWith('/admin') ? 'admin'
     : location.pathname.startsWith('/session') ? 'room'
-      : location.pathname.startsWith('/host') || location.pathname.startsWith('/go-live') || location.pathname.startsWith('/analytics') ? 'host'
-        : location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/class') || location.pathname.startsWith('/student') ? 'student'
-          : 'public';
+      : location.pathname.startsWith('/host') || location.pathname.startsWith('/go-live')
+        || location.pathname.startsWith('/analytics') || location.pathname.startsWith('/stream') ? 'host'
+        : studentSegments.some((prefix) => location.pathname.startsWith(prefix)) ? 'student' : 'public';
   return (
-    <ErrorBoundary key={segment}>
+    <ErrorBoundary key={segment} segment={segment}>
       {children}
     </ErrorBoundary>
   );
