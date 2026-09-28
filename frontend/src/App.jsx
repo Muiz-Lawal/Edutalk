@@ -176,6 +176,8 @@ function App() {
               path="/dashboard/settings"
               element={<ProtectedRoute><SettingsPage /></ProtectedRoute>}
             />
+            <Route path="/settings/notifications" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/host/settings/notifications" element={<ProtectedRoute requireHost><SettingsPage /></ProtectedRoute>} />
             <Route
               path="/dashboard/profile"
               element={<ProtectedRoute><ProfilePage /></ProtectedRoute>}

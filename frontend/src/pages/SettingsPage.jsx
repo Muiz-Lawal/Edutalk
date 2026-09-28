@@ -9,6 +9,7 @@ import Button from '../components/ui/Button';
 const defaultNotifications = {
   paymentConfirmations: true, sessionReminders: true, subscriptionExpiry: true,
   achievementNotifications: true, classAnnouncements: true, marketingEmails: false,
+  recordingReady: true, newEnrollment: true, payoutEmails: true, productUpdates: false,
 };
 const currencies = ['USD', 'GBP', 'EUR', 'NGN', 'INR', 'CAD', 'JPY', 'BRL', 'ZAR', 'GHS', 'KES', 'AUD'];
 
@@ -20,7 +21,11 @@ export default function SettingsPage() {
     ['account', 'Account'], ['preferences', 'Preferences'], ['notifications', 'Notifications'],
     ['security', 'Security'], ...(isHost ? [['host', 'Host settings']] : []),
   ], [isHost]);
-  const [active, setActive] = useState(location.hash.replace('#', '') || 'account');
+  const [active, setActive] = useState(
+    location.pathname === '/settings/notifications' || location.pathname === '/host/settings/notifications'
+      ? 'notifications'
+      : location.hash.replace('#', '') || 'account',
+  );
   const [account, setAccount] = useState({});
   const [notifications, setNotifications] = useState(defaultNotifications);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || user?.theme || 'system');
@@ -98,12 +103,10 @@ export default function SettingsPage() {
   };
   const updateField = (key, value) => setAccount((previous) => ({ ...previous, [key]: value }));
   const notificationLabels = {
-    paymentConfirmations: ['Payment confirmations', 'Receipts and payment status updates'],
-    sessionReminders: ['Session reminders', 'Upcoming class and session reminders'],
-    subscriptionExpiry: ['Subscription expiry', 'Warnings before access expires'],
-    achievementNotifications: ['Achievements', 'Badges, milestones, and progress updates'],
-    classAnnouncements: ['Class announcements', 'Important updates from your classes'],
-    marketingEmails: ['Marketing emails', 'News, promotions, and feature announcements'],
+    sessionReminders: ['Session reminders', 'Session reminders at 24 hours and 1 hour before class.'],
+    recordingReady: ['Recording ready', 'When an eligible class recording is ready to watch.'],
+    ...(isHost ? { newEnrollment: ['New enrollment', 'When a student enrolls in one of your classes.'] } : {}),
+    productUpdates: ['Product updates', 'News and product announcements.'],
   };
 
   return <main className="settings-page">
@@ -120,7 +123,11 @@ export default function SettingsPage() {
           <Button disabled={saving} loading={saving}>Save account</Button>
         </form></section>}
         {active === 'preferences' && <section className="settings-card"><h2>Preferences</h2><p className="muted">Customize how EduTalk works for you.</p><div className="settings-form"><label>Language<select value={account.preferredLanguage || 'en'} onChange={(e) => updateField('preferredLanguage', e.target.value)}><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option></select></label><label>Currency<select value={account.preferredCurrency || 'USD'} onChange={(e) => updateField('preferredCurrency', e.target.value)}>{currencies.map((currency) => <option key={currency}>{currency}</option>)}</select></label><label>Timezone<input value={account.timezone || ''} placeholder="e.g. Europe/London" onChange={(e) => updateField('timezone', e.target.value)} /></label><Button onClick={saveAccount} disabled={saving} loading={saving}>Save preferences</Button><div className="theme-choice"><strong>Theme</strong><div><button type="button" className={theme === 'light' ? 'selected' : ''} onClick={() => changeTheme('light')}><Sun size={15} /> Light</button><button type="button" className={theme === 'dark' ? 'selected' : ''} onClick={() => changeTheme('dark')}><Moon size={15} /> Dark</button><button type="button" className={theme === 'system' ? 'selected' : ''} onClick={() => changeTheme('system')}><Monitor size={15} /> System</button></div></div></div></section>}
-        {active === 'notifications' && <section className="settings-card" id="notifications"><h2>Notifications</h2><p className="muted">Choose which email updates you receive.</p><div className="notification-list">{Object.entries(notificationLabels).map(([key, [title, description]]) => <label className="notification-row" key={key}><span><strong>{title}</strong><small>{description}</small></span><input type="checkbox" checked={Boolean(notifications[key])} onChange={(e) => setNotifications({ ...notifications, [key]: e.target.checked })} /></label>)}{[['security', 'Security notices'], ['payment', 'Payment notices'], ['moderation', 'Moderation notices']].map(([key, title]) => <label className="notification-row" key={key}><span><strong>{title}</strong><small><LockKeyhole size={13} /> Required for your security</small></span><input type="checkbox" checked readOnly disabled /></label>)}</div><Button onClick={saveNotifications} disabled={saving} loading={saving}>Save notifications</Button></section>}
+        {active === 'notifications' && <section className="settings-card" id="notifications"><h2>Email notifications</h2><p className="muted">Choose which operational email updates you receive.</p><div className="notification-list">
+          {Object.entries(notificationLabels).map(([key, [title, description]]) => <div className="notification-row" key={key}><span><strong>{title}</strong><small>{description}</small></span><button type="button" className={`notification-switch${notifications[key] ? ' is-on' : ''}`} role="switch" aria-checked={Boolean(notifications[key])} aria-label={title} onClick={() => setNotifications({ ...notifications, [key]: !notifications[key] })}><span /></button></div>)}
+          {isHost && <div className="notification-row"><span><strong>Payout emails</strong><small>Payment records are always sent for your financial records.</small></span><button type="button" className="notification-switch is-on" role="switch" aria-label="Payout emails" aria-checked="true" disabled><span /></button></div>}
+          {[['receipts', 'Enrollment receipts'], ['refunds', 'Refund confirmations'], ['verification', 'Verification decisions'], ['cancellations', 'Class cancellations']].map(([key, title]) => <div className="notification-row" key={key}><span><strong>{title}</strong><small><LockKeyhole size={13} /> Required for your account security</small></span><button type="button" className="notification-switch is-on" role="switch" aria-label={title} aria-checked="true" disabled><span /></button></div>)}
+        </div><Button onClick={saveNotifications} disabled={saving} loading={saving}>Save notifications</Button></section>}
         {active === 'security' && <section className="settings-card"><h2>Security</h2><p className="muted">Keep your account protected with a strong password.</p><form onSubmit={changePassword} className="settings-form"><label>Current password<input type="password" value={passwords.currentPassword} onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })} required /></label><label>New password<input type="password" minLength="8" value={passwords.newPassword} onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} required /></label><label>Confirm new password<input type="password" value={passwords.confirmPassword} onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })} required /></label><Button type="submit" disabled={saving} loading={saving}><LockKeyhole size={16} /> Change password</Button></form><div className="security-note">Two-factor authentication is available for admin accounts. Contact support if you need help securing your account.</div></section>}
         {active === 'host' && <section className="settings-card"><h2>Host settings</h2><p className="muted">Host tools and verification are managed from your host dashboard.</p><button className="primary" onClick={() => navigate('/host-dashboard')}>Open host dashboard</button></section>}
       </div>

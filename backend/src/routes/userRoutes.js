@@ -21,18 +21,16 @@ router.get('/email-preferences', authenticateToken, async (req, res) => {
 // Update user email preferences
 router.put('/email-preferences', authenticateToken, async (req, res) => {
   try {
-    const { paymentConfirmations, sessionReminders, subscriptionExpiry, classAnnouncements, marketingEmails } = req.body;
+    const allowedPreferences = ['sessionReminders', 'recordingReady', 'newEnrollment', 'productUpdates'];
+    const updates = Object.fromEntries(allowedPreferences
+      .filter((key) => typeof req.body?.[key] === 'boolean')
+      .map((key) => [`emailPreferences.${key}`, req.body[key]]));
+    updates['emailPreferences.payoutEmails'] = true;
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      {
-        'emailPreferences.paymentConfirmations': paymentConfirmations,
-        'emailPreferences.sessionReminders': sessionReminders,
-        'emailPreferences.subscriptionExpiry': subscriptionExpiry,
-        'emailPreferences.classAnnouncements': classAnnouncements,
-        'emailPreferences.marketingEmails': marketingEmails,
-      },
-      { new: true, select: 'emailPreferences' }
+      { $set: updates },
+      { new: true, select: 'emailPreferences' },
     );
 
     if (!user) {

@@ -76,6 +76,7 @@ const userSchema = new mongoose.Schema({
   payoutDeferred: Boolean,
   hostCommissionAccepted: Boolean,
   stripeConnectId: String,
+  paystackRecipientCode: String,
   hostVerified: {
     type: Boolean,
     default: false,
@@ -120,6 +121,10 @@ const userSchema = new mongoose.Schema({
   emailPreferences: {
     paymentConfirmations: { type: Boolean, default: true },
     sessionReminders: { type: Boolean, default: true },
+    recordingReady: { type: Boolean, default: true },
+    newEnrollment: { type: Boolean, default: true },
+    payoutEmails: { type: Boolean, default: true },
+    productUpdates: { type: Boolean, default: false },
     subscriptionExpiry: { type: Boolean, default: true },
     achievementNotifications: { type: Boolean, default: true },
     classAnnouncements: { type: Boolean, default: true },

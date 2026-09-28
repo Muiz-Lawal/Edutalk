@@ -7,6 +7,7 @@ import Subscription from '../models/Subscription.js';
 import { hashPassword } from '../utils/auth.js';
 import { createNotification } from './notificationController.js';
 import EmailJob from '../models/EmailJob.js';
+import { dispatch } from '../lib/notifications.js';
 
 // Log admin action
 const logAdminAction = async (adminId, adminEmail, action, targetType, targetId, targetEmail, details = {}) => {
@@ -2403,6 +2404,10 @@ export const approveHost = async (req, res) => {
     host.hostStatus = 'approved';
     host.hostApprovedDate = new Date();
     await host.save();
+    await dispatch(host, 'verification_decision', {
+      entityId: String(host._id),
+      decision: 'approved',
+    });
 
     // Log action
     await logAdminAction(
@@ -2436,6 +2441,11 @@ export const rejectHost = async (req, res) => {
     host.rejectionReason = reason;
     host.rejectionNotes = notes;
     await host.save();
+    await dispatch(host, 'verification_decision', {
+      entityId: String(host._id),
+      decision: 'rejected',
+      reason,
+    });
 
     // Log action
     await logAdminAction(

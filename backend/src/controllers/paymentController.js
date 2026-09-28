@@ -1,4 +1,5 @@
 import Payment from '../models/Payment.js';
+import mongoose from 'mongoose';
 import Subscription from '../models/Subscription.js';
 import User from '../models/User.js';
 import Class from '../models/Class.js';
@@ -22,8 +23,20 @@ import { toCents } from '../utils/pricing.js';
 import Cart from '../models/Cart.js';
 import { backfillStudentRecordingLibrary } from '../services/recordingLibrary.js';
 import { activatePayment } from '../services/paymentActivation.js';
+import { dispatch } from '../lib/notifications.js';
+import { HOST_PLAN_THRESHOLDS, getHostPlanDetails } from '../utils/hostPlans.js';
+import { getActiveHostSubscriberCount } from '../services/hostSubscriberCount.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_example');
+const amountFromMinorUnits = (minorUnits, currency) => {
+  let decimalPlaces = 2;
+  try {
+    decimalPlaces = new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits;
+  } catch {
+    decimalPlaces = 2;
+  }
+  return Number((Number(minorUnits || 0) / (10 ** decimalPlaces)).toFixed(decimalPlaces));
+};
 
 export const handleStripeWebhook = async (req, res) => {
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
@@ -49,6 +62,38 @@ export const handleStripeWebhook = async (req, res) => {
       if (payment.status === 'completed') await activatePayment({ payment, source: 'webhook' });
       await payment.save();
     }
+  } else if (event.type === 'charge.refunded') {
+    const payment = await Payment.findOne({
+      $or: [
+        { stripeChargeId: intent.id },
+        { stripePaymentIntentId: intent.payment_intent },
+      ],
+    });
+    if (payment && payment.refundStatus !== 'processed') {
+      payment.status = 'refunded';
+      payment.refundStatus = 'processed';
+      payment.refundAmount = amountFromMinorUnits(intent.amount_refunded, String(intent.currency || payment.currency || 'USD').toUpperCase());
+      payment.refundProcessedAt = new Date();
+      payment.refundedAt = payment.refundedAt || new Date();
+      await payment.save();
+      const recipient = await User.findById(payment.userId).select('email firstName timezone');
+      if (recipient) await dispatch(recipient, 'refund_processed', {
+        entityId: String(payment._id),
+        amount: payment.refundAmount,
+        currency: String(intent.currency || payment.currency || 'USD').toUpperCase(),
+        paymentReference: payment.gatewayReference || payment.stripePaymentIntentId,
+      });
+    }
+  } else if (event.type === 'payout.paid' && event.account) {
+    const host = await User.findOne({ stripeConnectId: event.account }).select('email firstName timezone');
+    if (host) await dispatch(host, 'payout_sent', {
+      entityId: String(intent.id),
+      amount: amountFromMinorUnits(intent.amount, String(intent.currency || 'USD').toUpperCase()),
+      currency: String(intent.currency || 'USD').toUpperCase(),
+      processor: 'Stripe',
+      reference: intent.id,
+      balanceNote: 'Your remaining balance is available in payout history.',
+    });
   }
 
   return res.json({ received: true });
@@ -71,6 +116,49 @@ export const handlePaystackWebhook = async (req, res) => {
   }
 
   const reference = event?.data?.reference;
+  if (event.event === 'transfer.success') {
+    const hostId = event?.data?.metadata?.hostId;
+    const recipientCode = event?.data?.recipient?.recipient_code || event?.data?.recipient_code;
+    const payoutEntityId = event?.data?.id || event?.data?.transfer_code || reference;
+    const host = hostId && mongoose.isValidObjectId(hostId)
+      ? await User.findById(hostId).select('email firstName timezone')
+      : recipientCode
+        ? await User.findOne({ paystackRecipientCode: recipientCode }).select('email firstName timezone')
+        : null;
+    if (host && payoutEntityId) await dispatch(host, 'payout_sent', {
+      entityId: String(payoutEntityId),
+      amount: amountFromMinorUnits(event?.data?.amount, String(event?.data?.currency || 'NGN').toUpperCase()),
+      currency: String(event?.data?.currency || 'NGN').toUpperCase(),
+      processor: 'Paystack',
+      reference: String(reference || event?.data?.transfer_code || ''),
+      balanceNote: 'Your remaining balance is available in payout history.',
+    });
+    return res.json({ received: true });
+  }
+  if (event.event === 'refund.processed') {
+    const paymentReference = event?.data?.transaction_reference || event?.data?.transaction?.reference;
+    const refundedPayment = paymentReference
+      ? await Payment.findOne({ gatewayReference: paymentReference })
+      : null;
+    if (refundedPayment && refundedPayment.refundStatus !== 'processed') {
+      refundedPayment.refundStatus = 'processed';
+      refundedPayment.status = 'refunded';
+      refundedPayment.refundAmount = amountFromMinorUnits(
+        event?.data?.amount || refundedPayment.refundAmount || 0,
+        String(event?.data?.currency || refundedPayment.currency || 'NGN').toUpperCase(),
+      );
+      refundedPayment.refundProcessedAt = new Date();
+      await refundedPayment.save();
+      const recipient = await User.findById(refundedPayment.userId).select('email firstName timezone');
+      if (recipient) await dispatch(recipient, 'refund_processed', {
+        entityId: String(refundedPayment._id),
+        amount: refundedPayment.refundAmount,
+        currency: String(event?.data?.currency || refundedPayment.currency || 'NGN').toUpperCase(),
+        paymentReference: refundedPayment.gatewayReference,
+      });
+    }
+    return res.json({ received: true });
+  }
   if (!reference) return res.json({ received: true });
 
   const payment = await Payment.findOne({ gatewayReference: reference })
@@ -319,14 +407,16 @@ export const confirmPayment = async (req, res) => {
     });
 
     const createdSubscriptions = [];
+    const notificationLines = [];
 
     for (const item of checkoutSummary.items) {
-      const classData = await Class.findById(item.classId).populate('hostId', 'planTier');
+      const classData = await Class.findById(item.classId).populate('hostId', 'planTier activatedPlanTier hostDisplayName firstName lastName');
       if (!classData) continue;
       const existingSubscription = await findActiveSubscription({
         userId: req.user.userId,
         classId: item.classId,
       });
+      const isNewEnrollment = !existingSubscription;
       if (!existingSubscription && classData.maxStudents && classData.totalEnrolled >= classData.maxStudents) {
         const error = new Error('This class is full');
         error.statusCode = 409;
@@ -446,6 +536,45 @@ export const confirmPayment = async (req, res) => {
         accessCode: subscription.accessCode,
         startDate,
         endDate,
+      });
+      notificationLines.push({
+        payment,
+        classData,
+        subscription,
+        item,
+        isNewEnrollment,
+      });
+    }
+
+    await dispatch(user, 'enrollment_receipt', {
+      entityId: String(checkoutId || verifiedReference),
+      orderId: checkoutId || verifiedReference,
+      classId: String(notificationLines[0]?.classData?._id || ''),
+      items: notificationLines.map(({ classData, subscription, item }) => ({
+        classId: String(classData._id),
+        classTitle: classData.title,
+        hostName: classData.hostId?.hostDisplayName
+          || `${classData.hostId?.firstName || ''} ${classData.hostId?.lastName || ''}`.trim(),
+        dates: `${new Date(subscription.startDate).toLocaleDateString('en')} – ${new Date(subscription.endDate).toLocaleDateString('en')}`,
+        amount: Number(item.finalAmount),
+        currency: user.preferredCurrency || 'USD',
+      })),
+    });
+    for (const line of notificationLines.filter(({ isNewEnrollment }) => isNewEnrollment)) {
+      const hostId = line.classData.hostId?._id || line.classData.hostId;
+      const host = await User.findById(hostId).select('email firstName timezone totalActiveStudents planTier activatedPlanTier');
+      if (!host) continue;
+      const subscriberCount = await getActiveHostSubscriberCount(host._id);
+      const nextTier = getHostPlanDetails(host.activatedPlanTier || host.planTier || 'starter').nextTier;
+      await dispatch(host, 'new_enrollment', {
+        entityId: `${line.payment._id}:${line.classData._id}`,
+        classId: String(line.classData._id),
+        classTitle: line.classData.title,
+        studentFirstName: user.firstName || 'A student',
+        amount: Number(line.payment.hostEarnings || line.item.finalAmount),
+        currency: user.preferredCurrency || 'USD',
+        subscriberCount,
+        nextTierThreshold: nextTier ? HOST_PLAN_THRESHOLDS[nextTier].minStudents : null,
       });
     }
 

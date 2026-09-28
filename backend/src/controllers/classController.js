@@ -12,6 +12,7 @@ import { fromZonedTime } from 'date-fns-tz';
 import { getVacationDays, canStartVacation } from '../utils/vacations.js';
 import { assertFeature, planGateResponse } from '../utils/plan-limits.js';
 import { reserveSessionRoom } from '../lib/video-provider.js';
+import { dispatch } from '../lib/notifications.js';
 
 const appearancePalette = ['#4F46E5', '#7C3AED', '#059669', '#D97706', '#E11D48', '#0891B2', '#475569', '#2563EB'];
 const slugify = (value) => value.toLowerCase().replace(/[^\w\s-]/g, '').trim().replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
@@ -341,9 +342,19 @@ export const updateVacationMode = async (req, res) => {
     );
   }
 
-  const subscriptions = await Subscription.find({ classId: classData._id, status: 'active' });
+  const subscriptions = await Subscription.find({ classId: classData._id, status: 'active' })
+    .populate('userId', 'email firstName timezone');
   const extensionMs = pausedDays * 24 * 60 * 60 * 1000;
   for (const subscription of subscriptions) {
+    if (affectedSessions.length && subscription.userId?.email) {
+      await dispatch(subscription.userId, 'class_cancelled', {
+        entityId: `${classData._id}:vacation:${startDate}:${endDate}`,
+        classTitle: classData.title,
+        cancelledDates: affectedSessions.map((session) => session.scheduledStartTime),
+        hostNote: 'The host has paused the class schedule for a planned break.',
+        timezone: subscription.userId.timezone || classData.timezone || 'UTC',
+      });
+    }
     if (subscription.endDate) subscription.endDate = new Date(subscription.endDate.getTime() + extensionMs);
     if (subscription.accessCodeValidUntil) subscription.accessCodeValidUntil = new Date(subscription.accessCodeValidUntil.getTime() + extensionMs);
     await subscription.save();
@@ -393,9 +404,28 @@ export const cancelClassSession = async (req, res) => {
   session.status = 'cancelled';
   session.cancellationReason = reason;
   await session.save();
-  const subscriptions = await Subscription.find({ classId: session.classId._id, status: 'active' }).select('userId');
+  const subscriptions = await Subscription.find({ classId: session.classId._id, status: 'active' })
+    .populate('userId', 'email firstName timezone');
   if (subscriptions.length) {
-    await Notification.insertMany(subscriptions.map(({ userId }) => ({ userId, type: 'class_cancellation', title: 'Session cancelled', message: `A session was cancelled: ${reason}`, relatedClassId: session.classId._id, metadata: { sessionId: session._id } })));
+    await Notification.insertMany(subscriptions.map(({ userId }) => ({
+      userId: userId?._id || userId,
+      type: 'class_cancellation',
+      title: 'Session cancelled',
+      message: `A session was cancelled: ${reason}`,
+      relatedClassId: session.classId._id,
+      metadata: { sessionId: session._id },
+    })));
+    await Promise.all(subscriptions.filter(({ userId }) => userId?.email).map(({ userId }) => dispatch(
+      userId,
+      'class_cancelled',
+      {
+        entityId: String(session._id),
+        classTitle: session.classId.title,
+        cancelledDate: session.scheduledStartTime,
+        hostNote: reason,
+        timezone: userId.timezone || session.classId.timezone || 'UTC',
+      },
+    )));
   }
   if (hoursUntilStart < 2) await StrikeEvent.create({ hostId: req.user.userId, type: 'late_cancellation', sessionId: session._id, reason });
   res.json({ message: 'Session cancelled', strikeRecorded: hoursUntilStart < 2, session });

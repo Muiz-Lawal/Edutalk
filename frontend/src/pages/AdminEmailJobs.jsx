@@ -126,7 +126,7 @@ export default function AdminEmailJobs() {
                 <td>{new Date(job.createdAt).toLocaleString()}</td>
                 <td>
                   <button className="btn" onClick={() => openJob(job._id)}>View</button>
-                  {job.status !== 'pending' && (
+                  {job.status === 'failed' && (
                     <button className="btn" onClick={() => retryJob(job._id)}>Retry</button>
                   )}
                 </td>
@@ -143,8 +143,8 @@ export default function AdminEmailJobs() {
               <div className="job-modal__header">
                 <h3>Job: {selectedJob._id}</h3>
                 <div>
-                  <button className="btn" onClick={() => retryJob(selectedJob._id)}>Retry</button>
-                  <button className="btn btn-primary" onClick={() => sendNow(selectedJob._id)}>Send Now</button>
+                  {selectedJob.status === 'failed' && <button className="btn" onClick={() => retryJob(selectedJob._id)}>Retry</button>}
+                  {selectedJob.status !== 'sent' && selectedJob.status !== 'sending' && <button className="btn btn-primary" onClick={() => sendNow(selectedJob._id)}>Send Now</button>}
                   <button className="btn" onClick={closeJob}>Close</button>
                 </div>
               </div>
@@ -153,15 +153,7 @@ export default function AdminEmailJobs() {
                 <div><strong>Subject:</strong> {selectedJob.subject}</div>
                 <div><strong>Status:</strong> {selectedJob.status}</div>
                 <div><strong>Attempts:</strong> {selectedJob.attempts}</div>
-                <div><strong>Delivery issue:</strong> <span style={{color:'#c00'}}>{selectedJob.lastError ? 'The email could not be sent. Retry the job.' : 'None'}</span></div>
-                <div style={{marginTop:8}}><strong>Payload / Template Data</strong></div>
-                <pre className="job-modal__pre">{JSON.stringify(selectedJob.data || { body: selectedJob.body }, null, 2)}</pre>
-                {selectedJob.body && (
-                  <>
-                    <div style={{marginTop:8}}><strong>Rendered Body</strong></div>
-                    <div className="job-modal__pre">{selectedJob.body}</div>
-                  </>
-                )}
+                <div><strong>Delivery issue:</strong> <span style={{color:'#c00'}}>{selectedJob.lastError || 'None'}</span></div>
               </div>
             </div>
           </>
