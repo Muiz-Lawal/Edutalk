@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Download, X } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import '../styles/PWAInstallPrompt.css';
 
@@ -16,31 +17,31 @@ const PWAInstallPrompt = () => {
   };
 
   const handleDismiss = () => {
-    localStorage.setItem('pwaInstallDismissedAt', String(Date.now()));
+    try {
+      localStorage.setItem('pwaInstallDismissedAt', String(Date.now()));
+    } catch {
+      // The prompt still dismisses for this visit if storage is unavailable.
+    }
     setShowPrompt(false);
   };
 
   return (
-    <div className="pwa-install-prompt">
+    <aside className="pwa-install-prompt" aria-label="Install EduTalk">
       <div className="prompt-content">
-        <div className="prompt-icon">📱</div>
+        <Download className="prompt-icon" size={22} aria-hidden="true" />
         <div className="prompt-text">
-          <h3>Install EduTalk</h3>
-          <p>Get quick access to your classes on your home screen</p>
+          <p>Install EduTalk on your device</p>
         </div>
         <div className="prompt-actions">
           <button className="btn-install" onClick={handleInstall}>
             Install
           </button>
-          <button className="btn-dismiss" onClick={handleDismiss}>
-            Not now
-          </button>
         </div>
-        <button className="btn-close" onClick={handleDismiss}>
-          ✕
+        <button className="btn-dismiss" onClick={handleDismiss} aria-label="Dismiss install prompt">
+          <X size={18} aria-hidden="true" />
         </button>
       </div>
-    </div>
+    </aside>
   );
 };
 

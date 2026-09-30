@@ -24,12 +24,7 @@ document.documentElement.dataset.theme = storedTheme === 'system'
   : storedTheme;
 document.documentElement.dataset.themePreference = storedTheme;
 
-registerSW({
-  immediate: true,
-  onOfflineReady() {
-    console.info('EduTalk is ready to work offline.');
-  },
-});
+registerSW({ immediate: true });
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

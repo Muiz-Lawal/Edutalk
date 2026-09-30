@@ -85,10 +85,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 // PWA Components (not lazy loaded - critical)
 import PWAInstallPrompt from './components/PWAInstallPrompt';
-import OfflineIndicator from './components/OfflineIndicator';
-import UpdatePrompt from './components/UpdatePrompt';
-import MobileNav from './components/MobileNav';
-import PushPermissionRequest from './components/PushPermissionRequest';
+import BottomNav from './components/BottomNav';
 
 // Styles
 import './styles/global.css';
@@ -490,13 +487,8 @@ function App() {
              </RouteSegmentBoundary>
            </Suspense>
             
-           {/* PWA Components - Added safely outside routes */}
-           <div style={{ display: 'none' }}>
-             <UpdatePrompt />
-             <OfflineIndicator />
-             <PWAInstallPrompt />
-             <PushPermissionRequest />
-           </div>
+           <BottomNav />
+           <PWAInstallPrompt />
          </AdminProvider>
        </AuthProvider>
      </Router>

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowBigUp, Camera, CameraOff, CheckCircle, ChevronLeft, ChevronRight, CircleHelp, Clock3, DoorOpen, Hand, LayoutGrid,
   Lock, Maximize2, Mic, MicOff, MonitorUp, Network, PanelRight, Phone, Play, Presentation,
-  Radio, Settings, Signal, Smile, Users, Video, Volume2, X,
+  Heart, Laugh, Lightbulb, PartyPopper, Radio, Settings, Signal, Smile, ThumbsUp, Users, Video, Volume2, X,
 } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -17,9 +17,17 @@ import WhiteboardStage from '../components/WhiteboardStage';
 import ParticipantCommandPanel from '../components/ParticipantCommandPanel';
 import BreakoutPanel from '../components/BreakoutPanel';
 import '../styles/SessionRoom.css';
+import '../styles/SessionRoomMobile.css';
 
 const layouts = ['spotlight', 'grid', 'sidebar'];
-const reactions = ['ðŸ‘', 'ðŸ‘', 'â¤ï¸', 'ðŸŽ‰'];
+const reactions = [
+  { id: 'applause', label: 'Applause', Icon: Hand },
+  { id: 'like', label: 'Like', Icon: ThumbsUp },
+  { id: 'love', label: 'Love', Icon: Heart },
+  { id: 'celebrate', label: 'Celebrate', Icon: PartyPopper },
+  { id: 'laugh', label: 'Laugh', Icon: Laugh },
+  { id: 'idea', label: 'Idea', Icon: Lightbulb },
+];
 const initialParticipant = (user, isHost) => ({
   id: 'local',
   name: [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'You',
@@ -120,6 +128,20 @@ export default function SessionRoom() {
   const [reaction, setReaction] = useState(null);
   const [showReactions, setShowReactions] = useState(false);
   const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [leaveError, setLeaveError] = useState('');
+  const activeOverlayRef = useRef(null);
+  const stageRef = useRef(stage);
+  stageRef.current = stage;
+  activeOverlayRef.current = showEndModal ? 'end'
+    : showSessionSummary ? 'summary'
+      : showRecordingUpgrade ? 'recording'
+        : showWhiteboard ? 'whiteboard'
+          : showBreakouts ? 'breakouts'
+            : showParticipants ? 'participants'
+              : showChat ? 'chat'
+                : showSettings ? 'settings'
+                  : null;
   const [roomId, setRoomId] = useState('');
   const [presenterId, setPresenterId] = useState('');
   const [handId, setHandId] = useState(null);
@@ -439,6 +461,31 @@ export default function SessionRoom() {
   }, [breakoutAssignment]);
 
   useEffect(() => {
+    const guardState = { edutalkRoomBackGuard: true };
+    window.history.pushState(guardState, '', window.location.href);
+    const onPopState = () => {
+      const activeOverlay = activeOverlayRef.current;
+      if (activeOverlay) {
+        if (activeOverlay === 'end') setShowEndModal(false);
+        if (activeOverlay === 'summary') setShowSessionSummary(false);
+        if (activeOverlay === 'recording') setShowRecordingUpgrade(false);
+        if (activeOverlay === 'whiteboard') setShowWhiteboard(false);
+        if (activeOverlay === 'breakouts') setShowBreakouts(false);
+        if (activeOverlay === 'participants') setShowParticipants(false);
+        if (activeOverlay === 'chat') setShowChat(false);
+        if (activeOverlay === 'settings') setShowSettings(false);
+        window.history.pushState(guardState, '', window.location.href);
+        return;
+      }
+      if (stageRef.current !== 'room') return;
+      setShowLeaveConfirm(true);
+      window.history.pushState(guardState, '', window.location.href);
+    };
+    window.addEventListener('popstate', onPopState, true);
+    return () => window.removeEventListener('popstate', onPopState, true);
+  }, []);
+
+  useEffect(() => {
     const onKey = (event) => {
       if (event.key === 'Escape') { setShowChat(false); setShowWhiteboard(false); setShowSettings(false); return; }
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
@@ -505,9 +552,17 @@ export default function SessionRoom() {
     setShowReactions(false);
     window.setTimeout(() => setReaction(null), 2000);
   };
-  const leave = async () => {
-    await connectionRef.current?.leave();
-    navigate(`/class/${classData?._id || classData?.id || sessionId}`, { state: { toast: 'You left the class' } });
+  const leave = () => setShowLeaveConfirm(true);
+  const confirmLeave = async () => {
+    setLeaveError('');
+    try {
+      await connectionRef.current?.leave();
+      navigate(`/class/${classData?._id || classData?.id || sessionId}`, { state: { toast: 'You left the class' } });
+    } catch {
+      setLeaveError('We could not leave the class cleanly. Please retry.');
+      return;
+    }
+    setShowLeaveConfirm(false);
   };
   const endForAll = async () => {
     try {
@@ -522,6 +577,8 @@ export default function SessionRoom() {
   };
   const updateLayout = (value) => { setLayout(value); localStorage.setItem('session-layout', value); };
   const visibleParticipants = layout === 'grid' ? filteredParticipants.slice(page * 24, page * 24 + 24) : filteredParticipants;
+  const activeReaction = reactions.find(({ id }) => id === reaction);
+  const ActiveReactionIcon = activeReaction?.Icon;
 
   if (stage === 'loading') return <div className="session-room session-room--center"><div className="session-skeleton" /><div className="session-skeleton session-skeleton--short" /></div>;
   if (removedFromClass) return <div className="session-room session-room--center"><div className="session-card session-card--blocked"><Lock size={28} /><h1>The host removed you from this class</h1><p>You can try again after the 60-second rejoin cooldown.</p><button type="button" onClick={() => navigate(`/class/${sessionId}`)}>Back to class</button></div></div>;
@@ -565,16 +622,24 @@ export default function SessionRoom() {
       <button type="button" className={screenSharing ? 'is-active' : ''} onClick={toggleScreen}><MonitorUp size={20} /><span>Share</span></button>
       <button type="button" className={showWhiteboard ? 'is-active' : ''} onClick={() => setShowWhiteboard((value) => !value)}><Presentation size={20} /><span>Whiteboard</span></button>
       {(recordingUnlocked || recordingUpsell) && <button type="button" className={recording ? 'is-recording' : ''} onClick={toggleRecording}>{recording ? <Radio size={20} /> : recordingUnlocked ? <Circle size={20} /> : <Lock size={18} />}<span>{recording ? `Record Â· ${formatTimer(recordingSeconds)}` : 'Record'}</span></button>}
-      <div className="session-reaction-wrap"><button type="button" onClick={() => setShowReactions((value) => !value)}><Smile size={20} /><span>Reactions</span></button>{showReactions && <div className="session-reactions">{['ðŸ‘', 'â¤ï¸', 'ðŸ˜‚', 'ðŸŽ‰', 'ðŸ‘', 'ðŸ’¡'].map((item) => <button type="button" key={item} onClick={() => sendReaction(item)}>{item}</button>)}<button type="button" onClick={() => { toggleHand(); setShowReactions(false); }}><Hand size={15} /> Raise hand</button></div>}</div>
+      <div className="session-reaction-wrap"><button type="button" onClick={() => setShowReactions((value) => !value)}><Smile size={20} /><span>Reactions</span></button>{showReactions && <div className="session-reactions">{reactions.map(({ id, label, Icon }) => <button type="button" key={id} aria-label={label} title={label} onClick={() => sendReaction(id)}><Icon size={18} aria-hidden="true" /></button>)}<button type="button" onClick={() => { toggleHand(); setShowReactions(false); }}><Hand size={15} /> Raise hand</button></div>}</div>
       <button type="button" className={handRaised ? 'is-active' : ''} onClick={toggleHand}><Hand size={20} /><span>Raise hand</span></button>
       <button type="button" className={showChat ? 'is-active' : ''} onClick={() => setShowChat((value) => !value)}><PanelRight size={20} /><span>Chat {unreadChat > 0 ? `(${unreadChat})` : ''}</span></button>
       <button type="button" className={showParticipants ? 'is-active' : ''} onClick={() => setShowParticipants((value) => !value)}><Users size={20} /><span>Participants {allParticipants.length}</span></button>
       {isHost && (tier === 'pro' || tier === 'elite') && <button type="button" className={showBreakouts ? 'is-active' : ''} onClick={() => setShowBreakouts((value) => !value)}><DoorOpen size={20} /><span>Breakouts</span></button>}
       <div className="session-controls__leave">{isHost ? <><button type="button" onClick={leave}>Leave</button><button type="button" className="session-end" onClick={() => setShowEndModal(true)}><Phone size={20} /><span>End for all</span></button></> : <button type="button" className="session-end" onClick={leave}><Phone size={20} /><span>Leave</span></button>}</div>
     </nav>
-    {reaction && <div className="session-floating-reaction" aria-live="polite">{reaction}</div>}
+    {activeReaction && ActiveReactionIcon && <div className="session-floating-reaction" aria-label={activeReaction.label} aria-live="polite"><ActiveReactionIcon size={28} aria-hidden="true" /></div>}
     <Modal open={showRecordingUpgrade} title="Recording is a Pro feature" onClose={() => setShowRecordingUpgrade(false)}><LockedFeatureCard feature="recording" tier={tier} subscribers={classData?.hostId?.totalActiveStudents || 0} threshold={73} /></Modal>
     <Modal open={showEndModal} title="End class for everyone" onClose={() => setShowEndModal(false)}><p>{Math.max(0, allParticipants.length - 1)} students will be disconnected.</p><div className="session-modal-actions"><button type="button" onClick={() => setShowEndModal(false)}>Cancel</button><button type="button" className="session-end" onClick={endForAll}>End for all</button></div></Modal>
     <Modal open={showSessionSummary} title="Session summary" onClose={() => setShowSessionSummary(false)}><div className="session-summary-grid"><div><span>Duration</span><strong>{formatTimer(sessionSummary?.durationSeconds || 0)}</strong></div><div><span>Peak participants</span><strong>{sessionSummary?.peakParticipants || 0}</strong></div><div><span>Chat messages</span><strong>{sessionSummary?.chatMessages || 0}</strong></div><div><span>Polls</span><strong>{sessionSummary?.pollCount || 0}</strong></div></div>{sessionSummary?.recording && <p>Recording: {sessionSummary.recording.status === 'review_hold' ? `In review â€” ready in ${Math.ceil(Math.max(0, new Date(sessionSummary.recording.reviewHoldUntil).getTime() - Date.now()) / 3600000)}h` : sessionSummary.recording.status}</p>}<div className="session-modal-actions"><button type="button" onClick={async () => { const response = await api.get(`/video/rooms/${encodeURIComponent(roomId)}/attendance.csv`, { responseType: 'blob' }); const link = document.createElement('a'); link.href = URL.createObjectURL(response.data); link.download = 'session-attendance.csv'; link.click(); URL.revokeObjectURL(link.href); }}>Export attendance</button><button type="button" className="session-primary" onClick={() => navigate(`/class/${classData?._id || classData?.id || sessionId}`)}>Back to class</button></div></Modal>
+    <Modal open={showLeaveConfirm} title="Leave the class?" onClose={() => setShowLeaveConfirm(false)}>
+      <p>Are you sure you want to leave this class?</p>
+      {leaveError && <p role="alert">{leaveError}</p>}
+      <div className="session-modal-actions">
+        <button type="button" onClick={() => setShowLeaveConfirm(false)}>Stay</button>
+        <button type="button" className="session-end" onClick={confirmLeave}>Leave</button>
+      </div>
+    </Modal>
   </div>;
 }

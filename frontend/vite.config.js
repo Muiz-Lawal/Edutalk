@@ -6,25 +6,33 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
-      manifestFilename: 'manifest.json',
-      includeAssets: ['vite.svg'],
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,jpg,jpeg,gif,json,woff2}'],
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/admin\//],
+      manifestFilename: 'manifest.webmanifest',
+      includeAssets: [
+        'vite.svg',
+        'icons/logo-192.png',
+        'icons/logo-512.png',
+        'icons/logo-192-maskable.png',
+        'icons/logo-512-maskable.png',
+        'icons/logo-192.svg',
+        'icons/logo-512.svg',
+      ],
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,woff2}'],
+        globIgnores: ['**/sw.js', '**/workbox-*.js'],
       },
       manifest: {
-        name: 'EduTalk - Live Video Classes',
+        name: 'EduTalk — Live classes',
         short_name: 'EduTalk',
-        description: 'Learn live video classes with expert instructors. Join interactive online courses with real-time progress tracking and certificates.',
+        description: 'Join live classes on EduTalk.',
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        orientation: 'portrait-primary',
-        theme_color: '#2563eb',
-        background_color: '#ffffff',
-        categories: ['education', 'productivity'],
+        theme_color: '#4F46E5',
+        background_color: '#F8FAFC',
         icons: [
           {
             src: '/icons/logo-192.png',
@@ -36,7 +44,7 @@ export default defineConfig({
             src: '/icons/logo-512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
           },
           {
             src: '/icons/logo-192-maskable.png',

@@ -7,11 +7,15 @@ export const usePWAInstall = () => {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    const dismissedAt = Number(localStorage.getItem('pwaInstallDismissedAt') || 0);
-    const dismissStillValid = dismissedAt && (Date.now() - dismissedAt) < 24 * 60 * 60 * 1000;
+    let dismissedAt = 0;
+    try {
+      dismissedAt = Number(localStorage.getItem('pwaInstallDismissedAt') || 0);
+    } catch {
+      dismissedAt = 0;
+    }
+    const dismissStillValid = dismissedAt > 0 && (Date.now() - dismissedAt) < 30 * 24 * 60 * 60 * 1000;
 
-    // Check if app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
       setIsInstalled(true);
     }
 
@@ -26,11 +30,14 @@ export const usePWAInstall = () => {
     };
 
     const handleAppInstalled = () => {
-      console.log('PWA installed');
       setIsInstalled(true);
       setInstallPrompt(null);
       setIsInstallable(false);
-      localStorage.removeItem('pwaInstallDismissedAt');
+      try {
+        localStorage.removeItem('pwaInstallDismissedAt');
+      } catch {
+        // Installation remains successful when browser storage is unavailable.
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -45,9 +52,8 @@ export const usePWAInstall = () => {
   const install = async () => {
     if (!installPrompt) return;
 
-    installPrompt.prompt();
+    await installPrompt.prompt();
     const { outcome } = await installPrompt.userChoice;
-    console.log(`User response to install prompt: ${outcome}`);
 
     setInstallPrompt(null);
     setIsInstallable(false);
