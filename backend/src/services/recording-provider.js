@@ -2,7 +2,9 @@ import crypto from 'crypto';
 import axios from 'axios';
 import { DeleteObjectCommand, GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { RtcRole, RtcTokenBuilder } from 'agora-access-token';
+import agoraToken from 'agora-access-token';
+
+const { RtcRole, RtcTokenBuilder } = agoraToken;
 
 const providerBaseUrl = process.env.RECORDING_PROVIDER_BASE_URL || 'https://videodelivery.net';
 

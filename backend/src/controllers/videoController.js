@@ -7,8 +7,10 @@ import SessionWhiteboard from '../models/SessionWhiteboard.js';
 import { SessionMessage, SessionPoll } from '../models/SessionEngagement.js';
 import Recording from '../models/Recording.js';
 import { v4 as uuidv4 } from 'uuid';
-import { RtcTokenBuilder, RtcRole } from 'agora-access-token';
+import agoraToken from 'agora-access-token';
 import { assertFeature, getHostTier, planGateResponse } from '../utils/plan-limits.js';
+
+const { RtcTokenBuilder, RtcRole } = agoraToken;
 import { getPeakAttendance, hasParticipantCapacity, isRemovalBlocked, TIER_CAP } from '../utils/videoRoomRules.js';
 
 const removalReasons = new Set(['Accidental join', 'Disruptive', 'Not enrolled']);
