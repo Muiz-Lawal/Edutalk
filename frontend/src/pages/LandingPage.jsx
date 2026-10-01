@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { CalendarDays, GraduationCap, Video, Globe, TrendingUp, ShieldCheck } from 'lucide-react';
 import '../styles/LandingPage.css';
 
 export default function LandingPage() {
@@ -30,37 +31,37 @@ export default function LandingPage() {
           <h2>Why EduTalk?</h2>
           <div className="features-grid">
             <div className="feature">
-              <div className="feature-icon" aria-hidden="true" />
+              <div className="feature-icon" aria-hidden="true"><CalendarDays size={26} strokeWidth={1.8} /></div>
               <h3>Flexible Pricing</h3>
               <p>Pay for only the days you want. Start with 1-3 days, upgrade anytime.</p>
             </div>
 
             <div className="feature">
-              <div className="feature-icon">🎓</div>
+              <div className="feature-icon" aria-hidden="true"><GraduationCap size={26} strokeWidth={1.8} /></div>
               <h3>Expert Teachers</h3>
               <p>Learn from verified professionals in any field - tech, music, fitness, and more.</p>
             </div>
 
             <div className="feature">
-              <div className="feature-icon">🎥</div>
+              <div className="feature-icon" aria-hidden="true"><Video size={26} strokeWidth={1.8} /></div>
               <h3>Live & Recorded</h3>
               <p>Join live sessions or watch recordings with AI-generated summaries and transcripts.</p>
             </div>
 
             <div className="feature">
-              <div className="feature-icon">🌍</div>
+              <div className="feature-icon" aria-hidden="true"><Globe size={26} strokeWidth={1.8} /></div>
               <h3>Global Reach</h3>
               <p>Learn in your local currency from instructors around the world.</p>
             </div>
 
             <div className="feature">
-              <div className="feature-icon" aria-hidden="true" />
+              <div className="feature-icon" aria-hidden="true"><TrendingUp size={26} strokeWidth={1.8} /></div>
               <h3>Track Progress</h3>
               <p>Monitor attendance, completion percentage, and earn certificates of completion.</p>
             </div>
 
             <div className="feature">
-              <div className="feature-icon">🔒</div>
+              <div className="feature-icon" aria-hidden="true"><ShieldCheck size={26} strokeWidth={1.8} /></div>
               <h3>Secure Access</h3>
               <p>Access codes tied to your email ensure only you can join with your paid access.</p>
             </div>

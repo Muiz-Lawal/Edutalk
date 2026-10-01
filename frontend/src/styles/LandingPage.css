@@ -32,7 +32,7 @@
 .features-grid { width: min(1040px, 100%); margin: 0 auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
 .feature { padding: 1.75rem 1.5rem; text-align: center; background: var(--app-surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-sm); }
 .feature:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
-.feature-icon { display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto .9rem; font-size: 2rem; border-radius: 16px; background: var(--primary-subtle); }
+.feature-icon { display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto .9rem; color: var(--primary); border-radius: 16px; background: var(--primary-subtle); }
 .feature h3 { margin: 0 0 .5rem; color: var(--heading); font-size: 1.05rem; }
 .feature p { margin: 0; color: var(--app-muted); line-height: 1.65; }
 
