@@ -5,7 +5,8 @@
   "description": "Admin setup script for EduTalk",
   "main": "setup-multi-admin.js",
   "scripts": {
-    "setup": "node setup-multi-admin.js"
+    "setup": "node setup-multi-admin.js",
+    "dev": "node scripts/dev.js"
   },
   "dependencies": {
     "mongoose": "^7.0.0",
